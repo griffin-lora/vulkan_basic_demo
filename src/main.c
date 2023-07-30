@@ -16,7 +16,8 @@ static const char* layers[] = {
 static bool check_layers() {
     uint32_t num_available_layers;
     vkEnumerateInstanceLayerProperties(&num_available_layers, NULL);
-    VkLayerProperties* available_layers = malloc(num_available_layers*sizeof(VkLayerProperties)); // TODO: Ugly malloc
+    
+    VkLayerProperties* available_layers = malloc(num_available_layers*sizeof(VkLayerProperties));
     vkEnumerateInstanceLayerProperties(&num_available_layers, available_layers);
 
     // TODO: This is kinda ugly
@@ -30,11 +31,44 @@ static bool check_layers() {
         }
 
         if (!found) {
+            free(available_layers);
             return false;
         }
     }
 
+    free(available_layers);
     return true;
+}
+
+static uint64_t get_graphics_queue_family_index(size_t num_queue_families, const VkQueueFamilyProperties queue_families[]) {
+    for (size_t i = 0; i < num_queue_families; i++) {
+        if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static bool is_physical_device_suitable(VkPhysicalDevice physical_device) {
+    // VkPhysicalDeviceProperties properties;
+    // vkGetPhysicalDeviceProperties(device, &properties);
+
+    // VkPhysicalDeviceFeatures features;
+    // vkGetPhysicalDeviceFeatures(device, &features);
+
+    // return properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+
+    uint32_t num_queue_families;
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, NULL);
+
+    VkQueueFamilyProperties* queue_families = malloc(num_queue_families*sizeof(VkQueueFamilyProperties));
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, queue_families);
+
+    uint64_t graphics_queue_family_index = get_graphics_queue_family_index(num_queue_families, queue_families);
+
+    free(queue_families);
+
+    return graphics_queue_family_index != -1;
 }
 
 int main() {
@@ -60,7 +94,7 @@ int main() {
         .apiVersion = VK_API_VERSION_1_0
     };
 
-    uint32_t num_extensions = 0;
+    uint32_t num_extensions;
     const char** extensions = glfwGetRequiredInstanceExtensions(&num_extensions);
 
     VkInstanceCreateInfo instance_create_info = {
@@ -76,6 +110,32 @@ int main() {
     VkInstance instance;
     if (vkCreateInstance(&instance_create_info, NULL, &instance) != VK_SUCCESS) {
         printf("Failed to create instance\n");
+        return 1;
+    }
+
+    VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+
+    uint32_t num_physical_devices;
+    vkEnumeratePhysicalDevices(instance, &num_physical_devices, NULL);
+    if (num_physical_devices == 0) {
+        printf("Failed to find physical devices with Vulkan support");
+        return 1;
+    }
+
+    VkPhysicalDevice* physical_devices = malloc(num_physical_devices*sizeof(VkPhysicalDevice));
+    vkEnumeratePhysicalDevices(instance, &num_physical_devices, physical_devices);
+
+    for (size_t i = 0; i < num_physical_devices; i++) {
+        if (is_physical_device_suitable(physical_devices[i])) {
+            physical_device = physical_devices[i];
+            break;
+        }
+    }
+
+    free(physical_devices);
+
+    if (physical_device == VK_NULL_HANDLE) {
+        printf("Failed to find a suitable physical device");
         return 1;
     }
 
