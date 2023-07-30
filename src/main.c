@@ -49,26 +49,38 @@ static uint64_t get_graphics_queue_family_index(size_t num_queue_families, const
     return -1;
 }
 
-static bool is_physical_device_suitable(VkPhysicalDevice physical_device) {
-    // VkPhysicalDeviceProperties properties;
-    // vkGetPhysicalDeviceProperties(device, &properties);
+typedef struct {
+    VkPhysicalDevice physical_device;
+    size_t graphics_queue_family_index;
+} get_physical_device_t;
 
-    // VkPhysicalDeviceFeatures features;
-    // vkGetPhysicalDeviceFeatures(device, &features);
+static get_physical_device_t get_physical_device(size_t num_physical_devices, const VkPhysicalDevice physical_devices[]) {
+    for (size_t i = 0; i < num_physical_devices; i++) {
+        VkPhysicalDevice physical_device = physical_devices[i];
 
-    // return properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+        // VkPhysicalDeviceProperties properties;
+        // vkGetPhysicalDeviceProperties(physical_device, &properties);
 
-    uint32_t num_queue_families;
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, NULL);
+        // VkPhysicalDeviceFeatures features;
+        // vkGetPhysicalDeviceFeatures(physical_device, &features);
 
-    VkQueueFamilyProperties* queue_families = malloc(num_queue_families*sizeof(VkQueueFamilyProperties));
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, queue_families);
+        // return properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
 
-    uint64_t graphics_queue_family_index = get_graphics_queue_family_index(num_queue_families, queue_families);
+        uint32_t num_queue_families;
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, NULL);
 
-    free(queue_families);
+        VkQueueFamilyProperties* queue_families = malloc(num_queue_families*sizeof(VkQueueFamilyProperties));
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, queue_families);
 
-    return graphics_queue_family_index != -1;
+        uint64_t graphics_queue_family_index = get_graphics_queue_family_index(num_queue_families, queue_families);
+
+        free(queue_families);
+
+        if (graphics_queue_family_index != -1) {
+            return (get_physical_device_t) { physical_device, graphics_queue_family_index };
+        }
+    }
+    return (get_physical_device_t) { VK_NULL_HANDLE };
 }
 
 int main() {
@@ -113,8 +125,6 @@ int main() {
         return 1;
     }
 
-    VkPhysicalDevice physical_device = VK_NULL_HANDLE;
-
     uint32_t num_physical_devices;
     vkEnumeratePhysicalDevices(instance, &num_physical_devices, NULL);
     if (num_physical_devices == 0) {
@@ -125,19 +135,49 @@ int main() {
     VkPhysicalDevice* physical_devices = malloc(num_physical_devices*sizeof(VkPhysicalDevice));
     vkEnumeratePhysicalDevices(instance, &num_physical_devices, physical_devices);
 
-    for (size_t i = 0; i < num_physical_devices; i++) {
-        if (is_physical_device_suitable(physical_devices[i])) {
-            physical_device = physical_devices[i];
-            break;
-        }
+    VkPhysicalDevice physical_device;
+    size_t graphics_queue_family_index;
+    {
+        get_physical_device_t tuple = get_physical_device(num_physical_devices, physical_devices);
+        physical_device = tuple.physical_device;
+        graphics_queue_family_index = tuple.graphics_queue_family_index;
     }
-
-    free(physical_devices);
-
     if (physical_device == VK_NULL_HANDLE) {
         printf("Failed to find a suitable physical device");
         return 1;
     }
+
+    free(physical_devices);
+    
+    float queue_priority = 1.0f;
+    VkDeviceQueueCreateInfo queue_create_info = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .queueFamilyIndex = graphics_queue_family_index,
+        .queueCount = 1,
+        .pQueuePriorities = &queue_priority
+    };
+
+    VkPhysicalDeviceFeatures features = {};
+
+    VkDeviceCreateInfo device_create_info = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos = &queue_create_info,
+        .pEnabledFeatures = &features,
+
+        .enabledExtensionCount = 0,
+        .enabledLayerCount = NUM_ELEMS(layers),
+        .ppEnabledLayerNames = layers
+    };
+
+    VkDevice device;
+    if (vkCreateDevice(physical_device, &device_create_info, NULL, &device) != VK_SUCCESS) {
+        printf("Failed to create logical device");
+        return 1;
+    }
+
+    VkQueue graphics_queue;
+    vkGetDeviceQueue(device, graphics_queue_family_index, 0, &graphics_queue);
 
     //
 
@@ -146,6 +186,7 @@ int main() {
         // draw frame
     }
 
+    vkDestroyDevice(device, NULL);
     vkDestroyInstance(instance, NULL);
 
     glfwDestroyWindow(win);
