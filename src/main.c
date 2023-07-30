@@ -361,7 +361,25 @@ int main() {
     VkImage* images = malloc(num_images*sizeof(VkImage));
     vkGetSwapchainImagesKHR(device, swapchain, &num_images, images);
 
-    
+    VkImageView* image_views = malloc(num_images*sizeof(VkImageView));
+    for (size_t i = 0; i < num_images; i++) {
+        VkImageViewCreateInfo image_view_create_info = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = images[i],
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = surface_format.format,
+            .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1
+        };
+        vkCreateImageView(device, &image_view_create_info, NULL, &image_views[i]);
+    }
 
     //
 
@@ -370,7 +388,9 @@ int main() {
         // draw frame
     }
 
-    free(images);
+    for (size_t i = 0; i < num_images; i++) {
+        vkDestroyImageView(device, image_views[i], NULL);
+    }
     
     vkDestroySwapchainKHR(device, swapchain, NULL);
     vkDestroyDevice(device, NULL);
@@ -379,6 +399,9 @@ int main() {
 
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    free(image_views);
+    free(images);
 
     return 0;
 }
