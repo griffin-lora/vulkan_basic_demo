@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "util.h"
 
 #define WIDTH 800
@@ -190,6 +192,54 @@ static VkExtent2D get_swap_extent(GLFWwindow* window, const VkSurfaceCapabilitie
     extent.height = clamp_uint32(extent.height, capabilities->maxImageExtent.height, capabilities->maxImageExtent.height);
 
     return extent;
+}
+
+typedef struct {
+    union {
+        uint32_t error;
+        uint32_t num_bytes;
+    };
+    uint32_t* bytes;
+} shader_bytecode_t;
+
+static shader_bytecode_t read_shader_bytecode(const char* path) {
+    if (access(path, F_OK) != 0) {
+        return (shader_bytecode_t) { { .error = NULL_UINT32 } };
+    }
+
+    FILE* file = fopen(path, "rb");
+    if (file == NULL) {
+        return (shader_bytecode_t) { { .error = NULL_UINT32 } };
+    }
+
+    struct stat st;
+    stat(path, &st);
+
+    uint32_t aligned_num_bytes = st.st_size % 32 == 0 ? st.st_size : st.st_size + (32 - (st.st_size % 32));
+
+    uint32_t* bytes = malloc(aligned_num_bytes);
+    memset(bytes, 0, aligned_num_bytes);
+    if (fread(bytes, st.st_size, 1, file) != 1) {
+        return (shader_bytecode_t) { { .error = NULL_UINT32 } };
+    }
+
+    fclose(file);
+
+    return (shader_bytecode_t) { { .num_bytes = st.st_size }, .bytes = bytes };
+}
+
+static VkShaderModule init_shader_module(VkDevice device, const shader_bytecode_t bytecode) {
+    VkShaderModuleCreateInfo create_info = {
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .codeSize = bytecode.num_bytes,
+        .pCode = bytecode.bytes
+    };
+
+    VkShaderModule shader_module;
+    if (vkCreateShaderModule(device, &create_info, NULL, &shader_module) != VK_SUCCESS) {
+        return VK_NULL_HANDLE;
+    }
+    return shader_module;
 }
 
 int main() {
@@ -381,12 +431,142 @@ int main() {
         vkCreateImageView(device, &image_view_create_info, NULL, &image_views[i]);
     }
 
+    const shader_bytecode_t vertex_shader_bytecode = read_shader_bytecode("shader/vertex.spv");
+    if (vertex_shader_bytecode.error == NULL_UINT32) {
+        printf("Failed to load vertex shader\n");
+        return 1;
+    }
+
+    const shader_bytecode_t fragment_shader_bytecode = read_shader_bytecode("shader/fragment.spv");
+    if (vertex_shader_bytecode.error == NULL_UINT32) {
+        printf("Failed to load fragment shader\n");
+        return 1;
+    }
+
+    VkShaderModule vertex_shader_module = init_shader_module(device, vertex_shader_bytecode);
+    if (vertex_shader_module == VK_NULL_HANDLE) {
+        printf("Failed to create vertex shader module\n");
+    }
+
+    VkShaderModule fragment_shader_module = init_shader_module(device, fragment_shader_bytecode);
+    if (fragment_shader_module == VK_NULL_HANDLE) {
+        printf("Failed to create vertex shader module\n");
+    }
+    
+    free(vertex_shader_bytecode.bytes);
+    free(fragment_shader_bytecode.bytes);
+
+    VkPipelineShaderStageCreateInfo shader_pipeline_stage_create_infos[] = {
+        {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = VK_SHADER_STAGE_VERTEX_BIT,
+            .module = vertex_shader_module,
+            .pName = "main",
+            .pSpecializationInfo = NULL
+        },
+        {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .module = fragment_shader_module,
+            .pName = "main",
+            .pSpecializationInfo = NULL
+        }
+    };
+
+    VkPipelineVertexInputStateCreateInfo vertex_input_pipeline_state_create_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .vertexBindingDescriptionCount = 0,
+        .pVertexBindingDescriptions = NULL,
+        .vertexAttributeDescriptionCount = 0,
+        .pVertexAttributeDescriptions = NULL,
+    };
+
+    VkPipelineInputAssemblyStateCreateInfo input_assembly_pipeline_state_create_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        .primitiveRestartEnable = VK_FALSE
+    };
+
+    VkPipelineViewportStateCreateInfo viewport_pipeline_state_create_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .viewportCount = 1,
+        .scissorCount = 1
+    };
+
+    VkPipelineRasterizationStateCreateInfo rasterizer_pipeline_state_create_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+        .depthClampEnable = VK_FALSE,
+        .rasterizerDiscardEnable = VK_FALSE,
+        .polygonMode = VK_POLYGON_MODE_FILL, // solid geometry, not wireframe
+        .lineWidth = 1.0f,
+        .cullMode = VK_CULL_MODE_BACK_BIT,
+        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        .depthBiasEnable = VK_FALSE
+    };
+
+    VkPipelineMultisampleStateCreateInfo multisampling_pipeline_state_create_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        .sampleShadingEnable = VK_FALSE,
+        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT
+    };
+
+    VkPipelineColorBlendAttachmentState color_blend_attachment_pipeline_state_create_info = {
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+        .blendEnable = VK_FALSE
+    };
+
+    VkPipelineColorBlendStateCreateInfo color_blend_pipeline_state_create_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .logicOpEnable = VK_FALSE,
+        .attachmentCount = 1,
+        .pAttachments = &color_blend_attachment_pipeline_state_create_info
+    };
+
+    VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+
+    VkPipelineDynamicStateCreateInfo dynamic_pipeline_state_create_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .dynamicStateCount = NUM_ELEMS(dynamic_states),
+        .pDynamicStates = dynamic_states
+    };
+
+    VkPipelineLayoutCreateInfo pipeline_layout_create_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .setLayoutCount = 0,
+        .pushConstantRangeCount = 0
+    };
+
+    VkPipelineLayout pipeline_layout;
+    if (vkCreatePipelineLayout(device, &pipeline_layout_create_info, NULL, &pipeline_layout) != VK_SUCCESS) {
+        printf("Failed to create pipeline layout");
+        return 1;
+    }
+    
+    vkDestroyShaderModule(device, vertex_shader_module, NULL);
+    vkDestroyShaderModule(device, fragment_shader_module, NULL);
+
+    VkViewport viewport = {
+        .x = 0.0f,
+        .y = 0.0f,
+        .width = swap_extent.width,
+        .height = swap_extent.height,
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
+
+    VkRect2D scissor = {
+        .offset = { 0, 0 },
+        .extent = swap_extent
+    };
+
     //
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         // draw frame
     }
+
+    vkDestroyPipelineLayout(device, pipeline_layout, NULL);
 
     for (size_t i = 0; i < num_images; i++) {
         vkDestroyImageView(device, image_views[i], NULL);
