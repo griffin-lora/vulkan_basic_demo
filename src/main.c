@@ -482,11 +482,13 @@ int main() {
     VkShaderModule vertex_shader_module = init_shader_module(device, vertex_shader_bytecode);
     if (vertex_shader_module == VK_NULL_HANDLE) {
         printf("Failed to create vertex shader module\n");
+        return 1;
     }
 
     VkShaderModule fragment_shader_module = init_shader_module(device, fragment_shader_bytecode);
     if (fragment_shader_module == VK_NULL_HANDLE) {
         printf("Failed to create vertex shader module\n");
+        return 1;
     }
     
     free(vertex_shader_bytecode.bytes);
@@ -620,6 +622,26 @@ int main() {
         .extent = swap_extent
     };
 
+    VkFramebuffer* framebuffers = malloc(num_images*sizeof(VkFramebuffer));
+    for (size_t i = 0; i < num_images; i++) {
+        VkImageView attachment = image_views[i];
+
+        VkFramebufferCreateInfo framebuffer_create_info = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .renderPass = render_pass,
+            .attachmentCount = 1,
+            .pAttachments = &attachment,
+            .width = swap_extent.width,
+            .height = swap_extent.height,
+            .layers = 1
+        };
+
+        if (vkCreateFramebuffer(device, &framebuffer_create_info, NULL, &framebuffers[i]) != VK_SUCCESS) {
+            printf("Failed to create framebuffer");
+            return 1;
+        }
+    }
+
     //
 
     while (!glfwWindowShouldClose(window)) {
@@ -633,6 +655,7 @@ int main() {
 
     for (size_t i = 0; i < num_images; i++) {
         vkDestroyImageView(device, image_views[i], NULL);
+        vkDestroyFramebuffer(device, framebuffers[i], NULL);
     }
     
     vkDestroySwapchainKHR(device, swapchain, NULL);
@@ -643,6 +666,7 @@ int main() {
     glfwDestroyWindow(window);
     glfwTerminate();
 
+    free(framebuffers);
     free(image_views);
     free(images);
 
