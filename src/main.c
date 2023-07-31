@@ -529,7 +529,7 @@ int main() {
         .scissorCount = 1
     };
 
-    VkPipelineRasterizationStateCreateInfo rasterizer_pipeline_state_create_info = {
+    VkPipelineRasterizationStateCreateInfo rasterization_pipeline_state_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         .depthClampEnable = VK_FALSE,
         .rasterizerDiscardEnable = VK_FALSE,
@@ -540,7 +540,7 @@ int main() {
         .depthBiasEnable = VK_FALSE
     };
 
-    VkPipelineMultisampleStateCreateInfo multisampling_pipeline_state_create_info = {
+    VkPipelineMultisampleStateCreateInfo multisample_pipeline_state_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .sampleShadingEnable = VK_FALSE,
         .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT
@@ -578,6 +578,31 @@ int main() {
         return 1;
     }
 
+    VkGraphicsPipelineCreateInfo pipeline_create_info = {
+        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .stageCount = 2,
+        .pStages = shader_pipeline_stage_create_infos,
+        .pVertexInputState = &vertex_input_pipeline_state_create_info,
+        .pInputAssemblyState = &input_assembly_pipeline_state_create_info,
+        .pViewportState = &viewport_pipeline_state_create_info,
+        .pRasterizationState = &rasterization_pipeline_state_create_info,
+        .pMultisampleState = &multisample_pipeline_state_create_info,
+        .pDepthStencilState = NULL,
+        .pColorBlendState = &color_blend_pipeline_state_create_info,
+        .pDynamicState = &dynamic_pipeline_state_create_info,
+        .layout = pipeline_layout,
+        .renderPass = render_pass,
+        .subpass = 0,
+        .basePipelineHandle = VK_NULL_HANDLE,
+        .basePipelineIndex = -1
+    };
+
+    VkPipeline pipeline;
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_create_info, NULL, &pipeline) != VK_SUCCESS) {
+        printf("Failed to create graphics pipeline\n");
+        return 1;
+    }
+
     vkDestroyShaderModule(device, vertex_shader_module, NULL);
     vkDestroyShaderModule(device, fragment_shader_module, NULL);
 
@@ -602,6 +627,7 @@ int main() {
         // draw frame
     }
 
+    vkDestroyPipeline(device, pipeline, NULL);
     vkDestroyPipelineLayout(device, pipeline_layout, NULL);
     vkDestroyRenderPass(device, render_pass, NULL);
 
