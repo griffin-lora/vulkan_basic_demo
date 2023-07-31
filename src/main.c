@@ -431,6 +431,42 @@ int main() {
         vkCreateImageView(device, &image_view_create_info, NULL, &image_views[i]);
     }
 
+    VkAttachmentDescription color_attachment = {
+        .format = surface_format.format,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    };
+
+    VkAttachmentReference color_attachment_reference = {
+        .attachment = 0,
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    };
+
+    VkSubpassDescription subpass = {
+        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &color_attachment_reference
+    };
+
+    VkRenderPassCreateInfo render_pass_create_info = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+        .attachmentCount = 1,
+        .pAttachments = &color_attachment,
+        .subpassCount = 1,
+        .pSubpasses = &subpass
+    };
+
+    VkRenderPass render_pass;
+    if (vkCreateRenderPass(device, &render_pass_create_info, NULL, &render_pass) != VK_SUCCESS) {
+        printf("Failed to create render pass\n");
+        return 1;
+    }
+
     const shader_bytecode_t vertex_shader_bytecode = read_shader_bytecode("shader/vertex.spv");
     if (vertex_shader_bytecode.error == NULL_UINT32) {
         printf("Failed to load vertex shader\n");
@@ -541,7 +577,7 @@ int main() {
         printf("Failed to create pipeline layout");
         return 1;
     }
-    
+
     vkDestroyShaderModule(device, vertex_shader_module, NULL);
     vkDestroyShaderModule(device, fragment_shader_module, NULL);
 
@@ -567,6 +603,7 @@ int main() {
     }
 
     vkDestroyPipelineLayout(device, pipeline_layout, NULL);
+    vkDestroyRenderPass(device, render_pass, NULL);
 
     for (size_t i = 0; i < num_images; i++) {
         vkDestroyImageView(device, image_views[i], NULL);
