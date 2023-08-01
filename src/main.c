@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "ds.h"
 #include "util.h"
 
 #define WIDTH 800
@@ -23,7 +24,7 @@ static bool check_layers() {
     uint32_t num_available_layers;
     vkEnumerateInstanceLayerProperties(&num_available_layers, NULL);
     
-    VkLayerProperties* available_layers = malloc(num_available_layers*sizeof(VkLayerProperties));
+    VkLayerProperties* available_layers = ds_promise(num_available_layers*sizeof(VkLayerProperties));
     vkEnumerateInstanceLayerProperties(&num_available_layers, available_layers);
 
     for (size_t i = 0; i < NUM_ELEMS(layers); i++) {
@@ -36,12 +37,10 @@ static bool check_layers() {
         }
 
         if (!found) {
-            free(available_layers);
             return false;
         }
     }
 
-    free(available_layers);
     return true;
 }
 
@@ -49,7 +48,7 @@ static bool check_extensions(VkPhysicalDevice physical_device) {
     uint32_t num_available_extensions;
     vkEnumerateDeviceExtensionProperties(physical_device, NULL, &num_available_extensions, NULL);
     
-    VkExtensionProperties* available_extensions = malloc(num_available_extensions*sizeof(VkExtensionProperties));
+    VkExtensionProperties* available_extensions = ds_promise(num_available_extensions*sizeof(VkExtensionProperties));
     vkEnumerateDeviceExtensionProperties(physical_device, NULL, &num_available_extensions, available_extensions);
 
     // TODO: This is kinda ugly
@@ -63,12 +62,10 @@ static bool check_extensions(VkPhysicalDevice physical_device) {
         }
 
         if (!found) {
-            free(available_extensions);
             return false;
         }
     }
 
-    free(available_extensions);
     return true;
 }
 
@@ -134,22 +131,18 @@ static get_physical_device_t get_physical_device(VkSurfaceKHR surface, size_t nu
         uint32_t num_queue_families;
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, NULL);
 
-        VkQueueFamilyProperties* queue_families = malloc(num_queue_families*sizeof(VkQueueFamilyProperties));
+        VkQueueFamilyProperties* queue_families = ds_promise(num_queue_families*sizeof(VkQueueFamilyProperties));
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, queue_families);
 
         uint64_t graphics_queue_family_index = get_graphics_queue_family_index(num_queue_families, queue_families);
         if (graphics_queue_family_index == NULL_UINT32) {
-            free(queue_families);
             continue;
         }
 
         uint64_t presentation_queue_family_index = get_presentation_queue_family_index(physical_device, surface, num_queue_families, queue_families);
         if (presentation_queue_family_index == NULL_UINT32) {
-            free(queue_families);
             break;
         }
-
-        free(queue_families);
 
         return (get_physical_device_t) { physical_device, num_surface_formats, num_present_modes, {{ graphics_queue_family_index, presentation_queue_family_index }} };
     }
@@ -199,7 +192,10 @@ typedef struct {
         uint32_t error;
         uint32_t num_bytes;
     };
-    uint32_t* bytes;
+    union {
+        void* restore_point;
+        uint32_t* bytes;
+    };
 } shader_bytecode_t;
 
 static shader_bytecode_t read_shader_bytecode(const char* path) {
@@ -217,7 +213,7 @@ static shader_bytecode_t read_shader_bytecode(const char* path) {
 
     uint32_t aligned_num_bytes = st.st_size % 32 == 0 ? st.st_size : st.st_size + (32 - (st.st_size % 32));
 
-    uint32_t* bytes = malloc(aligned_num_bytes);
+    uint32_t* bytes = ds_push(aligned_num_bytes);
     memset(bytes, 0, aligned_num_bytes);
     if (fread(bytes, st.st_size, 1, file) != 1) {
         return (shader_bytecode_t) { { .error = NULL_UINT32 } };
@@ -225,7 +221,7 @@ static shader_bytecode_t read_shader_bytecode(const char* path) {
 
     fclose(file);
 
-    return (shader_bytecode_t) { { .num_bytes = st.st_size }, .bytes = bytes };
+    return (shader_bytecode_t) { { .num_bytes = st.st_size }, { .bytes = bytes } };
 }
 
 static VkShaderModule init_shader_module(VkDevice device, const shader_bytecode_t bytecode) {
@@ -348,7 +344,7 @@ int main() {
         return 1;
     }
 
-    VkPhysicalDevice* physical_devices = malloc(num_physical_devices*sizeof(VkPhysicalDevice));
+    VkPhysicalDevice* physical_devices = ds_push(num_physical_devices*sizeof(VkPhysicalDevice));
     vkEnumeratePhysicalDevices(instance, &num_physical_devices, physical_devices);
 
     get_physical_device_t t0 = get_physical_device(surface, num_physical_devices, physical_devices);
@@ -358,7 +354,7 @@ int main() {
         return 1;
     }
 
-    free(physical_devices);
+    ds_restore(physical_devices);
 
     VkPhysicalDeviceProperties physical_device_properties;
     vkGetPhysicalDeviceProperties(t0.physical_device, &physical_device_properties);
@@ -401,19 +397,19 @@ int main() {
     VkQueue presentation_queue;
     vkGetDeviceQueue(device, t0.queue_family_indices.presentation, 0, &presentation_queue);
 
-    VkSurfaceFormatKHR* surface_formats = malloc(t0.num_surface_formats*sizeof(VkSurfaceFormatKHR));
+    VkSurfaceFormatKHR* surface_formats = ds_promise(t0.num_surface_formats*sizeof(VkSurfaceFormatKHR));
     vkGetPhysicalDeviceSurfaceFormatsKHR(t0.physical_device, surface, &t0.num_surface_formats, surface_formats);
 
     VkSurfaceFormatKHR surface_format = get_surface_format(t0.num_surface_formats, surface_formats);
 
-    free(surface_formats);
+    // surface_formats is undefined after this
 
-    VkPresentModeKHR* present_modes = malloc(t0.num_present_modes*sizeof(VkPresentModeKHR));
+    VkPresentModeKHR* present_modes = ds_promise(t0.num_present_modes*sizeof(VkPresentModeKHR));
     vkGetPhysicalDeviceSurfacePresentModesKHR(t0.physical_device, surface, &t0.num_present_modes, present_modes);
 
     VkPresentModeKHR present_mode = get_present_mode(t0.num_present_modes, present_modes);
 
-    free(present_modes);
+    // present_modes is undefined after this
 
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(t0.physical_device, surface, &capabilities);
@@ -454,32 +450,6 @@ int main() {
     if (vkCreateSwapchainKHR(device, &swapchain_create_info, NULL, &swapchain) != VK_SUCCESS) {
         printf("Failed to create swap chain\n");
         return 1;
-    }
-
-    uint32_t num_images;
-    vkGetSwapchainImagesKHR(device, swapchain, &num_images, NULL);
-
-    VkImage* images = malloc(num_images*sizeof(VkImage));
-    vkGetSwapchainImagesKHR(device, swapchain, &num_images, images);
-
-    VkImageView* image_views = malloc(num_images*sizeof(VkImageView));
-    for (size_t i = 0; i < num_images; i++) {
-        VkImageViewCreateInfo image_view_create_info = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .image = images[i],
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = surface_format.format,
-            .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .subresourceRange.baseMipLevel = 0,
-            .subresourceRange.levelCount = 1,
-            .subresourceRange.baseArrayLayer = 0,
-            .subresourceRange.layerCount = 1
-        };
-        vkCreateImageView(device, &image_view_create_info, NULL, &image_views[i]);
     }
 
     VkAttachmentDescription color_attachment = {
@@ -529,6 +499,52 @@ int main() {
         return 1;
     }
 
+    uint32_t num_images;
+    vkGetSwapchainImagesKHR(device, swapchain, &num_images, NULL);
+
+    VkImage* images = ds_push(num_images*sizeof(VkImage));
+    vkGetSwapchainImagesKHR(device, swapchain, &num_images, images);
+
+    VkImageView* image_views = ds_push(num_images*sizeof(VkImageView));
+    for (size_t i = 0; i < num_images; i++) {
+        VkImageViewCreateInfo image_view_create_info = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = images[i],
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = surface_format.format,
+            .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1
+        };
+        vkCreateImageView(device, &image_view_create_info, NULL, &image_views[i]);
+    }
+
+    VkFramebuffer* framebuffers = ds_push(num_images*sizeof(VkFramebuffer));
+    for (size_t i = 0; i < num_images; i++) {
+        VkImageView attachment = image_views[i];
+
+        VkFramebufferCreateInfo framebuffer_create_info = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .renderPass = render_pass,
+            .attachmentCount = 1,
+            .pAttachments = &attachment,
+            .width = swap_extent.width,
+            .height = swap_extent.height,
+            .layers = 1
+        };
+
+        if (vkCreateFramebuffer(device, &framebuffer_create_info, NULL, &framebuffers[i]) != VK_SUCCESS) {
+            printf("Failed to create framebuffer");
+            return 1;
+        }
+    }
+
     const shader_bytecode_t vertex_shader_bytecode = read_shader_bytecode("shader/vertex.spv");
     if (vertex_shader_bytecode.error == NULL_UINT32) {
         printf("Failed to load vertex shader\n");
@@ -553,8 +569,7 @@ int main() {
         return 1;
     }
     
-    free(vertex_shader_bytecode.bytes);
-    free(fragment_shader_bytecode.bytes);
+    ds_restore(vertex_shader_bytecode.restore_point);
 
     VkPipelineShaderStageCreateInfo shader_pipeline_stage_create_infos[] = {
         {
@@ -669,26 +684,6 @@ int main() {
 
     vkDestroyShaderModule(device, vertex_shader_module, NULL);
     vkDestroyShaderModule(device, fragment_shader_module, NULL);
-
-    VkFramebuffer* framebuffers = malloc(num_images*sizeof(VkFramebuffer));
-    for (size_t i = 0; i < num_images; i++) {
-        VkImageView attachment = image_views[i];
-
-        VkFramebufferCreateInfo framebuffer_create_info = {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = render_pass,
-            .attachmentCount = 1,
-            .pAttachments = &attachment,
-            .width = swap_extent.width,
-            .height = swap_extent.height,
-            .layers = 1
-        };
-
-        if (vkCreateFramebuffer(device, &framebuffer_create_info, NULL, &framebuffers[i]) != VK_SUCCESS) {
-            printf("Failed to create framebuffer");
-            return 1;
-        }
-    }
 
     VkCommandPoolCreateInfo command_pool_create_info = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -815,10 +810,6 @@ int main() {
 
     glfwDestroyWindow(window);
     glfwTerminate();
-
-    free(framebuffers);
-    free(image_views);
-    free(images);
 
     return 0;
 }
