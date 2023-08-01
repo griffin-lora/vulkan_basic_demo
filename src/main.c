@@ -504,12 +504,23 @@ int main() {
         .pColorAttachments = &color_attachment_reference
     };
 
+    VkSubpassDependency subpass_dependency = {
+        .srcSubpass = VK_SUBPASS_EXTERNAL,
+        .dstSubpass = 0,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .srcAccessMask = 0,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+    };
+
     VkRenderPassCreateInfo render_pass_create_info = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         .attachmentCount = 1,
         .pAttachments = &color_attachment,
         .subpassCount = 1,
-        .pSubpasses = &subpass
+        .pSubpasses = &subpass,
+        .dependencyCount = 1,
+        .pDependencies = &subpass_dependency
     };
 
     VkRenderPass render_pass;
@@ -704,16 +715,92 @@ int main() {
         return 1;
     }
 
+    VkSemaphoreCreateInfo semaphore_create_info = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO  
+    };
+
+    VkFenceCreateInfo fence_create_info = {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO  
+    };
+
+    VkSemaphore image_available_semaphore;
+    VkSemaphore render_finished_semaphore;
+    VkFence in_flight_fence;
+
+    if (
+        vkCreateSemaphore(device, &semaphore_create_info, NULL, &image_available_semaphore) != VK_SUCCESS ||
+        vkCreateSemaphore(device, &semaphore_create_info, NULL, &render_finished_semaphore) != VK_SUCCESS ||
+        vkCreateFence(device, &fence_create_info, NULL, &in_flight_fence) != VK_SUCCESS
+    ) {
+        printf("Failed to create synchronization primitives\n");
+        return 1;
+    }
+
+    bool first_frame = true;
+
     //
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         // draw frame
+
+        if (!first_frame) {
+            vkWaitForFences(device, 1, &in_flight_fence, VK_TRUE, UINT64_MAX);
+            vkResetFences(device, 1, &in_flight_fence);
+        }
+
+        uint32_t image_index;
+        vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphore, VK_NULL_HANDLE, &image_index);
+
+        vkResetCommandBuffer(command_buffer, 0);
+        if (!write_command_buffer(swap_extent, render_pass, pipeline, framebuffers, command_buffer, image_index)) {
+            printf("Failed to write to the command buffer\n");
+            return 1;
+        }
+
+        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+        VkSubmitInfo submit_info = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &image_available_semaphore,
+            .pWaitDstStageMask = &wait_stage,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &command_buffer,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores = &render_finished_semaphore
+        };
+
+        if (vkQueueSubmit(graphics_queue, 1, &submit_info, in_flight_fence) != VK_SUCCESS) {
+            printf("Failed to submit draw command buffer");
+            return 1;
+        }
+
+        VkPresentInfoKHR present_info = {
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores = &render_finished_semaphore,
+            .swapchainCount = 1,
+            .pSwapchains = &swapchain,
+            .pImageIndices = &image_index
+        };
+
+        vkQueuePresentKHR(presentation_queue, &present_info);
+
+        first_frame = false;
     }
 
+    vkDeviceWaitIdle(device);
+
+    vkDestroySemaphore(device, image_available_semaphore, NULL);
+    vkDestroySemaphore(device, render_finished_semaphore, NULL);
+    vkDestroyFence(device, in_flight_fence, NULL);
+
     vkDestroyCommandPool(device, command_pool, NULL);
+
     vkDestroyPipeline(device, pipeline, NULL);
     vkDestroyPipelineLayout(device, pipeline_layout, NULL);
+
     vkDestroyRenderPass(device, render_pass, NULL);
 
     for (size_t i = 0; i < num_images; i++) {
