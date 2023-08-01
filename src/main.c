@@ -242,6 +242,57 @@ static VkShaderModule init_shader_module(VkDevice device, const shader_bytecode_
     return shader_module;
 }
 
+static bool write_command_buffer(VkExtent2D swap_extent, VkRenderPass render_pass, VkPipeline pipeline, const VkFramebuffer framebuffers[], VkCommandBuffer command_buffer, size_t image_index) {
+    VkCommandBufferBeginInfo command_buffer_begin_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
+    };
+
+    if (vkBeginCommandBuffer(command_buffer, &command_buffer_begin_info) != VK_SUCCESS) {
+        return false;
+    }
+
+    VkClearValue clear_color = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
+
+    VkRenderPassBeginInfo render_pass_begin_info = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass = render_pass,
+        .framebuffer = framebuffers[image_index],
+        .renderArea.offset = { 0, 0 },
+        .renderArea.extent = swap_extent,
+        .clearValueCount = 1,
+        .pClearValues = &clear_color
+    };
+
+    vkCmdBeginRenderPass(command_buffer, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+    VkViewport viewport = {
+        .x = 0.0f,
+        .y = 0.0f,
+        .width = swap_extent.width,
+        .height = swap_extent.height,
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
+    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+    VkRect2D scissor = {
+        .offset = { 0, 0 },
+        .extent = swap_extent
+    };
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+    vkCmdDraw(command_buffer, 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(command_buffer);
+
+    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+        return false;
+    }
+
+    return true;
+}
+
 int main() {
     glfwInit();
 
@@ -608,20 +659,6 @@ int main() {
     vkDestroyShaderModule(device, vertex_shader_module, NULL);
     vkDestroyShaderModule(device, fragment_shader_module, NULL);
 
-    VkViewport viewport = {
-        .x = 0.0f,
-        .y = 0.0f,
-        .width = swap_extent.width,
-        .height = swap_extent.height,
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f
-    };
-
-    VkRect2D scissor = {
-        .offset = { 0, 0 },
-        .extent = swap_extent
-    };
-
     VkFramebuffer* framebuffers = malloc(num_images*sizeof(VkFramebuffer));
     for (size_t i = 0; i < num_images; i++) {
         VkImageView attachment = image_views[i];
@@ -642,6 +679,31 @@ int main() {
         }
     }
 
+    VkCommandPoolCreateInfo command_pool_create_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+        .queueFamilyIndex = t0.queue_family_indices.graphics
+    };
+
+    VkCommandPool command_pool;
+    if (vkCreateCommandPool(device, &command_pool_create_info, NULL, &command_pool) != VK_SUCCESS) {
+        printf("Failed to create command pool");
+        return 1;
+    }
+
+    VkCommandBufferAllocateInfo command_buffer_allocate_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = command_pool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1
+    };
+
+    VkCommandBuffer command_buffer;
+    if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, &command_buffer) != VK_SUCCESS) {
+        printf("Failed to allocate command buffers");
+        return 1;
+    }
+
     //
 
     while (!glfwWindowShouldClose(window)) {
@@ -649,6 +711,7 @@ int main() {
         // draw frame
     }
 
+    vkDestroyCommandPool(device, command_pool, NULL);
     vkDestroyPipeline(device, pipeline, NULL);
     vkDestroyPipelineLayout(device, pipeline_layout, NULL);
     vkDestroyRenderPass(device, render_pass, NULL);
