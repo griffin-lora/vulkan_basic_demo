@@ -1,0 +1,21 @@
+#include "core.h"
+
+GLFWwindow* window;
+VkDevice device;
+VkSemaphore image_available_semaphore;
+VkSemaphore render_finished_semaphore;
+VkFence in_flight_fence;
+VkCommandPool command_pool;
+VkPipeline pipeline;
+VkPipelineLayout pipeline_layout;
+VkRenderPass render_pass;
+uint32_t num_swapchain_images;
+VkImageView* swapchain_image_views;
+VkFramebuffer* swapchain_framebuffers;
+VkSwapchainKHR swapchain;
+VkInstance instance;
+VkSurfaceKHR surface;
+VkExtent2D swap_image_extent;
+VkQueue graphics_queue;
+VkQueue presentation_queue;
+VkCommandBuffer command_buffer;
