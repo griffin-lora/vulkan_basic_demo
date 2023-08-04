@@ -1,5 +1,4 @@
 #include "core.h"
-#include "render_pass.h"
 #include "gfx_pipeline.h"
 #include <stdalign.h>
 #include <assert.h>

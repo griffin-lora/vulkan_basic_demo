@@ -1,6 +1,5 @@
 #include "render.h"
 #include "core.h"
-#include "render_pass.h"
 #include "gfx_pipeline.h"
 #include "result.h"
 

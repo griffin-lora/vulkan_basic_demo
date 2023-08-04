@@ -2,7 +2,6 @@
 #include "ds.h"
 #include "util.h"
 #include "result.h"
-#include "render_pass.h"
 #include "gfx_pipeline.h"
 #include <stdbool.h>
 #include <string.h>
@@ -353,7 +352,7 @@ const char* init_vulkan_core() {
         return "Failed to create swap chain\n";
     }
 
-    const char* msg = init_vulkan_render_pass(surface_format.format);
+    const char* msg = init_vulkan_graphics_pipeline(surface_format.format);
     if (msg != NULL) {
         return msg;
     }
@@ -400,11 +399,6 @@ const char* init_vulkan_core() {
         if (vkCreateFramebuffer(device, &framebuffer_create_info, NULL, &swapchain_framebuffers[i]) != VK_SUCCESS) {
             return "Failed to create framebuffer\n";
         }
-    }
-
-    msg = init_vulkan_graphics_pipeline();
-    if (msg != NULL) {
-        return msg;
     }
 
     VkCommandPoolCreateInfo command_pool_create_info = {
