@@ -78,7 +78,7 @@ static uint32_t get_graphics_queue_family_index(size_t num_queue_families, const
     return NULL_UINT32;
 }
 
-static uint32_t get_presentation_queue_family_index(VkPhysicalDevice physical_device, VkSurfaceKHR surface, size_t num_queue_families, const VkQueueFamilyProperties queue_families[]) {
+static uint32_t get_presentation_queue_family_index(VkPhysicalDevice physical_device, size_t num_queue_families, const VkQueueFamilyProperties queue_families[]) {
     for (size_t i = 0; i < num_queue_families; i++) {
         if (!(queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
             continue;
@@ -106,7 +106,7 @@ typedef struct {
     } queue_family_indices;
 } get_physical_device_t;
 
-static get_physical_device_t get_physical_device(VkSurfaceKHR surface, size_t num_physical_devices, const VkPhysicalDevice physical_devices[]) {
+static get_physical_device_t get_physical_device(size_t num_physical_devices, const VkPhysicalDevice physical_devices[]) {
     for (size_t i = 0; i < num_physical_devices; i++) {
         VkPhysicalDevice physical_device = physical_devices[i];
         
@@ -139,7 +139,7 @@ static get_physical_device_t get_physical_device(VkSurfaceKHR surface, size_t nu
             continue;
         }
 
-        uint64_t presentation_queue_family_index = get_presentation_queue_family_index(physical_device, surface, num_queue_families, queue_families);
+        uint64_t presentation_queue_family_index = get_presentation_queue_family_index(physical_device, num_queue_families, queue_families);
         if (presentation_queue_family_index == NULL_UINT32) {
             break;
         }
@@ -171,7 +171,7 @@ static VkPresentModeKHR get_present_mode(size_t num_present_modes, const VkPrese
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-static VkExtent2D get_swap_image_extent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR* capabilities) {
+static VkExtent2D get_swap_image_extent(const VkSurfaceCapabilitiesKHR* capabilities) {
     if (capabilities->currentExtent.width != NULL_UINT32) {
         return capabilities->currentExtent;
     }
@@ -239,7 +239,7 @@ const char* init_vulkan_core() {
     VkPhysicalDevice* physical_devices = ds_push(num_physical_devices*sizeof(VkPhysicalDevice));
     vkEnumeratePhysicalDevices(instance, &num_physical_devices, physical_devices);
 
-    get_physical_device_t t0 = get_physical_device(surface, num_physical_devices, physical_devices);
+    get_physical_device_t t0 = get_physical_device(num_physical_devices, physical_devices);
     
     if (t0.physical_device == VK_NULL_HANDLE) {
         return "Failed to find a suitable physical device\n";
@@ -316,7 +316,7 @@ const char* init_vulkan_core() {
 
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(t0.physical_device, surface, &capabilities);
-    swap_image_extent = get_swap_image_extent(window, &capabilities);
+    swap_image_extent = get_swap_image_extent(&capabilities);
 
     uint32_t min_num_swapchain_images = capabilities.minImageCount + 1;
     if (capabilities.maxImageCount > 0) {
