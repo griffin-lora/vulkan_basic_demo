@@ -28,7 +28,14 @@ VkQueue presentation_queue;
 
 VkPipelineLayout pipeline_layout;
 VkCommandPool command_pool;
+VkImage* swapchain_images;
 VkImageView* swapchain_image_views;
 
 // alignas(64)
 uint32_t num_swapchain_images;
+
+VkPhysicalDevice physical_device;
+queue_family_indices_t queue_family_indices;
+VkSurfaceFormatKHR surface_format;
+VkPresentModeKHR present_mode;
+bool framebuffer_resized = false;

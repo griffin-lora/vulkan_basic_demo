@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-int main() {
+int main(void) {
     const char* msg = init_vulkan_core();
     if (msg != NULL) {
         printf("%s", msg);

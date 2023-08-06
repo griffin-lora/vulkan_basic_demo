@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-static VkShaderModule init_shader_module(const char* path) {
+static VkShaderModule create_shader_module(const char* path) {
     if (access(path, F_OK) != 0) {
         return VK_NULL_HANDLE;
     }
@@ -21,7 +21,7 @@ static VkShaderModule init_shader_module(const char* path) {
     struct stat st;
     stat(path, &st);
 
-    size_t aligned_num_bytes = st.st_size % 32 == 0 ? st.st_size : st.st_size + (32 - (st.st_size % 32));
+    size_t aligned_num_bytes = st.st_size % 32ul == 0 ? st.st_size : st.st_size + (32ul - (st.st_size % 32ul));
 
     uint32_t* bytes = ds_promise(aligned_num_bytes);
     memset(bytes, 0, aligned_num_bytes);
@@ -87,12 +87,12 @@ const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
         return "Failed to create render pass\n";
     }
 
-    VkShaderModule vertex_shader_module = init_shader_module("shader/vertex.spv");
+    VkShaderModule vertex_shader_module = create_shader_module("shader/vertex.spv");
     if (vertex_shader_module == VK_NULL_HANDLE) {
         return "Failed to create vertex shader module\n";
     }
 
-    VkShaderModule fragment_shader_module = init_shader_module("shader/fragment.spv");
+    VkShaderModule fragment_shader_module = create_shader_module("shader/fragment.spv");
     if (fragment_shader_module == VK_NULL_HANDLE) {
         return "Failed to create vertex shader module\n";
     }
