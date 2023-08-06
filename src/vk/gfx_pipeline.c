@@ -42,6 +42,8 @@ static VkShaderModule create_shader_module(const char* path) {
 }
 
 const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
+    //
+    
     VkAttachmentDescription color_attachment = {
         .format = surface_format,
         .samples = VK_SAMPLE_COUNT_1_BIT,
@@ -73,19 +75,23 @@ const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
         .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
     };
 
-    VkRenderPassCreateInfo info = {
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-        .attachmentCount = 1,
-        .pAttachments = &color_attachment,
-        .subpassCount = 1,
-        .pSubpasses = &subpass,
-        .dependencyCount = 1,
-        .pDependencies = &subpass_dependency
-    };
+    {
+        VkRenderPassCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            .attachmentCount = 1,
+            .pAttachments = &color_attachment,
+            .subpassCount = 1,
+            .pSubpasses = &subpass,
+            .dependencyCount = 1,
+            .pDependencies = &subpass_dependency
+        };
 
-    if (vkCreateRenderPass(device, &info, NULL, &render_pass) != VK_SUCCESS) {
-        return "Failed to create render pass\n";
+        if (vkCreateRenderPass(device, &info, NULL, &render_pass) != VK_SUCCESS) {
+            return "Failed to create render pass\n";
+        }
     }
+
+    //
 
     VkShaderModule vertex_shader_module = create_shader_module("shader/vertex.spv");
     if (vertex_shader_module == VK_NULL_HANDLE) {
@@ -113,6 +119,8 @@ const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
             .pSpecializationInfo = NULL
         }
     };
+
+    //
 
     VkPipelineVertexInputStateCreateInfo vertex_input_pipeline_state_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -171,37 +179,41 @@ const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
         .pDynamicStates = dynamic_states
     };
 
-    VkPipelineLayoutCreateInfo pipeline_layout_create_info = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 0,
-        .pushConstantRangeCount = 0
-    };
+    {
+        VkPipelineLayoutCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = 0,
+            .pushConstantRangeCount = 0
+        };
 
-    if (vkCreatePipelineLayout(device, &pipeline_layout_create_info, NULL, &pipeline_layout) != VK_SUCCESS) {
-        return "Failed to create pipeline layout\n";
+        if (vkCreatePipelineLayout(device, &info, NULL, &pipeline_layout) != VK_SUCCESS) {
+            return "Failed to create pipeline layout\n";
+        }
     }
 
-    VkGraphicsPipelineCreateInfo pipeline_create_info = {
-        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        .stageCount = 2,
-        .pStages = shader_pipeline_stage_create_infos,
-        .pVertexInputState = &vertex_input_pipeline_state_create_info,
-        .pInputAssemblyState = &input_assembly_pipeline_state_create_info,
-        .pViewportState = &viewport_pipeline_state_create_info,
-        .pRasterizationState = &rasterization_pipeline_state_create_info,
-        .pMultisampleState = &multisample_pipeline_state_create_info,
-        .pDepthStencilState = NULL,
-        .pColorBlendState = &color_blend_pipeline_state_create_info,
-        .pDynamicState = &dynamic_pipeline_state_create_info,
-        .layout = pipeline_layout,
-        .renderPass = render_pass,
-        .subpass = 0,
-        .basePipelineHandle = VK_NULL_HANDLE,
-        .basePipelineIndex = -1
-    };
+    {
+        VkGraphicsPipelineCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+            .stageCount = 2,
+            .pStages = shader_pipeline_stage_create_infos,
+            .pVertexInputState = &vertex_input_pipeline_state_create_info,
+            .pInputAssemblyState = &input_assembly_pipeline_state_create_info,
+            .pViewportState = &viewport_pipeline_state_create_info,
+            .pRasterizationState = &rasterization_pipeline_state_create_info,
+            .pMultisampleState = &multisample_pipeline_state_create_info,
+            .pDepthStencilState = NULL,
+            .pColorBlendState = &color_blend_pipeline_state_create_info,
+            .pDynamicState = &dynamic_pipeline_state_create_info,
+            .layout = pipeline_layout,
+            .renderPass = render_pass,
+            .subpass = 0,
+            .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineIndex = -1
+        };
 
-    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_create_info, NULL, &pipeline) != VK_SUCCESS) {
-        return "Failed to create graphics pipeline\n";
+        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, NULL, &pipeline) != VK_SUCCESS) {
+            return "Failed to create graphics pipeline\n";
+        }
     }
 
     vkDestroyShaderModule(device, vertex_shader_module, NULL);
