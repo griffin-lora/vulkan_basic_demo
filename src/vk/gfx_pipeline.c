@@ -8,57 +8,37 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-
-
-typedef struct {
-    union {
-        uint32_t error;
-        uint32_t num_bytes;
-    };
-    union {
-        void* restore_point;
-        uint32_t* bytes;
-    };
-} shader_bytecode_t;
-
-static shader_bytecode_t read_shader_bytecode(const char* path) {
+static VkShaderModule init_shader_module(const char* path) {
     if (access(path, F_OK) != 0) {
-        return (shader_bytecode_t) { { .error = NULL_UINT32 } };
+        return VK_NULL_HANDLE;
     }
 
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
-        return (shader_bytecode_t) { { .error = NULL_UINT32 } };
+        return VK_NULL_HANDLE;
     }
 
     struct stat st;
     stat(path, &st);
 
-    uint32_t aligned_num_bytes = st.st_size % 32 == 0 ? st.st_size : st.st_size + (32 - (st.st_size % 32));
+    size_t aligned_num_bytes = st.st_size % 32 == 0 ? st.st_size : st.st_size + (32 - (st.st_size % 32));
 
-    uint32_t* bytes = ds_push(aligned_num_bytes);
+    uint32_t* bytes = ds_promise(aligned_num_bytes);
     memset(bytes, 0, aligned_num_bytes);
     if (fread(bytes, st.st_size, 1, file) != 1) {
-        return (shader_bytecode_t) { { .error = NULL_UINT32 } };
+        return VK_NULL_HANDLE;
     }
 
     fclose(file);
 
-    return (shader_bytecode_t) { { .num_bytes = st.st_size }, { .bytes = bytes } };
-}
-
-static VkShaderModule init_shader_module(const shader_bytecode_t bytecode) {
-    VkShaderModuleCreateInfo create_info = {
+    VkShaderModuleCreateInfo info = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .codeSize = bytecode.num_bytes,
-        .pCode = bytecode.bytes
+        .codeSize = st.st_size,
+        .pCode = bytes
     };
 
     VkShaderModule shader_module;
-    if (vkCreateShaderModule(device, &create_info, NULL, &shader_module) != VK_SUCCESS) {
-        return VK_NULL_HANDLE;
-    }
-    return shader_module;
+    return vkCreateShaderModule(device, &info, NULL, &shader_module) == VK_SUCCESS ? shader_module : VK_NULL_HANDLE;
 }
 
 const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
@@ -107,28 +87,16 @@ const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
         return "Failed to create render pass\n";
     }
 
-    const shader_bytecode_t vertex_shader_bytecode = read_shader_bytecode("shader/vertex.spv");
-    if (vertex_shader_bytecode.error == NULL_UINT32) {
-        return "Failed to load vertex shader\n";
-    }
-
-    const shader_bytecode_t fragment_shader_bytecode = read_shader_bytecode("shader/fragment.spv");
-    if (vertex_shader_bytecode.error == NULL_UINT32) {
-        return "Failed to load fragment shader\n";
-    }
-
-    VkShaderModule vertex_shader_module = init_shader_module(vertex_shader_bytecode);
+    VkShaderModule vertex_shader_module = init_shader_module("shader/vertex.spv");
     if (vertex_shader_module == VK_NULL_HANDLE) {
         return "Failed to create vertex shader module\n";
     }
 
-    VkShaderModule fragment_shader_module = init_shader_module(fragment_shader_bytecode);
+    VkShaderModule fragment_shader_module = init_shader_module("shader/fragment.spv");
     if (fragment_shader_module == VK_NULL_HANDLE) {
         return "Failed to create vertex shader module\n";
     }
     
-    ds_restore(vertex_shader_bytecode.restore_point);
-
     VkPipelineShaderStageCreateInfo shader_pipeline_stage_create_infos[] = {
         {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
