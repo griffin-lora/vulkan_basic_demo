@@ -3,7 +3,17 @@
 #include "gfx_pipeline.h"
 #include "result.h"
 
+static uint32_t frame_index = 0;
+
 const char* draw_vulkan_frame() {
+    VkSemaphore image_available_semaphore = image_available_semaphores[frame_index];
+    VkSemaphore render_finished_semaphore = render_finished_semaphores[frame_index];
+    VkCommandBuffer command_buffer = command_buffers[frame_index];
+    VkFence in_flight_fence = in_flight_fences[frame_index];
+
+    frame_index += 1;
+    frame_index %= NUM_FRAMES_IN_FLIGHT;
+
     vkWaitForFences(device, 1, &in_flight_fence, VK_TRUE, UINT64_MAX);
     vkResetFences(device, 1, &in_flight_fence);
 

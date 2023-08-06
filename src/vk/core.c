@@ -288,12 +288,14 @@ const char* init_vulkan_core() {
         .flags = VK_FENCE_CREATE_SIGNALED_BIT
     };
 
-    if (
-        vkCreateSemaphore(device, &semaphore_create_info, NULL, &image_available_semaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(device, &semaphore_create_info, NULL, &render_finished_semaphore) != VK_SUCCESS ||
-        vkCreateFence(device, &fence_create_info, NULL, &in_flight_fence) != VK_SUCCESS
-    ) {
-        return "Failed to create synchronization primitives\n";
+    for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
+        if (
+            vkCreateSemaphore(device, &semaphore_create_info, NULL, &image_available_semaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &semaphore_create_info, NULL, &render_finished_semaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &fence_create_info, NULL, &in_flight_fences[i]) != VK_SUCCESS
+        ) {
+            return "Failed to create synchronization primitives\n";
+        }
     }
 
     vkGetDeviceQueue(device, t0.queue_family_indices.graphics, 0, &graphics_queue);
@@ -415,10 +417,10 @@ const char* init_vulkan_core() {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .commandPool = command_pool,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1
+        .commandBufferCount = NUM_FRAMES_IN_FLIGHT
     };
 
-    if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, &command_buffer) != VK_SUCCESS) {
+    if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, command_buffers) != VK_SUCCESS) {
         return "Failed to allocate command buffers\n";
     }
 
@@ -428,9 +430,11 @@ const char* init_vulkan_core() {
 void term_vulkan_all() {
     vkDeviceWaitIdle(device);
 
-    vkDestroySemaphore(device, image_available_semaphore, NULL);
-    vkDestroySemaphore(device, render_finished_semaphore, NULL);
-    vkDestroyFence(device, in_flight_fence, NULL);
+    for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
+        vkDestroySemaphore(device, image_available_semaphores[i], NULL);
+        vkDestroySemaphore(device, render_finished_semaphores[i], NULL);
+        vkDestroyFence(device, in_flight_fences[i], NULL);
+    }
 
     vkDestroyCommandPool(device, command_pool, NULL);
 
