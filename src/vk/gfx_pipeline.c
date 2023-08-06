@@ -7,6 +7,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <cglm/struct/vec2.h>
+#include <cglm/struct/vec3.h>
 
 static VkShaderModule create_shader_module(const char* path) {
     if (access(path, F_OK) != 0) {
@@ -40,6 +42,11 @@ static VkShaderModule create_shader_module(const char* path) {
     VkShaderModule shader_module;
     return vkCreateShaderModule(device, &info, NULL, &shader_module) == VK_SUCCESS ? shader_module : VK_NULL_HANDLE;
 }
+
+typedef struct {
+    vec2s position;
+    vec3s color;
+} vertex_t;
 
 const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
     //
@@ -122,13 +129,42 @@ const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
 
     //
 
+    vertex_t vertices[] = {
+        { {{ 0.0f, -0.5f }}, {{ 1.0f, 0.0f, 0.0f }} },
+        { {{ 0.5f, 0.5f }}, {{ 0.0f, 1.0f, 0.0f }} },
+        { {{ -0.5f, 0.5f }}, {{ 0.0f, 0.0f, 1.0f }} }
+    };
+
+    VkVertexInputBindingDescription vertex_input_binding_description = {
+        .binding = 0,
+        .stride = sizeof(vertex_t),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    };
+
+    VkVertexInputAttributeDescription vertex_input_attribute_descriptions[] = {
+        {
+            .binding = 0,
+            .location = 0,
+            .format = VK_FORMAT_R32G32_SFLOAT,
+            .offset = offsetof(vertex_t, position)
+        },
+        {
+            .binding = 0,
+            .location = 1,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = offsetof(vertex_t, color)
+        }
+    };
+
     VkPipelineVertexInputStateCreateInfo vertex_input_pipeline_state_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        .vertexBindingDescriptionCount = 0,
-        .pVertexBindingDescriptions = NULL,
-        .vertexAttributeDescriptionCount = 0,
-        .pVertexAttributeDescriptions = NULL,
+        .vertexBindingDescriptionCount = 1,
+        .pVertexBindingDescriptions = &vertex_input_binding_description,
+        .vertexAttributeDescriptionCount = 2,
+        .pVertexAttributeDescriptions = vertex_input_attribute_descriptions,
     };
+
+    //
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly_pipeline_state_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
