@@ -439,7 +439,7 @@ const char* init_vulkan_core(void) {
         return "Failed to create swap chain\n";
     }
 
-    const char* msg = init_vulkan_graphics_pipeline(surface_format.format);
+    const char* msg = init_vulkan_graphics_pipeline();
     if (msg != NULL) {
         return msg;
     }
@@ -494,6 +494,9 @@ void term_vulkan_all(void) {
     vkDestroyRenderPass(device, render_pass, NULL);
     
     term_swapchain();
+
+    vkDestroyBuffer(device, vertex_buffer, NULL);
+    vkFreeMemory(device, vertex_buffer_memory, NULL);
 
     vkDestroyDevice(device, NULL);
     vkDestroySurfaceKHR(instance, surface, NULL);

@@ -7,8 +7,6 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <cglm/struct/vec2.h>
-#include <cglm/struct/vec3.h>
 
 static VkShaderModule create_shader_module(const char* path) {
     if (access(path, F_OK) != 0) {
@@ -43,16 +41,24 @@ static VkShaderModule create_shader_module(const char* path) {
     return vkCreateShaderModule(device, &info, NULL, &shader_module) == VK_SUCCESS ? shader_module : VK_NULL_HANDLE;
 }
 
-typedef struct {
-    vec2s position;
-    vec3s color;
-} vertex_t;
+static uint32_t get_memory_type_index(uint32_t memory_type_bits, VkMemoryPropertyFlags property_flags) {
+    VkPhysicalDeviceMemoryProperties properties;
+    vkGetPhysicalDeviceMemoryProperties(physical_device, &properties);
 
-const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
+    for (uint32_t i = 0; i < properties.memoryTypeCount; i++) {
+        if ((memory_type_bits & (1u << i)) && (properties.memoryTypes[i].propertyFlags & property_flags) == property_flags) {
+            return i;
+        }
+    }
+
+    return NULL_UINT32;
+}
+
+const char* init_vulkan_graphics_pipeline(void) {
     //
     
     VkAttachmentDescription color_attachment = {
-        .format = surface_format,
+        .format = surface_format.format,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -128,12 +134,6 @@ const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
     };
 
     //
-
-    vertex_t vertices[] = {
-        { {{ 0.0f, -0.5f }}, {{ 1.0f, 0.0f, 0.0f }} },
-        { {{ 0.5f, 0.5f }}, {{ 0.0f, 1.0f, 0.0f }} },
-        { {{ -0.5f, 0.5f }}, {{ 0.0f, 0.0f, 1.0f }} }
-    };
 
     VkVertexInputBindingDescription vertex_input_binding_description = {
         .binding = 0,
@@ -254,6 +254,44 @@ const char* init_vulkan_graphics_pipeline(VkFormat surface_format) {
 
     vkDestroyShaderModule(device, vertex_shader_module, NULL);
     vkDestroyShaderModule(device, fragment_shader_module, NULL);
+
+    //
+
+    {
+        VkBufferCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size = sizeof(vertices),
+            .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE
+        };
+
+        if (vkCreateBuffer(device, &info, NULL, &vertex_buffer) != VK_SUCCESS) {
+            return "Failed to create vertex buffer\n";
+        }
+    }
+
+    {
+        VkMemoryRequirements requirements;
+        vkGetBufferMemoryRequirements(device, vertex_buffer, &requirements);
+
+        VkMemoryAllocateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .allocationSize = requirements.size,
+            .memoryTypeIndex = get_memory_type_index(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+        };
+
+        if (vkAllocateMemory(device, &info, NULL, &vertex_buffer_memory) != VK_SUCCESS) {
+            return "Failed to allocate vertex buffer memory\n";
+        }
+    }
+
+    vkBindBufferMemory(device, vertex_buffer, vertex_buffer_memory, 0);
+    void* mapped_vertices;
+    vkMapMemory(device, vertex_buffer_memory, 0, sizeof(vertices), 0, &mapped_vertices);
+    memcpy(mapped_vertices, vertices, sizeof(vertices));
+    vkUnmapMemory(device, vertex_buffer_memory);
+
+    //
 
     return NULL;
 }

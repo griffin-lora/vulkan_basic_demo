@@ -2,6 +2,7 @@
 #include "core.h"
 #include "gfx_pipeline.h"
 #include "result.h"
+#include "util.h"
 
 static uint32_t frame_index = 0;
 
@@ -58,6 +59,9 @@ const char* draw_vulkan_frame(void) {
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
+    VkDeviceSize offset = 0;
+    vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, &offset);
+
     VkViewport viewport = {
         .x = 0.0f,
         .y = 0.0f,
@@ -74,7 +78,7 @@ const char* draw_vulkan_frame(void) {
     };
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    vkCmdDraw(command_buffer, 3, 1, 0, 0);
+    vkCmdDraw(command_buffer, NUM_ELEMS(vertices), 1, 0, 0);
 
     vkCmdEndRenderPass(command_buffer);
 

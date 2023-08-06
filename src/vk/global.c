@@ -39,3 +39,12 @@ queue_family_indices_t queue_family_indices;
 VkSurfaceFormatKHR surface_format;
 VkPresentModeKHR present_mode;
 bool framebuffer_resized = false;
+
+VkBuffer vertex_buffer;
+VkDeviceMemory vertex_buffer_memory;
+
+const vertex_t vertices[3] = {
+    { {{ 0.0f, -0.5f }}, {{ 1.0f, 0.0f, 0.0f }} },
+    { {{ 0.5f, 0.5f }}, {{ 0.0f, 1.0f, 0.0f }} },
+    { {{ -0.5f, 0.5f }}, {{ 0.0f, 0.0f, 1.0f }} }
+};
