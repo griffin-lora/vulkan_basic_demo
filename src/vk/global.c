@@ -43,8 +43,14 @@ bool framebuffer_resized = false;
 VkBuffer vertex_buffer;
 VkDeviceMemory vertex_buffer_memory;
 
-const vertex_t vertices[3] = {
-    { {{ 0.0f, -0.5f }}, {{ 1.0f, 0.0f, 0.0f }} },
-    { {{ 0.5f, 0.5f }}, {{ 0.0f, 1.0f, 0.0f }} },
-    { {{ -0.5f, 0.5f }}, {{ 0.0f, 0.0f, 1.0f }} }
+VkBuffer index_buffer;
+VkDeviceMemory index_buffer_memory;
+
+const vertex_t vertices[4] = {
+    { {{ -0.5f, -0.5f }}, {{ 1.0f, 0.0f, 0.0f }} },
+    { {{ 0.5f, -0.5f }}, {{ 0.0f, 1.0f, 0.0f }} },
+    { {{ 0.5f, 0.5f }}, {{ 0.0f, 0.0f, 1.0f }} },
+    { {{ -0.5f, 0.5f }}, {{ 1.0f, 1.0f, 1.0f }} }
 };
+
+const uint16_t vertex_indices[6] = { 0, 1, 2, 2, 3, 0 };

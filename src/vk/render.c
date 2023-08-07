@@ -62,6 +62,8 @@ const char* draw_vulkan_frame(void) {
     VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffer, &offset);
 
+    vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
+
     VkViewport viewport = {
         .x = 0.0f,
         .y = 0.0f,
@@ -78,7 +80,7 @@ const char* draw_vulkan_frame(void) {
     };
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    vkCmdDraw(command_buffer, NUM_ELEMS(vertices), 1, 0, 0);
+    vkCmdDrawIndexed(command_buffer, NUM_ELEMS(vertex_indices), 1, 0, 0, 0);
 
     vkCmdEndRenderPass(command_buffer);
 

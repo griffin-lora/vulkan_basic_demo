@@ -497,6 +497,8 @@ void term_vulkan_all(void) {
 
     vkDestroyBuffer(device, vertex_buffer, NULL);
     vkFreeMemory(device, vertex_buffer_memory, NULL);
+    vkDestroyBuffer(device, index_buffer, NULL);
+    vkFreeMemory(device, index_buffer_memory, NULL);
 
     vkDestroyDevice(device, NULL);
     vkDestroySurfaceKHR(instance, surface, NULL);

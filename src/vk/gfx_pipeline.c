@@ -54,6 +54,7 @@ static uint32_t get_memory_type_index(uint32_t memory_type_bits, VkMemoryPropert
     return NULL_UINT32;
 }
 
+// TODO: Use VulkanMemoryAllocator
 static result_t create_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VkDeviceMemory* buffer_memory) {
     {
         VkBufferCreateInfo info = {
@@ -292,23 +293,38 @@ const char* init_vulkan_graphics_pipeline(void) {
     vkDestroyShaderModule(device, fragment_shader_module, NULL);
 
     //
+    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
+        return "Failed to create vertex buffer\n";
+    }
+    if (create_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
+        return "Failed to create index buffer\n";
+    }
 
-    VkBuffer staging_buffer;
-    VkDeviceMemory staging_buffer_memory;
-    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &staging_buffer, &staging_buffer_memory) != result_success) {
-        return "Failed to create vertex stagng buffer\n";
+    VkBuffer vertex_staging_buffer;
+    VkDeviceMemory vertex_staging_buffer_memory;
+    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_memory) != result_success) {
+        return "Failed to create vertex staging buffer\n";
     }
 
     void* mapped_vertices;
-    if (vkMapMemory(device, staging_buffer_memory, 0, sizeof(vertices), 0, &mapped_vertices) != VK_SUCCESS) {
+    if (vkMapMemory(device, vertex_staging_buffer_memory, 0, sizeof(vertices), 0, &mapped_vertices) != VK_SUCCESS) {
         return "Failed to map vertex staging buffer memory\n";
     }
     memcpy(mapped_vertices, vertices, sizeof(vertices));
-    vkUnmapMemory(device, staging_buffer_memory);
+    vkUnmapMemory(device, vertex_staging_buffer_memory);
 
-    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
-        return "Failed to create vertex staging buffer\n";
+    VkBuffer index_staging_buffer;
+    VkDeviceMemory index_staging_buffer_memory;
+    if (create_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
+        return "Failed to create index staging buffer\n";
     }
+
+    void* mapped_vertex_indices;
+    if (vkMapMemory(device, index_staging_buffer_memory, 0, sizeof(vertex_indices), 0, &mapped_vertex_indices) != VK_SUCCESS) {
+        return "Failed to map index staging buffer memory\n";
+    }
+    memcpy(mapped_vertex_indices, vertex_indices, sizeof(vertex_indices));
+    vkUnmapMemory(device, index_staging_buffer_memory);
 
     VkCommandBuffer command_buffer;
     {
@@ -340,7 +356,15 @@ const char* init_vulkan_graphics_pipeline(void) {
             .dstOffset = 0,
             .size = sizeof(vertices)
         };
-        vkCmdCopyBuffer(command_buffer, staging_buffer, vertex_buffer, 1, &region);
+        vkCmdCopyBuffer(command_buffer, vertex_staging_buffer, vertex_buffer, 1, &region);
+    }
+    {
+        VkBufferCopy region = {
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size = sizeof(vertex_indices)
+        };
+        vkCmdCopyBuffer(command_buffer, index_staging_buffer, index_buffer, 1, &region);
     }
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
@@ -361,10 +385,10 @@ const char* init_vulkan_graphics_pipeline(void) {
 
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 
-    vkDestroyBuffer(device, staging_buffer, NULL);
-    vkFreeMemory(device, staging_buffer_memory, NULL);
-
-
+    vkDestroyBuffer(device, vertex_staging_buffer, NULL);
+    vkFreeMemory(device, vertex_staging_buffer_memory, NULL);
+    vkDestroyBuffer(device, index_staging_buffer, NULL);
+    vkFreeMemory(device, index_staging_buffer_memory, NULL);
 
     //
 
