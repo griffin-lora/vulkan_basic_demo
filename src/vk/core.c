@@ -7,8 +7,8 @@
 #include <string.h>
 #include <stdio.h>
 
-#define WIDTH 800
-#define HEIGHT 600
+#define WIDTH 640
+#define HEIGHT 480
 
 static const char* layers[] = {
     "VK_LAYER_KHRONOS_validation"
@@ -439,20 +439,6 @@ const char* init_vulkan_core(void) {
         return "Failed to create swap chain\n";
     }
 
-    const char* msg = init_vulkan_graphics_pipeline();
-    if (msg != NULL) {
-        return msg;
-    }
-
-    vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, NULL);
-    swapchain_images = ds_push(num_swapchain_images*sizeof(VkImage));
-    swapchain_image_views = ds_push(num_swapchain_images*sizeof(VkImageView));
-    swapchain_framebuffers = ds_push(num_swapchain_images*sizeof(VkFramebuffer));
-
-    if (init_swapchain_framebuffers() != result_success) {
-        return "Failed to create framebuffer\n";
-    }
-
     VkCommandPoolCreateInfo command_pool_create_info = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
@@ -470,8 +456,22 @@ const char* init_vulkan_core(void) {
         .commandBufferCount = NUM_FRAMES_IN_FLIGHT
     };
 
-    if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, command_buffers) != VK_SUCCESS) {
+    if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, render_command_buffers) != VK_SUCCESS) {
         return "Failed to allocate command buffers\n";
+    }
+
+    const char* msg = init_vulkan_graphics_pipeline();
+    if (msg != NULL) {
+        return msg;
+    }
+
+    vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, NULL);
+    swapchain_images = ds_push(num_swapchain_images*sizeof(VkImage));
+    swapchain_image_views = ds_push(num_swapchain_images*sizeof(VkImageView));
+    swapchain_framebuffers = ds_push(num_swapchain_images*sizeof(VkFramebuffer));
+
+    if (init_swapchain_framebuffers() != result_success) {
+        return "Failed to create framebuffer\n";
     }
 
     return NULL;

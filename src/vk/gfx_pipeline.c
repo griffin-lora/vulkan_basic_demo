@@ -54,6 +54,42 @@ static uint32_t get_memory_type_index(uint32_t memory_type_bits, VkMemoryPropert
     return NULL_UINT32;
 }
 
+static result_t create_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VkDeviceMemory* buffer_memory) {
+    {
+        VkBufferCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .size = num_buffer_bytes,
+            .usage = usage,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE
+        };
+
+        if (vkCreateBuffer(device, &info, NULL, buffer) != VK_SUCCESS) {
+            return result_success;
+        }
+    }
+
+    {
+        VkMemoryRequirements requirements;
+        vkGetBufferMemoryRequirements(device, *buffer, &requirements);
+
+        VkMemoryAllocateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .allocationSize = requirements.size,
+            .memoryTypeIndex = get_memory_type_index(requirements.memoryTypeBits, property_flags)
+        };
+
+        if (vkAllocateMemory(device, &info, NULL, buffer_memory) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    if (vkBindBufferMemory(device, *buffer, *buffer_memory, 0) != VK_SUCCESS) {
+        return result_failure;
+    }
+
+    return result_success;
+}
+
 const char* init_vulkan_graphics_pipeline(void) {
     //
     
@@ -257,39 +293,78 @@ const char* init_vulkan_graphics_pipeline(void) {
 
     //
 
-    {
-        VkBufferCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .size = sizeof(vertices),
-            .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE
-        };
-
-        if (vkCreateBuffer(device, &info, NULL, &vertex_buffer) != VK_SUCCESS) {
-            return "Failed to create vertex buffer\n";
-        }
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_buffer_memory;
+    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &staging_buffer, &staging_buffer_memory) != result_success) {
+        return "Failed to create vertex stagng buffer\n";
     }
 
-    {
-        VkMemoryRequirements requirements;
-        vkGetBufferMemoryRequirements(device, vertex_buffer, &requirements);
-
-        VkMemoryAllocateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .allocationSize = requirements.size,
-            .memoryTypeIndex = get_memory_type_index(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
-        };
-
-        if (vkAllocateMemory(device, &info, NULL, &vertex_buffer_memory) != VK_SUCCESS) {
-            return "Failed to allocate vertex buffer memory\n";
-        }
-    }
-
-    vkBindBufferMemory(device, vertex_buffer, vertex_buffer_memory, 0);
     void* mapped_vertices;
-    vkMapMemory(device, vertex_buffer_memory, 0, sizeof(vertices), 0, &mapped_vertices);
+    if (vkMapMemory(device, staging_buffer_memory, 0, sizeof(vertices), 0, &mapped_vertices) != VK_SUCCESS) {
+        return "Failed to map vertex staging buffer memory\n";
+    }
     memcpy(mapped_vertices, vertices, sizeof(vertices));
-    vkUnmapMemory(device, vertex_buffer_memory);
+    vkUnmapMemory(device, staging_buffer_memory);
+
+    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
+        return "Failed to create vertex staging buffer\n";
+    }
+
+    VkCommandBuffer command_buffer;
+    {
+        VkCommandBufferAllocateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandPool = command_pool, // TODO: Use separate command pool
+            .commandBufferCount = 1
+        };
+
+        if (vkAllocateCommandBuffers(device, &info, &command_buffer) != VK_SUCCESS) {
+            return "Failed to create transfer command buffer\n";
+        }
+    }
+
+    {
+        VkCommandBufferBeginInfo info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+        };
+        if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
+            return "Failed to write to transfer command buffer\n";
+        }
+    }
+
+    {
+        VkBufferCopy region = {
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size = sizeof(vertices)
+        };
+        vkCmdCopyBuffer(command_buffer, staging_buffer, vertex_buffer, 1, &region);
+    }
+
+    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+        return "Failed to write to transfer command buffer\n";
+    }
+
+    {
+        VkSubmitInfo info = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &command_buffer
+        };
+
+        // TODO: Use a fence
+        vkQueueSubmit(graphics_queue, 1, &info, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphics_queue);
+    }
+
+    vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+
+    vkDestroyBuffer(device, staging_buffer, NULL);
+    vkFreeMemory(device, staging_buffer_memory, NULL);
+
+
 
     //
 

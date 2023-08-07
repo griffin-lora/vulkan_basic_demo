@@ -9,7 +9,7 @@ static uint32_t frame_index = 0;
 const char* draw_vulkan_frame(void) {
     VkSemaphore image_available_semaphore = image_available_semaphores[frame_index];
     VkSemaphore render_finished_semaphore = render_finished_semaphores[frame_index];
-    VkCommandBuffer command_buffer = command_buffers[frame_index];
+    VkCommandBuffer command_buffer = render_command_buffers[frame_index];
     VkFence in_flight_fence = in_flight_fences[frame_index];
 
     frame_index += 1;

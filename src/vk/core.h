@@ -32,7 +32,7 @@ extern VkSurfaceKHR surface;
 extern VkExtent2D swap_image_extent;
 extern VkQueue graphics_queue;
 extern VkQueue presentation_queue;
-extern VkCommandBuffer command_buffers[];
+extern VkCommandBuffer render_command_buffers[];
 extern bool framebuffer_resized;
 
 void reinit_swapchain(void);
