@@ -143,6 +143,198 @@ const char* init_vulkan_graphics_pipeline(void) {
 
     //
 
+
+    //
+    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
+        return "Failed to create vertex buffer\n";
+    }
+    if (create_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
+        return "Failed to create index buffer\n";
+    }
+
+    VkBuffer vertex_staging_buffer;
+    VkDeviceMemory vertex_staging_buffer_memory;
+    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_memory) != result_success) {
+        return "Failed to create vertex staging buffer\n";
+    }
+
+    void* mapped_vertices;
+    if (vkMapMemory(device, vertex_staging_buffer_memory, 0, sizeof(vertices), 0, &mapped_vertices) != VK_SUCCESS) {
+        return "Failed to map vertex staging buffer memory\n";
+    }
+    memcpy(mapped_vertices, vertices, sizeof(vertices));
+    vkUnmapMemory(device, vertex_staging_buffer_memory);
+
+    VkBuffer index_staging_buffer;
+    VkDeviceMemory index_staging_buffer_memory;
+    if (create_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
+        return "Failed to create index staging buffer\n";
+    }
+
+    void* mapped_vertex_indices;
+    if (vkMapMemory(device, index_staging_buffer_memory, 0, sizeof(vertex_indices), 0, &mapped_vertex_indices) != VK_SUCCESS) {
+        return "Failed to map index staging buffer memory\n";
+    }
+    memcpy(mapped_vertex_indices, vertex_indices, sizeof(vertex_indices));
+    vkUnmapMemory(device, index_staging_buffer_memory);
+
+    VkCommandBuffer command_buffer;
+    {
+        VkCommandBufferAllocateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandPool = command_pool, // TODO: Use separate command pool
+            .commandBufferCount = 1
+        };
+
+        if (vkAllocateCommandBuffers(device, &info, &command_buffer) != VK_SUCCESS) {
+            return "Failed to create transfer command buffer\n";
+        }
+    }
+
+    {
+        VkCommandBufferBeginInfo info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+        };
+        if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
+            return "Failed to write to transfer command buffer\n";
+        }
+    }
+
+    {
+        VkBufferCopy region = {
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size = sizeof(vertices)
+        };
+        vkCmdCopyBuffer(command_buffer, vertex_staging_buffer, vertex_buffer, 1, &region);
+    }
+    {
+        VkBufferCopy region = {
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size = sizeof(vertex_indices)
+        };
+        vkCmdCopyBuffer(command_buffer, index_staging_buffer, index_buffer, 1, &region);
+    }
+
+    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+        return "Failed to write to transfer command buffer\n";
+    }
+
+    {
+        VkSubmitInfo info = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &command_buffer
+        };
+
+        // TODO: Use a fence
+        vkQueueSubmit(graphics_queue, 1, &info, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphics_queue);
+    }
+
+    vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+
+    vkDestroyBuffer(device, vertex_staging_buffer, NULL);
+    vkFreeMemory(device, vertex_staging_buffer_memory, NULL);
+    vkDestroyBuffer(device, index_staging_buffer, NULL);
+    vkFreeMemory(device, index_staging_buffer_memory, NULL);
+
+    //
+
+    for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
+        if (create_buffer(sizeof(clip_space_matrix), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniform_buffers[i], &uniform_buffers_memory[i]) != result_success) {
+            return "Failed to create uniform buffer\n";
+        }
+        if (vkMapMemory(device, uniform_buffers_memory[i], 0, sizeof(clip_space_matrix), 0, &mapped_clip_space_matrices[i]) != VK_SUCCESS) {
+            return "Failed to map uniform buffer memory\n";
+        }
+    }
+
+    //
+
+    //
+
+    VkDescriptorSetLayoutBinding uniform_buffer_layout_binding = {
+        .binding = 0,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .pImmutableSamplers = NULL
+    };
+
+    {
+        VkDescriptorSetLayoutCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = 1,
+            .pBindings = &uniform_buffer_layout_binding
+        };
+
+        if (vkCreateDescriptorSetLayout(device, &info, NULL, &descriptor_set_layout) != VK_SUCCESS) {
+            return "Failed to create descriptor set layout\n";
+        }
+    }
+
+    {
+        VkDescriptorPoolSize size = {
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = NUM_FRAMES_IN_FLIGHT
+        };
+
+        VkDescriptorPoolCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .poolSizeCount = 1,
+            .pPoolSizes = &size,
+            .maxSets = NUM_FRAMES_IN_FLIGHT
+        };
+
+        if (vkCreateDescriptorPool(device, &info, NULL, &descriptor_pool) != VK_SUCCESS) {
+            return "Failed to create descriptor pool\n";
+        }
+    }
+
+    {
+        VkDescriptorSetLayout layouts[NUM_FRAMES_IN_FLIGHT];
+        for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
+            layouts[i] = descriptor_set_layout;
+        }
+
+        VkDescriptorSetAllocateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .descriptorPool = descriptor_pool,
+            .descriptorSetCount = NUM_FRAMES_IN_FLIGHT,
+            .pSetLayouts = layouts
+        };
+
+        if (vkAllocateDescriptorSets(device, &info, descriptor_sets) != VK_SUCCESS) {
+            return "Failed to allocate descriptor sets\n";
+        }
+    }
+
+    for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
+        VkDescriptorBufferInfo info = {
+            .buffer = uniform_buffers[i],
+            .offset = 0,
+            .range = sizeof(clip_space_matrix)
+        };
+
+        VkWriteDescriptorSet write = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = descriptor_sets[i],
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .descriptorCount = 1,
+            .pBufferInfo = &info
+        };
+
+        vkUpdateDescriptorSets(device, 1, &write, 0, NULL);
+    }
+
+    //
+
     VkShaderModule vertex_shader_module = create_shader_module("shader/vertex.spv");
     if (vertex_shader_module == VK_NULL_HANDLE) {
         return "Failed to create vertex shader module\n";
@@ -255,8 +447,8 @@ const char* init_vulkan_graphics_pipeline(void) {
     {
         VkPipelineLayoutCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 0,
-            .pushConstantRangeCount = 0
+            .setLayoutCount = 1,
+            .pSetLayouts = &descriptor_set_layout
         };
 
         if (vkCreatePipelineLayout(device, &info, NULL, &pipeline_layout) != VK_SUCCESS) {
@@ -291,106 +483,6 @@ const char* init_vulkan_graphics_pipeline(void) {
 
     vkDestroyShaderModule(device, vertex_shader_module, NULL);
     vkDestroyShaderModule(device, fragment_shader_module, NULL);
-
-    //
-    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
-        return "Failed to create vertex buffer\n";
-    }
-    if (create_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
-        return "Failed to create index buffer\n";
-    }
-
-    VkBuffer vertex_staging_buffer;
-    VkDeviceMemory vertex_staging_buffer_memory;
-    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_memory) != result_success) {
-        return "Failed to create vertex staging buffer\n";
-    }
-
-    void* mapped_vertices;
-    if (vkMapMemory(device, vertex_staging_buffer_memory, 0, sizeof(vertices), 0, &mapped_vertices) != VK_SUCCESS) {
-        return "Failed to map vertex staging buffer memory\n";
-    }
-    memcpy(mapped_vertices, vertices, sizeof(vertices));
-    vkUnmapMemory(device, vertex_staging_buffer_memory);
-
-    VkBuffer index_staging_buffer;
-    VkDeviceMemory index_staging_buffer_memory;
-    if (create_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
-        return "Failed to create index staging buffer\n";
-    }
-
-    void* mapped_vertex_indices;
-    if (vkMapMemory(device, index_staging_buffer_memory, 0, sizeof(vertex_indices), 0, &mapped_vertex_indices) != VK_SUCCESS) {
-        return "Failed to map index staging buffer memory\n";
-    }
-    memcpy(mapped_vertex_indices, vertex_indices, sizeof(vertex_indices));
-    vkUnmapMemory(device, index_staging_buffer_memory);
-
-    VkCommandBuffer command_buffer;
-    {
-        VkCommandBufferAllocateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandPool = command_pool, // TODO: Use separate command pool
-            .commandBufferCount = 1
-        };
-
-        if (vkAllocateCommandBuffers(device, &info, &command_buffer) != VK_SUCCESS) {
-            return "Failed to create transfer command buffer\n";
-        }
-    }
-
-    {
-        VkCommandBufferBeginInfo info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-        };
-        if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
-            return "Failed to write to transfer command buffer\n";
-        }
-    }
-
-    {
-        VkBufferCopy region = {
-            .srcOffset = 0,
-            .dstOffset = 0,
-            .size = sizeof(vertices)
-        };
-        vkCmdCopyBuffer(command_buffer, vertex_staging_buffer, vertex_buffer, 1, &region);
-    }
-    {
-        VkBufferCopy region = {
-            .srcOffset = 0,
-            .dstOffset = 0,
-            .size = sizeof(vertex_indices)
-        };
-        vkCmdCopyBuffer(command_buffer, index_staging_buffer, index_buffer, 1, &region);
-    }
-
-    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-        return "Failed to write to transfer command buffer\n";
-    }
-
-    {
-        VkSubmitInfo info = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &command_buffer
-        };
-
-        // TODO: Use a fence
-        vkQueueSubmit(graphics_queue, 1, &info, VK_NULL_HANDLE);
-        vkQueueWaitIdle(graphics_queue);
-    }
-
-    vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
-
-    vkDestroyBuffer(device, vertex_staging_buffer, NULL);
-    vkFreeMemory(device, vertex_staging_buffer_memory, NULL);
-    vkDestroyBuffer(device, index_staging_buffer, NULL);
-    vkFreeMemory(device, index_staging_buffer_memory, NULL);
-
-    //
 
     return NULL;
 }

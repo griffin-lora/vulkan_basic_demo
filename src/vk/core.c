@@ -480,12 +480,6 @@ const char* init_vulkan_core(void) {
 void term_vulkan_all(void) {
     vkDeviceWaitIdle(device);
 
-    for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-        vkDestroySemaphore(device, image_available_semaphores[i], NULL);
-        vkDestroySemaphore(device, render_finished_semaphores[i], NULL);
-        vkDestroyFence(device, in_flight_fences[i], NULL);
-    }
-
     vkDestroyCommandPool(device, command_pool, NULL);
 
     vkDestroyPipeline(device, pipeline, NULL);
@@ -494,6 +488,17 @@ void term_vulkan_all(void) {
     vkDestroyRenderPass(device, render_pass, NULL);
     
     term_swapchain();
+
+    for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
+        vkDestroySemaphore(device, image_available_semaphores[i], NULL);
+        vkDestroySemaphore(device, render_finished_semaphores[i], NULL);
+        vkDestroyFence(device, in_flight_fences[i], NULL);
+        vkDestroyBuffer(device, uniform_buffers[i], NULL);
+        vkFreeMemory(device, uniform_buffers_memory[i], NULL);
+    }
+
+    vkDestroyDescriptorPool(device, descriptor_pool, NULL);
+    vkDestroyDescriptorSetLayout(device, descriptor_set_layout, NULL);
 
     vkDestroyBuffer(device, vertex_buffer, NULL);
     vkFreeMemory(device, vertex_buffer_memory, NULL);

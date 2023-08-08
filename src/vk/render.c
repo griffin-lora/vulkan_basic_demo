@@ -3,6 +3,10 @@
 #include "gfx_pipeline.h"
 #include "result.h"
 #include "util.h"
+#include <cglm/struct/cam.h>
+#include <string.h>
+
+#define M_TAU (GLM_PI * 2)
 
 static uint32_t frame_index = 0;
 
@@ -27,6 +31,19 @@ const char* draw_vulkan_frame(void) {
         } else if (result != VK_SUCCESS) {
             return "Failed to acquire swapchain image";
         }
+    }
+
+    {   
+        int width;
+        int height;
+        glfwGetFramebufferSize(window, &width, &height);
+
+        mat4s projection = glms_perspective(M_TAU / 5.0f, (float)width/(float)height, 0.01f, 300.0f);
+        mat4s view = glms_look((vec3s){{ 0.0f, 0.0f, 1.0f }}, (vec3s){{ 0.0f, 0.0f, -1.0f }}, (vec3s){{ 0.0f, 1.0f, 0.0f }});
+
+        clip_space_matrix = glms_mat4_mul(projection, view);
+        
+        memcpy(mapped_clip_space_matrices[frame_index], &clip_space_matrix, sizeof(clip_space_matrix));
     }
 
     vkResetCommandBuffer(command_buffer, 0);
@@ -64,6 +81,8 @@ const char* draw_vulkan_frame(void) {
 
     vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
 
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[frame_index], 0, NULL);
+
     VkViewport viewport = {
         .x = 0.0f,
         .y = 0.0f,
@@ -90,9 +109,9 @@ const char* draw_vulkan_frame(void) {
 
     //
 
-    VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
     {
+        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        
         VkSubmitInfo info = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .waitSemaphoreCount = 1,

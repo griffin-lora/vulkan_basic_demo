@@ -3,6 +3,8 @@
 #include <stdalign.h>
 #include <assert.h>
 
+// TODO: Fix this mess
+
 alignas(64)
 VkInstance instance;
 VkSurfaceKHR surface;
@@ -46,6 +48,10 @@ VkDeviceMemory vertex_buffer_memory;
 VkBuffer index_buffer;
 VkDeviceMemory index_buffer_memory;
 
+VkBuffer uniform_buffers[NUM_FRAMES_IN_FLIGHT];
+VkDeviceMemory uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];
+void* mapped_clip_space_matrices[NUM_FRAMES_IN_FLIGHT];
+
 const vertex_t vertices[4] = {
     { {{ -0.5f, -0.5f }}, {{ 1.0f, 0.0f, 0.0f }} },
     { {{ 0.5f, -0.5f }}, {{ 0.0f, 1.0f, 0.0f }} },
@@ -54,3 +60,9 @@ const vertex_t vertices[4] = {
 };
 
 const uint16_t vertex_indices[6] = { 0, 1, 2, 2, 3, 0 };
+
+mat4s clip_space_matrix;
+
+VkDescriptorSetLayout descriptor_set_layout;
+VkDescriptorPool descriptor_pool;
+VkDescriptorSet descriptor_sets[NUM_FRAMES_IN_FLIGHT];
