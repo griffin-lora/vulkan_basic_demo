@@ -6,7 +6,7 @@
 #include <cglm/struct/vec3.h>
 
 typedef struct {
-    vec2s position;
+    vec3s position;
     vec3s color;
 } vertex_t;
 
