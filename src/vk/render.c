@@ -34,15 +34,11 @@ const char* draw_vulkan_frame(void) {
     }
 
     {   
-        int width;
-        int height;
-        glfwGetFramebufferSize(window, &width, &height);
-
-        mat4s projection = glms_perspective(M_TAU / 5.0f, (float)width/(float)height, 0.01f, 300.0f);
-        mat4s view = glms_look((vec3s){{ 0.0f, 0.0f, 1.0f }}, (vec3s){{ 0.0f, 0.0f, -1.0f }}, (vec3s){{ 0.0f, 1.0f, 0.0f }});
+        mat4s projection = glms_perspective(M_TAU / 5.0f, (float)swap_image_extent.width/(float)swap_image_extent.height, 0.01f, 300.0f);
+        mat4s view = glms_look((vec3s){{ 0.5f, 1.0f, 1.0f }}, (vec3s){{ -0.5f, -1.0f, -1.0f }}, (vec3s){{ 0.0f, 1.0f, 0.0f }});
 
         clip_space_matrix = glms_mat4_mul(projection, view);
-        
+
         memcpy(mapped_clip_space_matrices[frame_index], &clip_space_matrix, sizeof(clip_space_matrix));
     }
 
