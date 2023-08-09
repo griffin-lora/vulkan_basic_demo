@@ -434,31 +434,31 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     }
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-        if (init_buffer(sizeof(clip_space_matrix), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniform_buffers[i], &uniform_buffers_memory[i]) != result_success) {
+        if (init_buffer(sizeof(clip_space), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &clip_space_uniform_buffers[i], &clip_space_uniform_buffers_memory[i]) != result_success) {
             return "Failed to create uniform buffer\n";
         }
-        if (vkMapMemory(device, uniform_buffers_memory[i], 0, sizeof(clip_space_matrix), 0, &mapped_clip_space_matrices[i]) != VK_SUCCESS) {
+        if (vkMapMemory(device, clip_space_uniform_buffers_memory[i], 0, sizeof(clip_space), 0, &mapped_clip_spaces[i]) != VK_SUCCESS) {
             return "Failed to map uniform buffer memory\n";
         }
     }
 
     //
 
-    //
-
-    VkDescriptorSetLayoutBinding uniform_buffer_layout_binding = {
-        .binding = 0,
-        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        .descriptorCount = 1,
-        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-        .pImmutableSamplers = NULL
-    };
-
     {
+        VkDescriptorSetLayoutBinding bindings[] = {
+            {
+                .binding = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                .pImmutableSamplers = NULL
+            }
+        };
+
         VkDescriptorSetLayoutCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             .bindingCount = 1,
-            .pBindings = &uniform_buffer_layout_binding
+            .pBindings = bindings
         };
 
         if (vkCreateDescriptorSetLayout(device, &info, NULL, &descriptor_set_layout) != VK_SUCCESS) {
@@ -504,9 +504,9 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
         VkDescriptorBufferInfo info = {
-            .buffer = uniform_buffers[i],
+            .buffer = clip_space_uniform_buffers[i],
             .offset = 0,
-            .range = sizeof(clip_space_matrix)
+            .range = sizeof(clip_space)
         };
 
         VkWriteDescriptorSet write = {

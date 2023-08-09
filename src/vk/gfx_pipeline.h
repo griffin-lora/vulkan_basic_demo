@@ -25,13 +25,13 @@ extern VkDeviceMemory index_buffer_memory;
 extern VkImage texture_image;
 extern VkDeviceMemory texture_image_memory;
 
-extern VkBuffer uniform_buffers[NUM_FRAMES_IN_FLIGHT];
-extern VkDeviceMemory uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];
-extern void* mapped_clip_space_matrices[NUM_FRAMES_IN_FLIGHT];
+extern VkBuffer clip_space_uniform_buffers[NUM_FRAMES_IN_FLIGHT];
+extern VkDeviceMemory clip_space_uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];
+extern void* mapped_clip_spaces[NUM_FRAMES_IN_FLIGHT];
 
 extern const vertex_t vertices[4];
 extern const uint16_t vertex_indices[6];
-extern mat4s clip_space_matrix;
+extern mat4s clip_space;
 
 extern VkImageView texture_image_view;
 extern VkSampler texture_image_sampler;

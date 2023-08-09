@@ -51,9 +51,9 @@ VkDeviceMemory index_buffer_memory;
 VkImage texture_image;
 VkDeviceMemory texture_image_memory;
 
-VkBuffer uniform_buffers[NUM_FRAMES_IN_FLIGHT];
-VkDeviceMemory uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];
-void* mapped_clip_space_matrices[NUM_FRAMES_IN_FLIGHT];
+VkBuffer clip_space_uniform_buffers[NUM_FRAMES_IN_FLIGHT];
+VkDeviceMemory clip_space_uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];
+void* mapped_clip_spaces[NUM_FRAMES_IN_FLIGHT];
 
 const vertex_t vertices[4] = {
     { {{ -0.5f, -0.5f, 0.0f }}, {{ 1.0f, 0.0f, 0.0f }} },
@@ -64,7 +64,7 @@ const vertex_t vertices[4] = {
 
 const uint16_t vertex_indices[6] = { 0, 1, 2, 2, 3, 0 };
 
-mat4s clip_space_matrix;
+mat4s clip_space;
 
 VkDescriptorSetLayout descriptor_set_layout;
 VkDescriptorPool descriptor_pool;

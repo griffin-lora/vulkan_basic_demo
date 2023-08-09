@@ -501,8 +501,8 @@ void term_vulkan_all(void) {
         vkDestroySemaphore(device, image_available_semaphores[i], NULL);
         vkDestroySemaphore(device, render_finished_semaphores[i], NULL);
         vkDestroyFence(device, in_flight_fences[i], NULL);
-        vkDestroyBuffer(device, uniform_buffers[i], NULL);
-        vkFreeMemory(device, uniform_buffers_memory[i], NULL);
+        vkDestroyBuffer(device, clip_space_uniform_buffers[i], NULL);
+        vkFreeMemory(device, clip_space_uniform_buffers_memory[i], NULL);
     }
 
     vkDestroyDescriptorPool(device, descriptor_pool, NULL);
