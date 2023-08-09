@@ -30,8 +30,8 @@ extern VkBuffer clip_space_uniform_buffers[NUM_FRAMES_IN_FLIGHT];
 extern VkDeviceMemory clip_space_uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];
 extern void* mapped_clip_spaces[NUM_FRAMES_IN_FLIGHT];
 
-extern const vertex_t vertices[4];
-extern const uint16_t vertex_indices[6];
+extern const vertex_t vertices[8];
+extern const uint16_t vertex_indices[12];
 extern mat4s clip_space;
 
 extern VkImageView texture_image_view;

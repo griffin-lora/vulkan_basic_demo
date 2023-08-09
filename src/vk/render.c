@@ -3,6 +3,7 @@
 #include "gfx_pipeline.h"
 #include "result.h"
 #include "util.h"
+#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/cam.h>
 #include <string.h>
 
@@ -35,7 +36,7 @@ const char* draw_vulkan_frame(void) {
 
     {   
         mat4s projection = glms_perspective(M_TAU / 5.0f, (float)swap_image_extent.width/(float)swap_image_extent.height, 0.01f, 300.0f);
-        mat4s view = glms_look((vec3s){{ 0.5f, 1.0f, 1.0f }}, (vec3s){{ -0.5f, -1.0f, -1.0f }}, (vec3s){{ 0.0f, 1.0f, 0.0f }});
+        mat4s view = glms_look((vec3s){{ -0.5f, 1.0f, 1.0f }}, (vec3s){{ 0.5f, -1.0f, -1.0f }}, (vec3s){{ 0.0f, 1.0f, 0.0f }});
 
         clip_space = glms_mat4_mul(projection, view);
 

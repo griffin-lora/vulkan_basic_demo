@@ -3,6 +3,7 @@
 #include "util.h"
 #include "result.h"
 #include "gfx_pipeline.h"
+#include "gfx_core.h"
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
@@ -17,7 +18,6 @@ static const char* layers[] = {
 static const char* extensions[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
-
 
 static result_t check_layers(void) {
     uint32_t num_available_layers;
@@ -233,22 +233,9 @@ static result_t init_swapchain_framebuffers(void) {
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, swapchain_images);
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
-        VkImageViewCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .image = swapchain_images[i],
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = surface_format.format,
-            .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .subresourceRange.baseMipLevel = 0,
-            .subresourceRange.levelCount = 1,
-            .subresourceRange.baseArrayLayer = 0,
-            .subresourceRange.layerCount = 1
-        };
-        vkCreateImageView(device, &info, NULL, &swapchain_image_views[i]);
+        if (init_image_view(swapchain_images[i], surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &swapchain_image_views[i]) != result_success) {
+            return result_failure;
+        }
     }
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
@@ -301,6 +288,25 @@ void reinit_swapchain(void) {
 
 static void framebuffer_resize(GLFWwindow*, int, int) {
     framebuffer_resized = true;
+}
+
+static VkFormat get_supported_format(size_t num_formats, const VkFormat formats[], VkImageTiling tiling, VkFormatFeatureFlags feature_flags) {
+    for (size_t i = 0; i < num_formats; i++) {
+        VkFormat format = formats[i];
+
+        VkFormatProperties properties;
+        vkGetPhysicalDeviceFormatProperties(physical_device, format, &properties);
+
+        if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & feature_flags) == feature_flags) {
+            return format;
+        }
+
+        if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & feature_flags) == feature_flags) {
+            return format;
+        }
+    }
+
+    return VK_FORMAT_MAX_ENUM;
 }
 
 const char* init_vulkan_core(void) {
@@ -467,6 +473,24 @@ const char* init_vulkan_core(void) {
     if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, render_command_buffers) != VK_SUCCESS) {
         return "Failed to allocate command buffers\n";
     }
+    
+    VkFormat depth_image_format;
+    {
+        VkFormat formats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
+        depth_image_format = get_supported_format(NUM_ELEMS(formats), formats, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    }
+    if (depth_image_format == VK_FORMAT_MAX_ENUM) {
+        return "Failed to get a supported depth image format\n";
+    }
+    
+    if (init_image(swap_image_extent.width, swap_image_extent.height, depth_image_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
+        return "Failed to create depth image\n";
+    }
+    if (init_image_view(depth_image, depth_image_format, VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
+        return "Failed to create depth image view\n";
+    }
+
+    
 
     const char* msg = init_vulkan_graphics_pipeline(&physical_device_properties);
     if (msg != NULL) {
