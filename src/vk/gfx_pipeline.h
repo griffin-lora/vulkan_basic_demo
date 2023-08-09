@@ -8,6 +8,7 @@
 typedef struct {
     vec3s position;
     vec3s color;
+    vec2s tex_coord;
 } vertex_t;
 
 extern VkDescriptorSetLayout descriptor_set_layout;

@@ -452,12 +452,19 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
                 .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                 .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
                 .pImmutableSamplers = NULL
+            },
+            {
+                .binding = 1,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = NULL
             }
         };
 
         VkDescriptorSetLayoutCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = 1,
+            .bindingCount = NUM_ELEMS(bindings),
             .pBindings = bindings
         };
 
@@ -467,15 +474,21 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     }
 
     {
-        VkDescriptorPoolSize size = {
-            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = NUM_FRAMES_IN_FLIGHT
+        VkDescriptorPoolSize sizes[] = {
+            {
+                .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .descriptorCount = NUM_FRAMES_IN_FLIGHT
+            },
+            {
+                .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = NUM_FRAMES_IN_FLIGHT
+            }
         };
 
         VkDescriptorPoolCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .poolSizeCount = 1,
-            .pPoolSizes = &size,
+            .poolSizeCount = NUM_ELEMS(sizes),
+            .pPoolSizes = sizes,
             .maxSets = NUM_FRAMES_IN_FLIGHT
         };
 
@@ -503,23 +516,39 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     }
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-        VkDescriptorBufferInfo info = {
+        VkDescriptorBufferInfo buffer_info = {
             .buffer = clip_space_uniform_buffers[i],
             .offset = 0,
             .range = sizeof(clip_space)
         };
-
-        VkWriteDescriptorSet write = {
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .dstSet = descriptor_sets[i],
-            .dstBinding = 0,
-            .dstArrayElement = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .descriptorCount = 1,
-            .pBufferInfo = &info
+        VkDescriptorImageInfo image_info = {
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .imageView = texture_image_view,
+            .sampler = texture_image_sampler
         };
 
-        vkUpdateDescriptorSets(device, 1, &write, 0, NULL);
+        VkWriteDescriptorSet writes[] = {
+            {
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = descriptor_sets[i],
+                .dstBinding = 0,
+                .dstArrayElement = 0,
+                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .descriptorCount = 1,
+                .pBufferInfo = &buffer_info
+            },
+            {
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = descriptor_sets[i],
+                .dstBinding = 1,
+                .dstArrayElement = 0,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = 1,
+                .pImageInfo = &image_info
+            }
+        };
+
+        vkUpdateDescriptorSets(device, NUM_ELEMS(writes), writes, 0, NULL);
     }
 
     //
@@ -571,6 +600,12 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
             .location = 1,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
             .offset = offsetof(vertex_t, color)
+        },
+        {
+            .binding = 0,
+            .location = 2,
+            .format = VK_FORMAT_R32G32_SFLOAT,
+            .offset = offsetof(vertex_t, tex_coord)
         }
     };
 
@@ -578,7 +613,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
         .vertexBindingDescriptionCount = 1,
         .pVertexBindingDescriptions = &vertex_input_binding_description,
-        .vertexAttributeDescriptionCount = 2,
+        .vertexAttributeDescriptionCount = NUM_ELEMS(vertex_input_attribute_descriptions),
         .pVertexAttributeDescriptions = vertex_input_attribute_descriptions,
     };
 
@@ -648,7 +683,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     {
         VkGraphicsPipelineCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-            .stageCount = 2,
+            .stageCount = NUM_ELEMS(shader_pipeline_stage_create_infos),
             .pStages = shader_pipeline_stage_create_infos,
             .pVertexInputState = &vertex_input_pipeline_state_create_info,
             .pInputAssemblyState = &input_assembly_pipeline_state_create_info,
