@@ -101,6 +101,13 @@ typedef struct {
 static get_physical_device_t get_physical_device(size_t num_physical_devices, const VkPhysicalDevice physical_devices[]) {
     for (size_t i = 0; i < num_physical_devices; i++) {
         VkPhysicalDevice physical_device = physical_devices[i];
+
+        VkPhysicalDeviceFeatures features;
+        vkGetPhysicalDeviceFeatures(physical_device, &features);
+
+        if (!features.samplerAnisotropy) {
+            continue;
+        }
         
         if (check_extensions(physical_device) != result_success) {
             continue;
@@ -226,7 +233,7 @@ static result_t init_swapchain_framebuffers(void) {
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, swapchain_images);
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
-        VkImageViewCreateInfo image_view_create_info = {
+        VkImageViewCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .image = swapchain_images[i],
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
@@ -241,7 +248,7 @@ static result_t init_swapchain_framebuffers(void) {
             .subresourceRange.baseArrayLayer = 0,
             .subresourceRange.layerCount = 1
         };
-        vkCreateImageView(device, &image_view_create_info, NULL, &swapchain_image_views[i]);
+        vkCreateImageView(device, &info, NULL, &swapchain_image_views[i]);
     }
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
@@ -380,7 +387,9 @@ const char* init_vulkan_core(void) {
         };
     }
 
-    VkPhysicalDeviceFeatures features = {};
+    VkPhysicalDeviceFeatures features = {
+        .samplerAnisotropy = VK_TRUE
+    };
 
     VkDeviceCreateInfo device_create_info = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -459,7 +468,7 @@ const char* init_vulkan_core(void) {
         return "Failed to allocate command buffers\n";
     }
 
-    const char* msg = init_vulkan_graphics_pipeline();
+    const char* msg = init_vulkan_graphics_pipeline(&physical_device_properties);
     if (msg != NULL) {
         return msg;
     }
@@ -498,6 +507,9 @@ void term_vulkan_all(void) {
 
     vkDestroyDescriptorPool(device, descriptor_pool, NULL);
     vkDestroyDescriptorSetLayout(device, descriptor_set_layout, NULL);
+
+    vkDestroySampler(device, texture_image_sampler, NULL);
+    vkDestroyImageView(device, texture_image_view, NULL);
 
     vkDestroyImage(device, texture_image, NULL);
     vkFreeMemory(device, texture_image_memory, NULL);

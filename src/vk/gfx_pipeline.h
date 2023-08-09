@@ -31,7 +31,9 @@ extern void* mapped_clip_space_matrices[NUM_FRAMES_IN_FLIGHT];
 
 extern const vertex_t vertices[4];
 extern const uint16_t vertex_indices[6];
-
 extern mat4s clip_space_matrix;
 
-const char* init_vulkan_graphics_pipeline(void);
+extern VkImageView texture_image_view;
+extern VkSampler texture_image_sampler;
+
+const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_device_properties);

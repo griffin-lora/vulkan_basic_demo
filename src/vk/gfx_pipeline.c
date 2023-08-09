@@ -148,7 +148,7 @@ static result_t init_image(uint32_t image_width, uint32_t image_height, VkFormat
     return result_success;
 }
 
-const char* init_vulkan_graphics_pipeline(void) {
+const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_device_properties) {
     //
     
     VkAttachmentDescription color_attachment = {
@@ -197,6 +197,8 @@ const char* init_vulkan_graphics_pipeline(void) {
             return "Failed to create render pass\n";
         }
     }
+
+    //
 
     int image_width;
     int image_height;
@@ -383,6 +385,53 @@ const char* init_vulkan_graphics_pipeline(void) {
     vkFreeMemory(device, index_staging_buffer_memory, NULL);
 
     //
+
+    {
+        VkImageViewCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = texture_image,
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = VK_FORMAT_R8G8B8A8_SRGB,
+            .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1
+        };
+
+        if (vkCreateImageView(device, &info, NULL, &texture_image_view) != VK_SUCCESS) {
+            return "Failed to create texture image view\n";
+        }
+    }
+
+    {
+        VkSamplerCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .minFilter = VK_FILTER_LINEAR, // undersample
+            .magFilter = VK_FILTER_LINEAR, // oversample
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .anisotropyEnable = VK_TRUE,
+            .maxAnisotropy = physical_device_properties->limits.maxSamplerAnisotropy,
+            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            .unnormalizedCoordinates = VK_FALSE, // interesting
+            .compareEnable = VK_FALSE,
+            .compareOp = VK_COMPARE_OP_ALWAYS,
+            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .mipLodBias = 0.0f,
+            .minLod = 0.0f,
+            .maxLod = 0.0f
+        };
+
+        if (vkCreateSampler(device, &info, NULL, &texture_image_sampler) != VK_SUCCESS) {
+            return "Failed to create tetxure image sampler\n";
+        }
+    }
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
         if (init_buffer(sizeof(clip_space_matrix), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniform_buffers[i], &uniform_buffers_memory[i]) != result_success) {
