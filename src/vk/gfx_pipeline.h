@@ -22,6 +22,8 @@ extern VkBuffer vertex_buffer;
 extern VkDeviceMemory vertex_buffer_memory;
 extern VkBuffer index_buffer;
 extern VkDeviceMemory index_buffer_memory;
+extern VkImage texture_image;
+extern VkDeviceMemory texture_image_memory;
 
 extern VkBuffer uniform_buffers[NUM_FRAMES_IN_FLIGHT];
 extern VkDeviceMemory uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];

@@ -48,6 +48,9 @@ VkDeviceMemory vertex_buffer_memory;
 VkBuffer index_buffer;
 VkDeviceMemory index_buffer_memory;
 
+VkImage texture_image;
+VkDeviceMemory texture_image_memory;
+
 VkBuffer uniform_buffers[NUM_FRAMES_IN_FLIGHT];
 VkDeviceMemory uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];
 void* mapped_clip_space_matrices[NUM_FRAMES_IN_FLIGHT];

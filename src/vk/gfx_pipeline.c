@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stb_image.h>
 
 static VkShaderModule create_shader_module(const char* path) {
     if (access(path, F_OK) != 0) {
@@ -55,12 +56,12 @@ static uint32_t get_memory_type_index(uint32_t memory_type_bits, VkMemoryPropert
 }
 
 // TODO: Use VulkanMemoryAllocator
-static result_t create_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VkDeviceMemory* buffer_memory) {
+static result_t init_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VkDeviceMemory* buffer_memory) {
     {
         VkBufferCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .size = num_buffer_bytes,
-            .usage = usage,
+            .usage = usage_flags,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE
         };
 
@@ -85,6 +86,62 @@ static result_t create_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags 
     }
 
     if (vkBindBufferMemory(device, *buffer, *buffer_memory, 0) != VK_SUCCESS) {
+        return result_failure;
+    }
+
+    return result_success;
+}
+
+static result_t write_to_staging_buffer(VkDeviceMemory staging_buffer_memory, size_t num_bytes, const void* data) {
+    void* mapped_data;
+    if (vkMapMemory(device, staging_buffer_memory, 0, num_bytes, 0, &mapped_data) != VK_SUCCESS) {
+        return result_failure;
+    }
+    memcpy(mapped_data, data, num_bytes);
+    vkUnmapMemory(device, staging_buffer_memory);
+
+    return result_success;
+}
+
+static result_t init_image(uint32_t image_width, uint32_t image_height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VkDeviceMemory* image_memory) {
+    {
+        VkImageCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .extent.width = image_width,
+            .extent.height = image_height,
+            .extent.depth = 1,
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .format = format,
+            .tiling = tiling,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .usage = usage_flags,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .samples = VK_SAMPLE_COUNT_1_BIT
+        };
+
+        if (vkCreateImage(device, &info, NULL, &texture_image) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    {
+        VkMemoryRequirements requirements;
+        vkGetImageMemoryRequirements(device, *image, &requirements);
+
+        VkMemoryAllocateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .allocationSize = requirements.size,
+            .memoryTypeIndex = get_memory_type_index(requirements.memoryTypeBits, property_flags)
+        };
+
+        if (vkAllocateMemory(device, &info, NULL, image_memory) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    if (vkBindImageMemory(device, *image, *image_memory, 0) != VK_SUCCESS) {
         return result_failure;
     }
 
@@ -141,42 +198,67 @@ const char* init_vulkan_graphics_pipeline(void) {
         }
     }
 
-    //
+    int image_width;
+    int image_height;
 
+    VkBuffer image_staging_buffer;
+    VkDeviceMemory image_staging_buffer_memory;
 
-    //
-    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
-        return "Failed to create vertex buffer\n";
+    {
+        int image_channels;
+        stbi_uc* pixels = stbi_load("image/test.png", &image_width, &image_height, &image_channels, STBI_rgb_alpha);
+        if (pixels == NULL) {
+            return "Failed to load texture image\n";
+        }
+
+        if (init_buffer(image_width*image_height*4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &image_staging_buffer, &image_staging_buffer_memory) != result_success) {
+            return "Failed to create image staging buffer\n";
+        }
+
+        if (write_to_staging_buffer(image_staging_buffer_memory, image_width*image_height*4, pixels) != result_success) {
+            return "Failed to write to image staging buffer\n";
+        }
+
+        stbi_image_free(pixels);
     }
-    if (create_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
-        return "Failed to create index buffer\n";
+
+    if (init_image(image_width, image_height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &texture_image, &texture_image_memory) != result_success) {
+        return "Failed to create texture image\n";
+    }
+
+    //
+
+    if (init_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
+        return "Failed to create vertex buffer\n";
     }
 
     VkBuffer vertex_staging_buffer;
     VkDeviceMemory vertex_staging_buffer_memory;
-    if (create_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_memory) != result_success) {
+    if (init_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_memory) != result_success) {
         return "Failed to create vertex staging buffer\n";
     }
 
-    void* mapped_vertices;
-    if (vkMapMemory(device, vertex_staging_buffer_memory, 0, sizeof(vertices), 0, &mapped_vertices) != VK_SUCCESS) {
-        return "Failed to map vertex staging buffer memory\n";
+    if (write_to_staging_buffer(vertex_staging_buffer_memory, sizeof(vertices), vertices) != result_success) {
+        return "Failed to write to vertex staging buffer\n";
     }
-    memcpy(mapped_vertices, vertices, sizeof(vertices));
-    vkUnmapMemory(device, vertex_staging_buffer_memory);
+
+    //
+
+    if (init_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
+        return "Failed to create index buffer\n";
+    }
 
     VkBuffer index_staging_buffer;
     VkDeviceMemory index_staging_buffer_memory;
-    if (create_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
+    if (init_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
         return "Failed to create index staging buffer\n";
     }
 
-    void* mapped_vertex_indices;
-    if (vkMapMemory(device, index_staging_buffer_memory, 0, sizeof(vertex_indices), 0, &mapped_vertex_indices) != VK_SUCCESS) {
-        return "Failed to map index staging buffer memory\n";
+    if (write_to_staging_buffer(index_staging_buffer_memory, sizeof(vertex_indices), vertex_indices) != result_success) {
+        return "Failed to write to index staging buffer\n";
     }
-    memcpy(mapped_vertex_indices, vertex_indices, sizeof(vertex_indices));
-    vkUnmapMemory(device, index_staging_buffer_memory);
+
+    //
 
     VkCommandBuffer command_buffer;
     {
@@ -200,6 +282,63 @@ const char* init_vulkan_graphics_pipeline(void) {
         if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
             return "Failed to write to transfer command buffer\n";
         }
+    }
+
+    {
+        VkImageMemoryBarrier barrier = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = texture_image,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1,
+            .srcAccessMask = 0,
+            .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT
+        };
+
+        vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
+    }
+    {
+
+        VkBufferImageCopy region = {
+            .bufferOffset = 0,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .imageSubresource.mipLevel = 0,
+            .imageSubresource.baseArrayLayer = 0,
+            .imageSubresource.layerCount = 1,
+            .imageOffset = { 0, 0, 0 },
+            .imageExtent.width = image_width,
+            .imageExtent.height = image_height,
+            .imageExtent.depth = 1
+        };
+
+        vkCmdCopyBufferToImage(command_buffer, image_staging_buffer, texture_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    }
+    {
+        VkImageMemoryBarrier barrier = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = texture_image,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1,
+            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT
+        };
+
+        vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &barrier);
     }
 
     {
@@ -230,13 +369,14 @@ const char* init_vulkan_graphics_pipeline(void) {
             .pCommandBuffers = &command_buffer
         };
 
-        // TODO: Use a fence
         vkQueueSubmit(graphics_queue, 1, &info, VK_NULL_HANDLE);
         vkQueueWaitIdle(graphics_queue);
     }
 
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 
+    vkDestroyBuffer(device, image_staging_buffer, NULL);
+    vkFreeMemory(device, image_staging_buffer_memory, NULL);
     vkDestroyBuffer(device, vertex_staging_buffer, NULL);
     vkFreeMemory(device, vertex_staging_buffer_memory, NULL);
     vkDestroyBuffer(device, index_staging_buffer, NULL);
@@ -245,7 +385,7 @@ const char* init_vulkan_graphics_pipeline(void) {
     //
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-        if (create_buffer(sizeof(clip_space_matrix), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniform_buffers[i], &uniform_buffers_memory[i]) != result_success) {
+        if (init_buffer(sizeof(clip_space_matrix), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniform_buffers[i], &uniform_buffers_memory[i]) != result_success) {
             return "Failed to create uniform buffer\n";
         }
         if (vkMapMemory(device, uniform_buffers_memory[i], 0, sizeof(clip_space_matrix), 0, &mapped_clip_space_matrices[i]) != VK_SUCCESS) {

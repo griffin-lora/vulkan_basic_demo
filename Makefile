@@ -2,14 +2,14 @@ TARGET := app
 
 GLSLC := glslc
 
-SOURCES := $(wildcard src/*.c) $(wildcard src/vk/*.c)
+SOURCES := $(wildcard src/*.c) $(wildcard src/vk/*.c) $(wildcard src/link/*.c)
 SHADER_SOURCES := $(wildcard shader/*.vert) $(wildcard shader/*.frag)
-LIBS := -lvulkan -lglfw
+LIBS := -lvulkan -lglfw -lm
 OBJECTS := $(patsubst %.c,%.o,$(SOURCES))
 DEPENDS := $(patsubst %.c,%.d,$(SOURCES))
 SHADER_OBJECTS := $(patsubst %.vert,%.spv,$(patsubst %.frag,%.spv,$(SHADER_SOURCES)))
 
-CFLAGS = -O2 -Wall -Isrc
+CFLAGS = -O2 -Wall -Isrc -Ilib
 
 .PHONY: build run clean
 

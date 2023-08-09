@@ -50,7 +50,6 @@ static result_t check_extensions(VkPhysicalDevice physical_device) {
     VkExtensionProperties* available_extensions = ds_promise(num_available_extensions*sizeof(VkExtensionProperties));
     vkEnumerateDeviceExtensionProperties(physical_device, NULL, &num_available_extensions, available_extensions);
 
-    // TODO: This is kinda ugly
     for (size_t i = 0; i < NUM_ELEMS(extensions); i++) {
         bool not_found = true;
         for (size_t j = 0; j < num_available_extensions; j++) {
@@ -500,6 +499,8 @@ void term_vulkan_all(void) {
     vkDestroyDescriptorPool(device, descriptor_pool, NULL);
     vkDestroyDescriptorSetLayout(device, descriptor_set_layout, NULL);
 
+    vkDestroyImage(device, texture_image, NULL);
+    vkFreeMemory(device, texture_image_memory, NULL);
     vkDestroyBuffer(device, vertex_buffer, NULL);
     vkFreeMemory(device, vertex_buffer_memory, NULL);
     vkDestroyBuffer(device, index_buffer, NULL);
