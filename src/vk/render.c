@@ -3,11 +3,7 @@
 #include "gfx_pipeline.h"
 #include "result.h"
 #include "util.h"
-#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <cglm/struct/cam.h>
 #include <string.h>
-
-#define M_TAU (GLM_PI * 2)
 
 static uint32_t frame_index = 0;
 
@@ -34,14 +30,7 @@ const char* draw_vulkan_frame(void) {
         }
     }
 
-    {   
-        mat4s projection = glms_perspective(M_TAU / 5.0f, (float)swap_image_extent.width/(float)swap_image_extent.height, 0.01f, 300.0f);
-        mat4s view = glms_look((vec3s){{ -0.5f, 1.0f, 1.0f }}, (vec3s){{ 0.5f, -1.0f, -1.0f }}, (vec3s){{ 0.0f, 1.0f, 0.0f }});
-
-        clip_space = glms_mat4_mul(projection, view);
-
-        memcpy(mapped_clip_spaces[frame_index], &clip_space, sizeof(clip_space));
-    }
+    memcpy(mapped_clip_spaces[frame_index], &clip_space, sizeof(clip_space));
 
     vkResetCommandBuffer(command_buffer, 0);
     // write to command buffer

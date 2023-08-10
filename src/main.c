@@ -1,5 +1,6 @@
 #include "vk/core.h"
 #include "vk/render.h"
+#include "input.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -11,9 +12,12 @@ int main(void) {
         return 1;
     }
 
+    float last_delta = 1.0f/60.0f;
     while (!glfwWindowShouldClose(window)) {
         double start = glfwGetTime();
         glfwPollEvents();
+
+        handle_input(last_delta);
 
         msg = draw_vulkan_frame();
         if (msg != NULL) {
@@ -27,6 +31,8 @@ int main(void) {
         if (remaining > 0.0f) {
             usleep(remaining * 1000000);
         }
+
+        last_delta = delta;
     }
 
     term_vulkan_all();
