@@ -233,7 +233,7 @@ static result_t init_depth_image(void) {
     if (init_image(swap_image_extent.width, swap_image_extent.height, depth_image_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
         return result_failure;
     }
-    if (init_image_view(depth_image, depth_image_format, VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
+    if (init_image_view(depth_image, depth_image_format, depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
         return result_failure;
     }
     return result_success;
