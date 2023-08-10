@@ -35,6 +35,7 @@ extern VkQueue presentation_queue;
 extern VkCommandBuffer render_command_buffers[];
 extern bool framebuffer_resized;
 
+extern VkFormat depth_image_format;
 extern VkImage depth_image;
 extern VkDeviceMemory depth_image_memory;
 extern VkImageView depth_image_view;

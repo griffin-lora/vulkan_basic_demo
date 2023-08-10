@@ -84,6 +84,7 @@ VkDescriptorSet descriptor_sets[NUM_FRAMES_IN_FLIGHT];
 VkImageView texture_image_view;
 VkSampler texture_image_sampler;
 
+VkFormat depth_image_format;
 VkImage depth_image;
 VkDeviceMemory depth_image_memory;
 VkImageView depth_image_view;

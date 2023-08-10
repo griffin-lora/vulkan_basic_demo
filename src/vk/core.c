@@ -229,6 +229,16 @@ static result_t init_swapchain(void) {
     return result_success;
 }
 
+static result_t init_depth_image(void) {
+    if (init_image(swap_image_extent.width, swap_image_extent.height, depth_image_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
+        return result_failure;
+    }
+    if (init_image_view(depth_image, depth_image_format, VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
+        return result_failure;
+    }
+    return result_success;
+}
+
 static result_t init_swapchain_framebuffers(void) {
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, swapchain_images);
 
@@ -239,13 +249,13 @@ static result_t init_swapchain_framebuffers(void) {
     }
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
-        VkImageView attachment = swapchain_image_views[i];
+        VkImageView attachments[] = { swapchain_image_views[i], depth_image_view };
 
         VkFramebufferCreateInfo framebuffer_create_info = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .renderPass = render_pass,
-            .attachmentCount = 1,
-            .pAttachments = &attachment,
+            .attachmentCount = NUM_ELEMS(attachments),
+            .pAttachments = attachments,
             .width = swap_image_extent.width,
             .height = swap_image_extent.height,
             .layers = 1
@@ -267,6 +277,12 @@ static void term_swapchain(void) {
     vkDestroySwapchainKHR(device, swapchain, NULL);
 }
 
+static void term_depth_image(void) {
+    vkDestroyImageView(device, depth_image_view, NULL);
+    vkDestroyImage(device, depth_image, NULL);
+    vkFreeMemory(device, depth_image_memory, NULL);
+}
+
 void reinit_swapchain(void) {
     // Even the tutorials use bad hacks, im all in
     int width;
@@ -280,9 +296,11 @@ void reinit_swapchain(void) {
     //
 
     vkDeviceWaitIdle(device);
-
+    
+    term_depth_image();
     term_swapchain();
     init_swapchain();
+    init_depth_image();
     init_swapchain_framebuffers();
 }
 
@@ -474,7 +492,6 @@ const char* init_vulkan_core(void) {
         return "Failed to allocate command buffers\n";
     }
     
-    VkFormat depth_image_format;
     {
         VkFormat formats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
         depth_image_format = get_supported_format(NUM_ELEMS(formats), formats, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
@@ -483,14 +500,9 @@ const char* init_vulkan_core(void) {
         return "Failed to get a supported depth image format\n";
     }
     
-    if (init_image(swap_image_extent.width, swap_image_extent.height, depth_image_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
-        return "Failed to create depth image\n";
-    }
-    if (init_image_view(depth_image, depth_image_format, VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
+    if (init_depth_image() != result_success) {
         return "Failed to create depth image view\n";
     }
-
-    
 
     const char* msg = init_vulkan_graphics_pipeline(&physical_device_properties);
     if (msg != NULL) {
@@ -519,6 +531,7 @@ void term_vulkan_all(void) {
 
     vkDestroyRenderPass(device, render_pass, NULL);
     
+    term_depth_image();
     term_swapchain();
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {

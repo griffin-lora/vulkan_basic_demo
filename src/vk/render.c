@@ -55,7 +55,10 @@ const char* draw_vulkan_frame(void) {
         }
     }
 
-    VkClearValue clear_color = {{{ 0.0f, 0.0f, 0.0f, 1.0f }}};
+    VkClearValue clear_values[] = {
+        { .color = { .float32 = { 0.0f, 0.0f, 0.0f, 1.0f } } },
+        { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
+    };
 
     {
         VkRenderPassBeginInfo info = {
@@ -64,8 +67,8 @@ const char* draw_vulkan_frame(void) {
             .framebuffer = swapchain_framebuffers[image_index],
             .renderArea.offset = { 0, 0 },
             .renderArea.extent = swap_image_extent,
-            .clearValueCount = 1,
-            .pClearValues = &clear_color
+            .clearValueCount = NUM_ELEMS(clear_values),
+            .pClearValues = clear_values
         };
 
         vkCmdBeginRenderPass(command_buffer, &info, VK_SUBPASS_CONTENTS_INLINE);
