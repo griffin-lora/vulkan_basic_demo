@@ -55,26 +55,7 @@ VkBuffer clip_space_uniform_buffers[NUM_FRAMES_IN_FLIGHT];
 VkDeviceMemory clip_space_uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];
 void* mapped_clip_spaces[NUM_FRAMES_IN_FLIGHT];
 
-const vertex_t vertices[8] = {
-    { {{ -0.5f, -0.5f, 0.0f }}, {{ 1.0f, 0.0f, 0.0f }}, {{ 1.0f, 0.0f }} },
-    { {{ 0.5f, -0.5f, 0.0f }}, {{ 0.0f, 1.0f, 0.0f }}, {{ 0.0f, 0.0f }} },
-    { {{ 0.5f, 0.5f, 0.0f }}, {{ 0.0f, 0.0f, 1.0f }}, {{ 0.0f, 1.0f }} },
-    { {{ -0.5f, 0.5f, 0.0f }}, {{ 1.0f, 1.0f, 1.0f }}, {{ 1.0f, 1.0f }} },
-
-    { {{ -0.5f, -0.5f, -0.5f }}, {{ 1.0f, 0.0f, 0.0f }}, {{ 1.0f, 0.0f }} },
-    { {{ 0.5f, -0.5f, -0.5f }}, {{ 0.0f, 1.0f, 0.0f }}, {{ 0.0f, 0.0f }} },
-    { {{ 0.5f, 0.5f, -0.5f }}, {{ 0.0f, 0.0f, 1.0f }}, {{ 0.0f, 1.0f }} },
-    { {{ -0.5f, 0.5f, -0.5f }}, {{ 1.0f, 1.0f, 1.0f }}, {{ 1.0f, 1.0f }} },
-};
-
-const uint16_t vertex_indices[12] = {
-    0, 1, 2,
-    2, 3, 0,
-
-    4, 5, 6,
-    6, 7, 4
-};
-
+size_t num_indices;
 mat4s clip_space;
 
 VkDescriptorSetLayout descriptor_set_layout;

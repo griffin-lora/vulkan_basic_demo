@@ -3,7 +3,10 @@
 #include "gfx_core.h"
 #include "ds.h"
 #include "util.h"
+#include "mesh.h"
 #include <stb_image.h>
+#include <malloc.h>
+#include <string.h>
 
 const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_device_properties) {
     //
@@ -103,35 +106,66 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
         return "Failed to create texture image\n";
     }
 
-    //
+    size_t num_vertices;
+    vertex_t* vertices;
+    uint32_t* indices;
+    {
+        mesh_t mesh;
+        {
+            load_mesh_t t = load_obj_mesh("mesh/test.obj");
+            if (t.error == (size_t)-1) {
+                return "Failed to load mesh\n";
+            }
+            mesh = t.mesh;
+        }
 
-    if (init_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
+        num_vertices = mesh.num_vertices;
+        num_indices = mesh.num_indices;
+
+        vertices = memalign(64, num_vertices*sizeof(vertex_t));
+        for (size_t i = 0; i < num_vertices; i++) {
+            vertices[i] = (vertex_t) {
+                .position = mesh.positions[i],
+                .color = {{ 1.0f, 1.0f, 1.0f }},
+                .tex_coord = {{ 0, 0 }}
+            };
+        }
+
+        indices = memalign(64, num_indices*sizeof(uint32_t));
+        for (size_t i = 0; i < num_indices; i++) {
+            indices[i] = mesh.indices[i * 3] - 1;
+        }
+
+        free(mesh.buffer);
+    }
+
+    if (init_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
         return "Failed to create vertex buffer\n";
+    }
+
+    if (init_buffer(num_indices*sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
+        return "Failed to create index buffer\n";
     }
 
     VkBuffer vertex_staging_buffer;
     VkDeviceMemory vertex_staging_buffer_memory;
-    if (init_buffer(sizeof(vertices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_memory) != result_success) {
+    if (init_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_memory) != result_success) {
         return "Failed to create vertex staging buffer\n";
     }
 
-    if (write_to_staging_buffer(vertex_staging_buffer_memory, sizeof(vertices), vertices) != result_success) {
+    if (write_to_staging_buffer(vertex_staging_buffer_memory, num_vertices*sizeof(vertex_t), vertices) != result_success) {
         return "Failed to write to vertex staging buffer\n";
     }
 
     //
 
-    if (init_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
-        return "Failed to create index buffer\n";
-    }
-
     VkBuffer index_staging_buffer;
     VkDeviceMemory index_staging_buffer_memory;
-    if (init_buffer(sizeof(vertex_indices), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
+    if (init_buffer(num_indices*sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
         return "Failed to create index staging buffer\n";
     }
 
-    if (write_to_staging_buffer(index_staging_buffer_memory, sizeof(vertex_indices), vertex_indices) != result_success) {
+    if (write_to_staging_buffer(index_staging_buffer_memory, num_indices*sizeof(uint32_t), indices) != result_success) {
         return "Failed to write to index staging buffer\n";
     }
 
@@ -165,8 +199,8 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     transfer_from_staging_buffer_to_image(command_buffer, image_width, image_height, image_staging_buffer, texture_image);
     transition_image_layout(command_buffer, texture_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
-    transfer_from_staging_buffer_to_buffer(command_buffer, sizeof(vertices), vertex_staging_buffer, vertex_buffer);
-    transfer_from_staging_buffer_to_buffer(command_buffer, sizeof(vertex_indices), index_staging_buffer, index_buffer);
+    transfer_from_staging_buffer_to_buffer(command_buffer, num_vertices*sizeof(vertex_t), vertex_staging_buffer, vertex_buffer);
+    transfer_from_staging_buffer_to_buffer(command_buffer, num_indices*sizeof(uint32_t), index_staging_buffer, index_buffer);
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
         return "Failed to write to transfer command buffer\n";

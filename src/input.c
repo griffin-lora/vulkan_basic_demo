@@ -33,7 +33,7 @@ void handle_input(float delta) {
 
         const vec2s cursor_pos = {{ cursor_x, cursor_y }};
         if (cursor_pos.x >= 0 && cursor_pos.x <= swap_image_extent.width && cursor_pos.y >= 0.0f && cursor_y <= swap_image_extent.height) {
-            vec2s norm_cursor_pos = glms_vec2_mul(cursor_pos, (vec2s){{ 1.0f/(float)swap_image_extent.width, 1.0f/(float)swap_image_extent.height }});
+            vec2s norm_cursor_pos = glms_vec2_mul(cursor_pos, (vec2s) {{ 1.0f/(float)swap_image_extent.width, 1.0f/(float)swap_image_extent.height }});
             norm_cursor_pos.x *= aspect;
 
             if (has_last_norm_cursor_pos) {
@@ -80,7 +80,7 @@ void handle_input(float delta) {
 
     vec3s move_vec = glms_vec3_scale(input_vec, MOVE_SPEED);
 
-    mat3s movement_mat = (mat3s){{
+    mat3s movement_mat = (mat3s) {{
         { cam_forward.x, cam_forward.y, cam_forward.z },
         { 0, 1, 0 },
         { -cam_forward.z, 0, cam_forward.x }
@@ -92,7 +92,7 @@ void handle_input(float delta) {
 
     cam_pos = glms_vec3_add(cam_pos, cam_vel);
 
-    mat4s view = glms_look(cam_pos, cam_forward, (vec3s){{ 0.0f, 1.0f, 0.0f }});
+    mat4s view = glms_look(cam_pos, cam_forward, (vec3s) {{ 0.0f, 1.0f, 0.0f }});
 
     clip_space = glms_mat4_mul(projection, view);
 
