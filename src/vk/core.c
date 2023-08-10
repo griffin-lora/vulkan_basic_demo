@@ -91,14 +91,7 @@ static uint32_t get_presentation_queue_family_index(VkPhysicalDevice physical_de
     return NULL_UINT32;
 }
 
-typedef struct {
-    VkPhysicalDevice physical_device;
-    uint32_t num_surface_formats;
-    uint32_t num_present_modes;
-    queue_family_indices_t queue_family_indices;
-} get_physical_device_t;
-
-static get_physical_device_t get_physical_device(size_t num_physical_devices, const VkPhysicalDevice physical_devices[]) {
+static result_t get_physical_device(size_t num_physical_devices, const VkPhysicalDevice physical_devices[], VkPhysicalDevice* out_physical_device, uint32_t* out_num_surface_formats, uint32_t* out_num_present_modes, queue_family_indices_t* out_queue_family_indices) {
     for (size_t i = 0; i < num_physical_devices; i++) {
         VkPhysicalDevice physical_device = physical_devices[i];
 
@@ -143,9 +136,13 @@ static get_physical_device_t get_physical_device(size_t num_physical_devices, co
             break;
         }
 
-        return (get_physical_device_t) { physical_device, num_surface_formats, num_present_modes, {{ graphics_queue_family_index, presentation_queue_family_index }} };
+        *out_physical_device = physical_device;
+        *out_num_surface_formats = num_surface_formats;
+        *out_num_present_modes = num_present_modes;
+        *out_queue_family_indices = (queue_family_indices_t) {{ graphics_queue_family_index, presentation_queue_family_index }};
+        return result_success;
     }
-    return (get_physical_device_t) { VK_NULL_HANDLE };
+    return result_failure;
 }
 
 static VkSurfaceFormatKHR get_surface_format(size_t num_surface_formats, const VkSurfaceFormatKHR surface_formats[]) {
@@ -230,10 +227,10 @@ static result_t init_swapchain(void) {
 }
 
 static result_t init_depth_image(void) {
-    if (init_image(swap_image_extent.width, swap_image_extent.height, depth_image_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
+    if (create_image(swap_image_extent.width, swap_image_extent.height, depth_image_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
         return result_failure;
     }
-    if (init_image_view(depth_image, depth_image_format, depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
+    if (create_image_view(depth_image, depth_image_format, depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
         return result_failure;
     }
     return result_success;
@@ -243,7 +240,7 @@ static result_t init_swapchain_framebuffers(void) {
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, swapchain_images);
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
-        if (init_image_view(swapchain_images[i], surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &swapchain_image_views[i]) != result_success) {
+        if (create_image_view(swapchain_images[i], surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &swapchain_image_views[i]) != result_success) {
             return result_failure;
         }
     }
@@ -382,16 +379,8 @@ const char* init_vulkan_core(void) {
 
     uint32_t num_surface_formats;
     uint32_t num_present_modes;
-    {
-        get_physical_device_t t = get_physical_device(num_physical_devices, physical_devices);
-        physical_device = t.physical_device;
-        queue_family_indices = t.queue_family_indices;
-        num_surface_formats = t.num_surface_formats;
-        num_present_modes = t.num_present_modes;
-    }
-
-    if (physical_device == VK_NULL_HANDLE) {
-        return "Failed to find a suitable physical device\n";
+    if (get_physical_device(num_physical_devices, physical_devices, &physical_device, &num_surface_formats, &num_present_modes, &queue_family_indices) != result_success) {
+        return "Failed to get a suitable physical device\n";
     }
 
     ds_restore(physical_devices);

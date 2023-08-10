@@ -8,14 +8,14 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-VkShaderModule create_shader_module(const char* path) {
+result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
     if (access(path, F_OK) != 0) {
-        return VK_NULL_HANDLE;
+        return result_failure;
     }
 
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
-        return VK_NULL_HANDLE;
+        return result_failure;
     }
 
     struct stat st;
@@ -26,7 +26,7 @@ VkShaderModule create_shader_module(const char* path) {
     uint32_t* bytes = ds_promise(aligned_num_bytes);
     memset(bytes, 0, aligned_num_bytes);
     if (fread(bytes, st.st_size, 1, file) != 1) {
-        return VK_NULL_HANDLE;
+        return result_failure;
     }
 
     fclose(file);
@@ -37,8 +37,10 @@ VkShaderModule create_shader_module(const char* path) {
         .pCode = bytes
     };
 
-    VkShaderModule shader_module;
-    return vkCreateShaderModule(device, &info, NULL, &shader_module) == VK_SUCCESS ? shader_module : VK_NULL_HANDLE;
+    if (vkCreateShaderModule(device, &info, NULL, shader_module) != VK_SUCCESS) {
+        return result_failure;
+    }
+    return result_success;
 }
 
 uint32_t get_memory_type_index(uint32_t memory_type_bits, VkMemoryPropertyFlags property_flags) {
@@ -55,7 +57,7 @@ uint32_t get_memory_type_index(uint32_t memory_type_bits, VkMemoryPropertyFlags 
 }
 
 // TODO: Use VulkanMemoryAllocator
-result_t init_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VkDeviceMemory* buffer_memory) {
+result_t create_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VkDeviceMemory* buffer_memory) {
     {
         VkBufferCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -102,7 +104,7 @@ result_t write_to_staging_buffer(VkDeviceMemory staging_buffer_memory, size_t nu
     return result_success;
 }
 
-result_t init_image(uint32_t image_width, uint32_t image_height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VkDeviceMemory* image_memory) {
+result_t create_image(uint32_t image_width, uint32_t image_height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VkDeviceMemory* image_memory) {
     {
         VkImageCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -194,7 +196,7 @@ void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, VkIm
     vkCmdPipelineBarrier(command_buffer, src_stage_flags, dest_stage_flags, 0, 0, NULL, 0, NULL, 1, &barrier);
 }
 
-result_t init_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags, VkImageView* image_view) {
+result_t create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags, VkImageView* image_view) {
     VkImageViewCreateInfo info = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image = image,

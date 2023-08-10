@@ -91,7 +91,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
             return "Failed to load texture image\n";
         }
 
-        if (init_buffer(image_width*image_height*4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &image_staging_buffer, &image_staging_buffer_memory) != result_success) {
+        if (create_buffer(image_width*image_height*4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &image_staging_buffer, &image_staging_buffer_memory) != result_success) {
             return "Failed to create image staging buffer\n";
         }
 
@@ -102,7 +102,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
         stbi_image_free(pixels);
     }
 
-    if (init_image(image_width, image_height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &texture_image, &texture_image_memory) != result_success) {
+    if (create_image(image_width, image_height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &texture_image, &texture_image_memory) != result_success) {
         return "Failed to create texture image\n";
     }
 
@@ -111,12 +111,8 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     uint32_t* indices;
     {
         mesh_t mesh;
-        {
-            load_mesh_t t = load_obj_mesh("mesh/test.obj");
-            if (t.error == (size_t)-1) {
-                return "Failed to load mesh\n";
-            }
-            mesh = t.mesh;
+        if (load_obj_mesh("mesh/test.obj", &mesh) != result_success) {
+            return "Failed to load mesh\n";
         }
 
         num_vertices = mesh.num_vertices;
@@ -139,17 +135,17 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
         free(mesh.buffer);
     }
 
-    if (init_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
+    if (create_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
         return "Failed to create vertex buffer\n";
     }
 
-    if (init_buffer(num_indices*sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
+    if (create_buffer(num_indices*sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
         return "Failed to create index buffer\n";
     }
 
     VkBuffer vertex_staging_buffer;
     VkDeviceMemory vertex_staging_buffer_memory;
-    if (init_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_memory) != result_success) {
+    if (create_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_memory) != result_success) {
         return "Failed to create vertex staging buffer\n";
     }
 
@@ -161,7 +157,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
 
     VkBuffer index_staging_buffer;
     VkDeviceMemory index_staging_buffer_memory;
-    if (init_buffer(num_indices*sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
+    if (create_buffer(num_indices*sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
         return "Failed to create index staging buffer\n";
     }
 
@@ -228,7 +224,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
 
     //
 
-    if (init_image_view(texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &texture_image_view) != result_success) {
+    if (create_image_view(texture_image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &texture_image_view) != result_success) {
         return "Failed to create texture image view\n";
     }
 
@@ -258,7 +254,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     }
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-        if (init_buffer(sizeof(clip_space), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &clip_space_uniform_buffers[i], &clip_space_uniform_buffers_memory[i]) != result_success) {
+        if (create_buffer(sizeof(clip_space), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &clip_space_uniform_buffers[i], &clip_space_uniform_buffers_memory[i]) != result_success) {
             return "Failed to create uniform buffer\n";
         }
         if (vkMapMemory(device, clip_space_uniform_buffers_memory[i], 0, sizeof(clip_space), 0, &mapped_clip_spaces[i]) != VK_SUCCESS) {
@@ -377,13 +373,13 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
 
     //
 
-    VkShaderModule vertex_shader_module = create_shader_module("shader/vertex.spv");
-    if (vertex_shader_module == VK_NULL_HANDLE) {
+    VkShaderModule vertex_shader_module;
+    if (create_shader_module("shader/vertex.spv", &vertex_shader_module) != result_success) {
         return "Failed to create vertex shader module\n";
     }
 
-    VkShaderModule fragment_shader_module = create_shader_module("shader/fragment.spv");
-    if (fragment_shader_module == VK_NULL_HANDLE) {
+    VkShaderModule fragment_shader_module;
+    if (create_shader_module("shader/fragment.spv", &fragment_shader_module) != result_success) {
         return "Failed to create vertex shader module\n";
     }
     

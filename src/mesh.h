@@ -1,4 +1,5 @@
 #pragma once
+#include "result.h"
 #include <cglm/struct/vec2.h>
 #include <cglm/struct/vec3.h>
 
@@ -14,9 +15,4 @@ typedef struct {
     uint32_t* indices;
 } mesh_t;
 
-typedef union {
-    size_t error;
-    mesh_t mesh;
-} load_mesh_t;
-
-load_mesh_t load_obj_mesh(const char* path);
+result_t load_obj_mesh(const char* path, mesh_t* mesh);
