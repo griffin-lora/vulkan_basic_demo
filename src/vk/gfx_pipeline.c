@@ -86,7 +86,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
 
     {
         int image_channels;
-        stbi_uc* pixels = stbi_load("image/test.jpeg", &image_width, &image_height, &image_channels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load("image/test.png", &image_width, &image_height, &image_channels, STBI_rgb_alpha);
         if (pixels == NULL) {
             return "Failed to load texture image\n";
         }
