@@ -48,6 +48,7 @@ VkDeviceMemory vertex_buffer_memory;
 VkBuffer index_buffer;
 VkDeviceMemory index_buffer_memory;
 
+uint32_t texture_image_num_mip_levels;
 VkImage texture_image;
 VkDeviceMemory texture_image_memory;
 

@@ -227,10 +227,10 @@ static result_t init_swapchain(void) {
 }
 
 static result_t init_depth_image(void) {
-    if (create_image(swap_image_extent.width, swap_image_extent.height, depth_image_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
+    if (create_image(swap_image_extent.width, swap_image_extent.height, 1, depth_image_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
         return result_failure;
     }
-    if (create_image_view(depth_image, depth_image_format, depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
+    if (create_image_view(depth_image, 1, depth_image_format, depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
         return result_failure;
     }
     return result_success;
@@ -240,7 +240,7 @@ static result_t init_swapchain_framebuffers(void) {
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, swapchain_images);
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
-        if (create_image_view(swapchain_images[i], surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &swapchain_image_views[i]) != result_success) {
+        if (create_image_view(swapchain_images[i], 1, surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &swapchain_image_views[i]) != result_success) {
             return result_failure;
         }
     }

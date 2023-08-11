@@ -104,7 +104,7 @@ result_t write_to_staging_buffer(VkDeviceMemory staging_buffer_memory, size_t nu
     return result_success;
 }
 
-result_t create_image(uint32_t image_width, uint32_t image_height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VkDeviceMemory* image_memory) {
+result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VkDeviceMemory* image_memory) {
     {
         VkImageCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -112,7 +112,7 @@ result_t create_image(uint32_t image_width, uint32_t image_height, VkFormat form
             .extent.width = image_width,
             .extent.height = image_height,
             .extent.depth = 1,
-            .mipLevels = 1,
+            .mipLevels = num_mip_levels,
             .arrayLayers = 1,
             .format = format,
             .tiling = tiling,
@@ -176,7 +176,7 @@ void transfer_from_staging_buffer_to_image(VkCommandBuffer command_buffer, uint3
     vkCmdCopyBufferToImage(command_buffer, staging_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
-void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access_flags, VkAccessFlags dest_access_flags, VkPipelineStageFlags src_stage_flags, VkPipelineStageFlags dest_stage_flags) {
+void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint32_t num_mip_levels, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access_flags, VkAccessFlags dest_access_flags, VkPipelineStageFlags src_stage_flags, VkPipelineStageFlags dest_stage_flags) {
     VkImageMemoryBarrier barrier = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .oldLayout = old_layout,
@@ -186,7 +186,7 @@ void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, VkIm
         .image = image,
         .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .subresourceRange.baseMipLevel = 0,
-        .subresourceRange.levelCount = 1,
+        .subresourceRange.levelCount = num_mip_levels,
         .subresourceRange.baseArrayLayer = 0,
         .subresourceRange.layerCount = 1,
         .srcAccessMask = src_access_flags,
@@ -196,7 +196,7 @@ void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, VkIm
     vkCmdPipelineBarrier(command_buffer, src_stage_flags, dest_stage_flags, 0, 0, NULL, 0, NULL, 1, &barrier);
 }
 
-result_t create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags, VkImageView* image_view) {
+result_t create_image_view(VkImage image, uint32_t num_mip_levels, VkFormat format, VkImageAspectFlags aspect_flags, VkImageView* image_view) {
     VkImageViewCreateInfo info = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image = image,
@@ -208,7 +208,7 @@ result_t create_image_view(VkImage image, VkFormat format, VkImageAspectFlags as
         .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
         .subresourceRange.aspectMask = aspect_flags,
         .subresourceRange.baseMipLevel = 0,
-        .subresourceRange.levelCount = 1,
+        .subresourceRange.levelCount = num_mip_levels,
         .subresourceRange.baseArrayLayer = 0,
         .subresourceRange.layerCount = 1
     };

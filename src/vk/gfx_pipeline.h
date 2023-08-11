@@ -18,6 +18,7 @@ extern VkBuffer vertex_buffer;
 extern VkDeviceMemory vertex_buffer_memory;
 extern VkBuffer index_buffer;
 extern VkDeviceMemory index_buffer_memory;
+extern uint32_t texture_image_num_mip_levels;
 extern VkImage texture_image;
 extern VkDeviceMemory texture_image_memory;
 
