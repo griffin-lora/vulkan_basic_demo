@@ -176,7 +176,7 @@ void transfer_from_staging_buffer_to_image(VkCommandBuffer command_buffer, uint3
     vkCmdCopyBufferToImage(command_buffer, staging_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
-void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint32_t num_mip_levels, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access_flags, VkAccessFlags dest_access_flags, VkPipelineStageFlags src_stage_flags, VkPipelineStageFlags dest_stage_flags) {
+void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint32_t num_mip_levels, uint32_t mip_level_index, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access_flags, VkAccessFlags dest_access_flags, VkPipelineStageFlags src_stage_flags, VkPipelineStageFlags dest_stage_flags) {
     VkImageMemoryBarrier barrier = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .oldLayout = old_layout,
@@ -185,7 +185,7 @@ void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint
         .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
         .image = image,
         .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .subresourceRange.baseMipLevel = 0,
+        .subresourceRange.baseMipLevel = mip_level_index,
         .subresourceRange.levelCount = num_mip_levels,
         .subresourceRange.baseArrayLayer = 0,
         .subresourceRange.layerCount = 1,
