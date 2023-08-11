@@ -156,8 +156,6 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     free(vertices);
     free(indices);
 
-    // TODO: Make into a function called from core
-
     VkCommandBuffer command_buffer;
     {
         VkCommandBufferAllocateInfo info = {

@@ -186,7 +186,7 @@ static VkExtent2D get_swap_image_extent(const VkSurfaceCapabilitiesKHR* capabili
 static result_t init_swapchain(void) {
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &capabilities);
-    swap_image_extent = get_swap_image_extent(&capabilities); // TODO: Fix bug with swap extent bounds not working for small windows
+    swap_image_extent = get_swap_image_extent(&capabilities); // NOTE: Not actually a problem? (https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/1340)
 
     uint32_t min_num_swapchain_images = capabilities.minImageCount + 1;
     if (capabilities.maxImageCount > 0) {
