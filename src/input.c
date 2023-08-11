@@ -11,10 +11,10 @@
 #define MOVE_SPEED 0.3f
 #define ROT_SPEED 2.0f
 
-static vec3s cam_pos = {{ 1.5f, -0.5f, 1.0f }};
+static vec3s cam_pos = {{ 1.0f, 0.5f, -1.0f }};
 static vec3s cam_vel = {{ 0.0f, 0.0f, 0.0f }};
 
-static vec2s cam_rot = {{ -2.21f, 0.21f }};
+static vec2s cam_rot = {{ -4.0f, -0.5f }};
 static vec2s cam_rot_vel = {{ 0.0f, 0.0f }};
 
 static bool in_rotation_mode = false;
