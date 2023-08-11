@@ -1,42 +1,73 @@
 #include "mesh.h"
-#include <objpar.h>
-#include <malloc.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <sys/stat.h>
+#include <cgltf.h>
+#include <malloc.h>
+#include <string.h>
 
-result_t load_obj_mesh(const char* path, mesh_t* mesh) {
-    if (access(path, F_OK) != 0) {
+result_t load_glb_mesh(const char* path, mesh_t* mesh) {
+    cgltf_options options = {};
+    cgltf_data* data = NULL;
+
+    if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
         return result_failure;
     }
 
-    FILE* file = fopen(path, "r");
-    if (file == NULL) {
+    if (data->meshes_count != 1) {
         return result_failure;
     }
 
-    struct stat st;
-    stat(path, &st);
-
-    char* contents = memalign(64, st.st_size);
-    if (fread(contents, st.st_size, 1, file) != 1) {
+    const cgltf_mesh* mesh_data = &data->meshes[0];
+    if (mesh_data->primitives_count != 1) {
         return result_failure;
     }
 
-    struct objpar_data data;
-    void* buffer = memalign(64, objpar_get_size(contents, st.st_size));
+    const cgltf_primitive* primitive_data = &mesh_data->primitives[0];
 
-    if (!objpar(contents, st.st_size, buffer, &data)) {
+    if (primitive_data->attributes_count != 3) {
         return result_failure;
     }
+    if (primitive_data->attributes[0].type != cgltf_attribute_type_position) {
+        return result_failure;
+    }
+    if (primitive_data->attributes[1].type != cgltf_attribute_type_normal) {
+        return result_failure;
+    }
+    if (primitive_data->attributes[2].type != cgltf_attribute_type_texcoord) {
+        return result_failure;
+    }
+
+    if (cgltf_load_buffers(&options, data, path) != cgltf_result_success) {
+        return result_failure;
+    }
+
+    cgltf_size num_vertices = primitive_data->attributes[0].data->count;
+    vertex_t* vertices = memalign(64, num_vertices*sizeof(vertex_t));
+
+    const vec3s* position_data = primitive_data->attributes[0].data->buffer_view->buffer->data + primitive_data->attributes[0].data->buffer_view->offset;
+    const vec2s* tex_coord_data = primitive_data->attributes[2].data->buffer_view->buffer->data + primitive_data->attributes[2].data->buffer_view->offset;
+    
+    for (size_t i = 0; i < num_vertices; i++) {
+        vertices[i] = (vertex_t) {
+            .position = position_data[i],
+            .color = {{ 1.0f, 1.0f, 1.0f }},
+            .tex_coord = tex_coord_data[i]
+        };
+    }
+
+    cgltf_size num_indices = primitive_data->indices->count;
+    uint16_t* indices = memalign(64, num_indices*sizeof(uint16_t));
+    
+    const uint16_t* indices_data = primitive_data->indices->buffer_view->buffer->data + primitive_data->indices->buffer_view->offset;
+
+    memcpy(indices, indices_data, num_indices*sizeof(uint16_t));
+
+    cgltf_free(data);
 
     *mesh = (mesh_t) {
-        .num_vertices = data.position_count,
-        .num_indices = data.face_count * 3,
-        .positions = (vec3s*)data.p_positions,
-        .tex_coords = (vec2s*)data.p_texcoords,
-        .normals = (vec3s*)data.p_normals,
-        .indices = (uint32_t*)data.p_faces
+        .num_vertices = num_vertices,
+        .num_indices = num_indices,
+        .vertices = vertices,
+        .indices = indices
     };
     return result_success;
 }

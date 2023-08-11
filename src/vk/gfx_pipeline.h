@@ -1,15 +1,10 @@
 #pragma once
 #include "vk.h"
 #include "core.h"
+#include "mesh.h"
 #include <cglm/struct/mat4.h>
 #include <cglm/struct/vec2.h>
 #include <cglm/struct/vec3.h>
-
-typedef struct {
-    vec3s position;
-    vec3s color;
-    vec2s tex_coord;
-} vertex_t;
 
 extern VkDescriptorSetLayout descriptor_set_layout;
 extern VkDescriptorPool descriptor_pool;

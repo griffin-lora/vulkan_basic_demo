@@ -86,7 +86,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
 
     {
         int image_channels;
-        stbi_uc* pixels = stbi_load("image/test.png", &image_width, &image_height, &image_channels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load("image/test.jpeg", &image_width, &image_height, &image_channels, STBI_rgb_alpha);
         if (pixels == NULL) {
             return "Failed to load texture image\n";
         }
@@ -108,38 +108,24 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
 
     size_t num_vertices;
     vertex_t* vertices;
-    uint32_t* indices;
+    uint16_t* indices;
     {
         mesh_t mesh;
-        if (load_obj_mesh("mesh/test.obj", &mesh) != result_success) {
+        if (load_glb_mesh("mesh/test.glb", &mesh) != result_success) {
             return "Failed to load mesh\n";
         }
 
         num_vertices = mesh.num_vertices;
         num_indices = mesh.num_indices;
-
-        vertices = memalign(64, num_vertices*sizeof(vertex_t));
-        for (size_t i = 0; i < num_vertices; i++) {
-            vertices[i] = (vertex_t) {
-                .position = mesh.positions[i],
-                .color = {{ 1.0f, 1.0f, 1.0f }},
-                .tex_coord = {{ 0, 0 }}
-            };
-        }
-
-        indices = memalign(64, num_indices*sizeof(uint32_t));
-        for (size_t i = 0; i < num_indices; i++) {
-            indices[i] = mesh.indices[i * 3] - 1;
-        }
-
-        free(mesh.buffer);
+        vertices = mesh.vertices;
+        indices = mesh.indices;
     }
 
     if (create_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
         return "Failed to create vertex buffer\n";
     }
 
-    if (create_buffer(num_indices*sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
+    if (create_buffer(num_indices*sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
         return "Failed to create index buffer\n";
     }
 
@@ -157,13 +143,16 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
 
     VkBuffer index_staging_buffer;
     VkDeviceMemory index_staging_buffer_memory;
-    if (create_buffer(num_indices*sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
+    if (create_buffer(num_indices*sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
         return "Failed to create index staging buffer\n";
     }
 
-    if (write_to_staging_buffer(index_staging_buffer_memory, num_indices*sizeof(uint32_t), indices) != result_success) {
+    if (write_to_staging_buffer(index_staging_buffer_memory, num_indices*sizeof(uint16_t), indices) != result_success) {
         return "Failed to write to index staging buffer\n";
     }
+
+    free(vertices);
+    free(indices);
 
     // TODO: Make into a function called from core
 
@@ -196,7 +185,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     transition_image_layout(command_buffer, texture_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     transfer_from_staging_buffer_to_buffer(command_buffer, num_vertices*sizeof(vertex_t), vertex_staging_buffer, vertex_buffer);
-    transfer_from_staging_buffer_to_buffer(command_buffer, num_indices*sizeof(uint32_t), index_staging_buffer, index_buffer);
+    transfer_from_staging_buffer_to_buffer(command_buffer, num_indices*sizeof(uint16_t), index_staging_buffer, index_buffer);
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
         return "Failed to write to transfer command buffer\n";
