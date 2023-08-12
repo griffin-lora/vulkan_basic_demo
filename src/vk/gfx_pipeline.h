@@ -31,4 +31,4 @@ extern mat4s clip_space;
 extern VkImageView texture_image_view;
 extern VkSampler texture_image_sampler;
 
-const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_device_properties);
+const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* physical_device_properties);

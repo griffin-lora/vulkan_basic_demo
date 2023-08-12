@@ -226,8 +226,18 @@ static result_t init_swapchain(void) {
     return result_success;
 }
 
+static result_t init_color_image(void) {
+    if (create_image(swap_image_extent.width, swap_image_extent.height, 1, surface_format.format, render_multisample_flags, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &color_image, &color_image_memory) != result_success) {
+        return result_failure;
+    }
+    if (create_image_view(color_image, 1, surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &color_image_view) != result_success) {
+        return result_failure;
+    }
+    return result_success;
+}
+
 static result_t init_depth_image(void) {
-    if (create_image(swap_image_extent.width, swap_image_extent.height, 1, depth_image_format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
+    if (create_image(swap_image_extent.width, swap_image_extent.height, 1, depth_image_format, render_multisample_flags, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
         return result_failure;
     }
     if (create_image_view(depth_image, 1, depth_image_format, depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
@@ -246,7 +256,7 @@ static result_t init_swapchain_framebuffers(void) {
     }
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
-        VkImageView attachments[] = { swapchain_image_views[i], depth_image_view };
+        VkImageView attachments[] = { color_image_view, depth_image_view, swapchain_image_views[i] };
 
         VkFramebufferCreateInfo framebuffer_create_info = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -274,6 +284,12 @@ static void term_swapchain(void) {
     vkDestroySwapchainKHR(device, swapchain, NULL);
 }
 
+static void term_color_image(void) {
+    vkDestroyImageView(device, color_image_view, NULL);
+    vkDestroyImage(device, color_image, NULL);
+    vkFreeMemory(device, color_image_memory, NULL);
+}
+
 static void term_depth_image(void) {
     vkDestroyImageView(device, depth_image_view, NULL);
     vkDestroyImage(device, depth_image, NULL);
@@ -294,9 +310,11 @@ void reinit_swapchain(void) {
 
     vkDeviceWaitIdle(device);
     
+    term_color_image();
     term_depth_image();
     term_swapchain();
     init_swapchain();
+    init_color_image();
     init_depth_image();
     init_swapchain_framebuffers();
 }
@@ -322,6 +340,21 @@ static VkFormat get_supported_format(size_t num_formats, const VkFormat formats[
     }
 
     return VK_FORMAT_MAX_ENUM;
+}
+
+// TODO: Don't use max
+static VkSampleCountFlagBits get_max_multisample_flags(const VkPhysicalDeviceProperties* properties) {
+    VkSampleCountFlags flags = properties->limits.framebufferColorSampleCounts & properties->limits.framebufferDepthSampleCounts;
+
+    // Way too overkill for this project
+    // if (flags & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+    // if (flags & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+    // if (flags & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+    if (flags & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+    if (flags & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+    if (flags & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+
+    return VK_SAMPLE_COUNT_1_BIT;
 }
 
 const char* init_vulkan_core(void) {
@@ -388,7 +421,9 @@ const char* init_vulkan_core(void) {
     VkPhysicalDeviceProperties physical_device_properties;
     vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
     printf("Loaded physical device \"%s\"\n", physical_device_properties.deviceName);
-    
+
+    render_multisample_flags = get_max_multisample_flags(&physical_device_properties);
+
     float queue_priority = 1.0f;
     VkDeviceQueueCreateInfo queue_create_infos[2];
     for (size_t i = 0; i < 2; i++) {
@@ -480,6 +515,10 @@ const char* init_vulkan_core(void) {
     if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, render_command_buffers) != VK_SUCCESS) {
         return "Failed to allocate command buffers\n";
     }
+
+    if (init_color_image() != result_success) {
+        return "Failed to create color image\n";
+    }
     
     {
         VkFormat formats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
@@ -490,7 +529,7 @@ const char* init_vulkan_core(void) {
     }
     
     if (init_depth_image() != result_success) {
-        return "Failed to create depth image view\n";
+        return "Failed to create depth image\n";
     }
 
     const char* msg = init_vulkan_graphics_pipeline(&physical_device_properties);
@@ -520,6 +559,7 @@ void term_vulkan_all(void) {
 
     vkDestroyRenderPass(device, render_pass, NULL);
     
+    term_color_image();
     term_depth_image();
     term_swapchain();
 

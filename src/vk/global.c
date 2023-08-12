@@ -69,3 +69,9 @@ VkFormat depth_image_format;
 VkImage depth_image;
 VkDeviceMemory depth_image_memory;
 VkImageView depth_image_view;
+
+VkImage color_image;
+VkDeviceMemory color_image_memory;
+VkImageView color_image_view;
+
+VkSampleCountFlagBits render_multisample_flags;

@@ -104,7 +104,7 @@ result_t write_to_staging_buffer(VkDeviceMemory staging_buffer_memory, size_t nu
     return result_success;
 }
 
-result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VkDeviceMemory* image_memory) {
+result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, VkFormat format, VkSampleCountFlagBits multisample_flags, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VkDeviceMemory* image_memory) {
     {
         VkImageCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -119,7 +119,7 @@ result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
             .usage = usage_flags,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .samples = VK_SAMPLE_COUNT_1_BIT
+            .samples = multisample_flags
         };
 
         if (vkCreateImage(device, &info, NULL, image) != VK_SUCCESS) {

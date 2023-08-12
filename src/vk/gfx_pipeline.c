@@ -8,7 +8,7 @@
 #include <malloc.h>
 #include <string.h>
 
-const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_device_properties) {
+const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* physical_device_properties) {
     //
 
     VkAttachmentReference color_attachment_reference = {
@@ -21,10 +21,16 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
         .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
     };
 
+    VkAttachmentReference resolve_attachment_reference = {
+        .attachment = 2,
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    };
+
     VkSubpassDescription subpass = {
         .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
         .colorAttachmentCount = 1,
         .pColorAttachments = &color_attachment_reference,
+        .pResolveAttachments = &resolve_attachment_reference,
         .pDepthStencilAttachment = &depth_attachment_reference
     };
 
@@ -40,23 +46,33 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     VkAttachmentDescription attachments[] = {
         {
             .format = surface_format.format,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .samples = render_multisample_flags,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
             .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+            .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
         },
         {
             .format = depth_image_format,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .samples = render_multisample_flags,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
             .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
             .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        },
+        {
+            .format = surface_format.format,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
         }
     };
 
@@ -104,7 +120,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     
     uint32_t num_mip_levels = ((uint32_t)floorf(log2f(max_uint32(image_width, image_height)))) + 1;
 
-    if (create_image(image_width, image_height, num_mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &texture_image, &texture_image_memory) != result_success) {
+    if (create_image(image_width, image_height, num_mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &texture_image, &texture_image_memory) != result_success) {
         return "Failed to create texture image\n";
     }
 
@@ -497,7 +513,7 @@ const char* init_vulkan_graphics_pipeline(VkPhysicalDeviceProperties* physical_d
     VkPipelineMultisampleStateCreateInfo multisample_pipeline_state_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .sampleShadingEnable = VK_FALSE,
-        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT
+        .rasterizationSamples = render_multisample_flags
     };
 
     VkPipelineDepthStencilStateCreateInfo depth_stencil_pipeline_state_create_info = {
