@@ -5,7 +5,7 @@
 
 typedef struct {
     vec3s position;
-    vec3s color;
+    vec3s normal;
     vec2s tex_coord;
 } vertex_t;
 

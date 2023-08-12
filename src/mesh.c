@@ -44,12 +44,13 @@ result_t load_glb_mesh(const char* path, mesh_t* mesh) {
     vertex_t* vertices = memalign(64, num_vertices*sizeof(vertex_t));
 
     const vec3s* position_data = primitive_data->attributes[0].data->buffer_view->buffer->data + primitive_data->attributes[0].data->buffer_view->offset;
+    const vec3s* normal_data = primitive_data->attributes[1].data->buffer_view->buffer->data + primitive_data->attributes[1].data->buffer_view->offset;
     const vec2s* tex_coord_data = primitive_data->attributes[2].data->buffer_view->buffer->data + primitive_data->attributes[2].data->buffer_view->offset;
     
     for (size_t i = 0; i < num_vertices; i++) {
         vertices[i] = (vertex_t) {
             .position = position_data[i],
-            .color = {{ 1.0f, 1.0f, 1.0f }},
+            .normal = normal_data[i],
             .tex_coord = tex_coord_data[i]
         };
     }

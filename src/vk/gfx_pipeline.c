@@ -456,7 +456,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             .binding = 0,
             .location = 1,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(vertex_t, color)
+            .offset = offsetof(vertex_t, normal)
         },
         {
             .binding = 0,
