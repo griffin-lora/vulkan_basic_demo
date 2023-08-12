@@ -19,7 +19,7 @@ extern VmaAllocation vertex_buffer_allocation;
 extern VkBuffer index_buffer;
 extern VmaAllocation index_buffer_allocation;
 extern VkImage texture_image;
-extern VkDeviceMemory texture_image_memory;
+extern VmaAllocation texture_image_allocation;
 
 extern VkBuffer clip_space_uniform_buffers[NUM_FRAMES_IN_FLIGHT];
 extern VmaAllocation clip_space_uniform_buffers_allocation[NUM_FRAMES_IN_FLIGHT];

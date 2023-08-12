@@ -50,7 +50,7 @@ VkBuffer index_buffer;
 VmaAllocation index_buffer_allocation;
 
 VkImage texture_image;
-VkDeviceMemory texture_image_memory;
+VmaAllocation texture_image_allocation;
 
 VkBuffer clip_space_uniform_buffers[NUM_FRAMES_IN_FLIGHT];
 VmaAllocation clip_space_uniform_buffers_allocation[NUM_FRAMES_IN_FLIGHT];
@@ -68,11 +68,11 @@ VkSampler texture_image_sampler;
 
 VkFormat depth_image_format;
 VkImage depth_image;
-VkDeviceMemory depth_image_memory;
+VmaAllocation depth_image_allocation;
 VkImageView depth_image_view;
 
 VkImage color_image;
-VkDeviceMemory color_image_memory;
+VmaAllocation color_image_allocation;
 VkImageView color_image_view;
 
 VkSampleCountFlagBits render_multisample_flags;

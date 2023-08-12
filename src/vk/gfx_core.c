@@ -43,19 +43,6 @@ result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
     return result_success;
 }
 
-uint32_t get_memory_type_index(uint32_t memory_type_bits, VkMemoryPropertyFlags property_flags) {
-    VkPhysicalDeviceMemoryProperties properties;
-    vkGetPhysicalDeviceMemoryProperties(physical_device, &properties);
-
-    for (uint32_t i = 0; i < properties.memoryTypeCount; i++) {
-        if ((memory_type_bits & (1u << i)) && (properties.memoryTypes[i].propertyFlags & property_flags) == property_flags) {
-            return i;
-        }
-    }
-
-    return NULL_UINT32;
-}
-
 result_t create_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage_flags, VmaAllocationCreateFlags allocation_flags, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VmaAllocation* buffer_allocation) {
     VkBufferCreateInfo buffer_info = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -113,46 +100,31 @@ result_t write_to_staging_buffer(VmaAllocation staging_buffer_allocation, size_t
     return result_success;
 }
 
-result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, VkFormat format, VkSampleCountFlagBits multisample_flags, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VkDeviceMemory* image_memory) {
-    {
-        VkImageCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            .imageType = VK_IMAGE_TYPE_2D,
-            .extent.width = image_width,
-            .extent.height = image_height,
-            .extent.depth = 1,
-            .mipLevels = num_mip_levels,
-            .arrayLayers = 1,
-            .format = format,
-            .tiling = tiling,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .usage = usage_flags,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .samples = multisample_flags
-        };
+result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, VkFormat format, VkSampleCountFlagBits multisample_flags, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VmaAllocation* image_allocation) {
+    VkImageCreateInfo image_info = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .extent.width = image_width,
+        .extent.height = image_height,
+        .extent.depth = 1,
+        .mipLevels = num_mip_levels,
+        .arrayLayers = 1,
+        .format = format,
+        .tiling = tiling,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .usage = usage_flags,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .samples = multisample_flags
+    };
 
-        if (vkCreateImage(device, &info, NULL, image) != VK_SUCCESS) {
-            return result_failure;
-        }
-    }
+    VmaAllocationCreateInfo allocation_info = {
+        .usage = VMA_MEMORY_USAGE_AUTO,
+        .flags = /*allocation_flags*/0,
+        .requiredFlags = property_flags
+    };
 
-    {
-        VkMemoryRequirements requirements;
-        vkGetImageMemoryRequirements(device, *image, &requirements);
+    if (vmaCreateImage(allocator, &image_info, &allocation_info, image, image_allocation, NULL) != VK_SUCCESS) {
 
-        VkMemoryAllocateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .allocationSize = requirements.size,
-            .memoryTypeIndex = get_memory_type_index(requirements.memoryTypeBits, property_flags)
-        };
-
-        if (vkAllocateMemory(device, &info, NULL, image_memory) != VK_SUCCESS) {
-            return result_failure;
-        }
-    }
-
-    if (vkBindImageMemory(device, *image, *image_memory, 0) != VK_SUCCESS) {
-        return result_failure;
     }
 
     return result_success;

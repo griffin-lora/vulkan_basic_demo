@@ -227,7 +227,7 @@ static result_t init_swapchain(void) {
 }
 
 static result_t init_color_image(void) {
-    if (create_image(swap_image_extent.width, swap_image_extent.height, 1, surface_format.format, render_multisample_flags, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &color_image, &color_image_memory) != result_success) {
+    if (create_image(swap_image_extent.width, swap_image_extent.height, 1, surface_format.format, render_multisample_flags, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &color_image, &color_image_allocation) != result_success) {
         return result_failure;
     }
     if (create_image_view(color_image, 1, surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &color_image_view) != result_success) {
@@ -237,7 +237,7 @@ static result_t init_color_image(void) {
 }
 
 static result_t init_depth_image(void) {
-    if (create_image(swap_image_extent.width, swap_image_extent.height, 1, depth_image_format, render_multisample_flags, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_memory) != result_success) {
+    if (create_image(swap_image_extent.width, swap_image_extent.height, 1, depth_image_format, render_multisample_flags, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_allocation) != result_success) {
         return result_failure;
     }
     if (create_image_view(depth_image, 1, depth_image_format, depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
@@ -286,14 +286,12 @@ static void term_swapchain(void) {
 
 static void term_color_image(void) {
     vkDestroyImageView(device, color_image_view, NULL);
-    vkDestroyImage(device, color_image, NULL);
-    vkFreeMemory(device, color_image_memory, NULL);
+    vmaDestroyImage(allocator, color_image, color_image_allocation);
 }
 
 static void term_depth_image(void) {
     vkDestroyImageView(device, depth_image_view, NULL);
-    vkDestroyImage(device, depth_image, NULL);
-    vkFreeMemory(device, depth_image_memory, NULL);
+    vmaDestroyImage(allocator, depth_image, depth_image_allocation);
 }
 
 void reinit_swapchain(void) {
@@ -591,8 +589,7 @@ void term_vulkan_all(void) {
     vkDestroySampler(device, texture_image_sampler, NULL);
     vkDestroyImageView(device, texture_image_view, NULL);
 
-    vkDestroyImage(device, texture_image, NULL);
-    vkFreeMemory(device, texture_image_memory, NULL);
+    vmaDestroyImage(allocator, texture_image, texture_image_allocation);
 
     vmaDestroyBuffer(allocator, vertex_buffer, vertex_buffer_allocation);
     vmaDestroyBuffer(allocator, index_buffer, index_buffer_allocation);
