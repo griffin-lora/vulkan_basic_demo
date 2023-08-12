@@ -8,7 +8,7 @@
 
 extern VkDescriptorSetLayout descriptor_set_layout;
 extern VkDescriptorPool descriptor_pool;
-extern VkDescriptorSet descriptor_sets[NUM_FRAMES_IN_FLIGHT];
+extern VkDescriptorSet descriptor_set;
 
 extern VkPipeline pipeline;
 extern VkPipelineLayout pipeline_layout;

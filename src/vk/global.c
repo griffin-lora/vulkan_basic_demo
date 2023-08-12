@@ -57,7 +57,7 @@ mat4s clip_space;
 
 VkDescriptorSetLayout descriptor_set_layout;
 VkDescriptorPool descriptor_pool;
-VkDescriptorSet descriptor_sets[NUM_FRAMES_IN_FLIGHT];
+VkDescriptorSet descriptor_set;
 
 VkImageView texture_image_view;
 VkSampler texture_image_sampler;

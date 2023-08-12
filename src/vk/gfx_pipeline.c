@@ -343,7 +343,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             // },
             {
                 .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount = NUM_FRAMES_IN_FLIGHT
+                .descriptorCount = 1
             }
         };
 
@@ -351,7 +351,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .poolSizeCount = NUM_ELEMS(sizes),
             .pPoolSizes = sizes,
-            .maxSets = NUM_FRAMES_IN_FLIGHT
+            .maxSets = 1
         };
 
         if (vkCreateDescriptorPool(device, &info, NULL, &descriptor_pool) != VK_SUCCESS) {
@@ -360,24 +360,19 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     }
 
     {
-        VkDescriptorSetLayout layouts[NUM_FRAMES_IN_FLIGHT];
-        for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-            layouts[i] = descriptor_set_layout;
-        }
-
         VkDescriptorSetAllocateInfo info = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .descriptorPool = descriptor_pool,
-            .descriptorSetCount = NUM_FRAMES_IN_FLIGHT,
-            .pSetLayouts = layouts
+            .descriptorSetCount = 1,
+            .pSetLayouts = &descriptor_set_layout
         };
 
-        if (vkAllocateDescriptorSets(device, &info, descriptor_sets) != VK_SUCCESS) {
+        if (vkAllocateDescriptorSets(device, &info, &descriptor_set) != VK_SUCCESS) {
             return "Failed to allocate descriptor sets\n";
         }
     }
 
-    for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
+    {
         // VkDescriptorBufferInfo buffer_info = {
         //     .buffer = clip_space_uniform_buffers[i],
         //     .offset = 0,
@@ -401,7 +396,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             // },
             {
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_sets[i],
+                .dstSet = descriptor_set,
                 .dstBinding = 0,
                 .dstArrayElement = 0,
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
