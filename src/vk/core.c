@@ -454,6 +454,22 @@ const char* init_vulkan_core(void) {
         return "Failed to create logical device\n";
     }
 
+    {
+        VmaAllocatorCreateInfo info = {
+            .instance = instance,
+            .physicalDevice = physical_device,
+            .device = device,
+            .pAllocationCallbacks = NULL,
+            .pDeviceMemoryCallbacks = NULL,
+            .vulkanApiVersion = VK_API_VERSION_1_0,
+            .flags = 0 // Don't think any are needed
+        };
+
+        if (vmaCreateAllocator(&info, &allocator) != VK_SUCCESS) {
+            return "Failed to create memory allocator\n";
+        }
+    }
+
     VkSemaphoreCreateInfo semaphore_create_info = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO  
     };
@@ -566,8 +582,7 @@ void term_vulkan_all(void) {
         vkDestroySemaphore(device, image_available_semaphores[i], NULL);
         vkDestroySemaphore(device, render_finished_semaphores[i], NULL);
         vkDestroyFence(device, in_flight_fences[i], NULL);
-        vkDestroyBuffer(device, clip_space_uniform_buffers[i], NULL);
-        vkFreeMemory(device, clip_space_uniform_buffers_memory[i], NULL);
+        vmaDestroyBuffer(allocator, clip_space_uniform_buffers[i], clip_space_uniform_buffers_allocation[i]);
     }
 
     vkDestroyDescriptorPool(device, descriptor_pool, NULL);
@@ -578,10 +593,11 @@ void term_vulkan_all(void) {
 
     vkDestroyImage(device, texture_image, NULL);
     vkFreeMemory(device, texture_image_memory, NULL);
-    vkDestroyBuffer(device, vertex_buffer, NULL);
-    vkFreeMemory(device, vertex_buffer_memory, NULL);
-    vkDestroyBuffer(device, index_buffer, NULL);
-    vkFreeMemory(device, index_buffer_memory, NULL);
+
+    vmaDestroyBuffer(allocator, vertex_buffer, vertex_buffer_allocation);
+    vmaDestroyBuffer(allocator, index_buffer, index_buffer_allocation);
+
+    vmaDestroyAllocator(allocator);
 
     vkDestroyDevice(device, NULL);
     vkDestroySurfaceKHR(instance, surface, NULL);

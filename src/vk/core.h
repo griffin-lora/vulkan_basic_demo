@@ -1,6 +1,7 @@
 #pragma once
 #include "vk.h"
 #include <stdbool.h>
+#include <vk_mem_alloc.h>
 
 #define NUM_FRAMES_IN_FLIGHT 2
 
@@ -15,6 +16,7 @@ typedef union {
 extern GLFWwindow* window;
 extern VkDevice device;
 extern VkPhysicalDevice physical_device;
+extern VmaAllocator allocator;
 extern queue_family_indices_t queue_family_indices;
 extern VkSurfaceFormatKHR surface_format;
 extern VkPresentModeKHR present_mode;

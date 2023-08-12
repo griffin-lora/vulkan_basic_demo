@@ -56,50 +56,59 @@ uint32_t get_memory_type_index(uint32_t memory_type_bits, VkMemoryPropertyFlags 
     return NULL_UINT32;
 }
 
-// TODO: Use VulkanMemoryAllocator
-result_t create_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VkDeviceMemory* buffer_memory) {
-    {
-        VkBufferCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .size = num_buffer_bytes,
-            .usage = usage_flags,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE
-        };
+result_t create_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage_flags, VmaAllocationCreateFlags allocation_flags, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VmaAllocation* buffer_allocation) {
+    VkBufferCreateInfo buffer_info = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = num_buffer_bytes,
+        .usage = usage_flags,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE
+    };
 
-        if (vkCreateBuffer(device, &info, NULL, buffer) != VK_SUCCESS) {
-            return result_success;
-        }
-    }
+    VmaAllocationCreateInfo allocation_info = {
+        .usage = VMA_MEMORY_USAGE_AUTO,
+        .flags = allocation_flags,
+        .requiredFlags = property_flags
+    };
 
-    {
-        VkMemoryRequirements requirements;
-        vkGetBufferMemoryRequirements(device, *buffer, &requirements);
-
-        VkMemoryAllocateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .allocationSize = requirements.size,
-            .memoryTypeIndex = get_memory_type_index(requirements.memoryTypeBits, property_flags)
-        };
-
-        if (vkAllocateMemory(device, &info, NULL, buffer_memory) != VK_SUCCESS) {
-            return result_failure;
-        }
-    }
-
-    if (vkBindBufferMemory(device, *buffer, *buffer_memory, 0) != VK_SUCCESS) {
+    if (vmaCreateBuffer(allocator, &buffer_info, &allocation_info, buffer, buffer_allocation, NULL) != VK_SUCCESS) {
         return result_failure;
     }
 
     return result_success;
 }
 
-result_t write_to_staging_buffer(VkDeviceMemory staging_buffer_memory, size_t num_bytes, const void* data) {
+result_t create_mapped_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage_flags, VmaAllocationCreateFlags allocation_flags, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VmaAllocation* buffer_allocation, void** mapped_data) {
+    VkBufferCreateInfo buffer_info = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .size = num_buffer_bytes,
+        .usage = usage_flags,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE
+    };
+
+    VmaAllocationCreateInfo allocation_create_info = {
+        .usage = VMA_MEMORY_USAGE_AUTO,
+        .flags = allocation_flags | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+        .requiredFlags = property_flags
+    };
+    
+    VmaAllocationInfo allocation_info = {};
+
+    if (vmaCreateBuffer(allocator, &buffer_info, &allocation_create_info, buffer, buffer_allocation, &allocation_info) != VK_SUCCESS) {
+        return result_failure;
+    }
+
+    *mapped_data = allocation_info.pMappedData;
+
+    return result_success;
+}
+
+result_t write_to_staging_buffer(VmaAllocation staging_buffer_allocation, size_t num_bytes, const void* data) {
     void* mapped_data;
-    if (vkMapMemory(device, staging_buffer_memory, 0, num_bytes, 0, &mapped_data) != VK_SUCCESS) {
+    if (vmaMapMemory(allocator, staging_buffer_allocation, &mapped_data) != VK_SUCCESS) {
         return result_failure;
     }
     memcpy(mapped_data, data, num_bytes);
-    vkUnmapMemory(device, staging_buffer_memory);
+    vmaUnmapMemory(allocator, staging_buffer_allocation);
 
     return result_success;
 }

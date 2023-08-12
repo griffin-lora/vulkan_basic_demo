@@ -98,7 +98,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     int image_height;
 
     VkBuffer image_staging_buffer;
-    VkDeviceMemory image_staging_buffer_memory;
+    VmaAllocation image_staging_buffer_allocation;
 
     {
         int image_channels;
@@ -107,11 +107,11 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             return "Failed to load texture image\n";
         }
 
-        if (create_buffer(image_width*image_height*4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &image_staging_buffer, &image_staging_buffer_memory) != result_success) {
+        if (create_buffer(image_width*image_height*4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &image_staging_buffer, &image_staging_buffer_allocation) != result_success) {
             return "Failed to create image staging buffer\n";
         }
 
-        if (write_to_staging_buffer(image_staging_buffer_memory, image_width*image_height*4, pixels) != result_success) {
+        if (write_to_staging_buffer(image_staging_buffer_allocation, image_width*image_height*4, pixels) != result_success) {
             return "Failed to write to image staging buffer\n";
         }
 
@@ -139,33 +139,33 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
         indices = mesh.indices;
     }
 
-    if (create_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory) != result_success) {
+    if (create_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_allocation) != result_success) {
         return "Failed to create vertex buffer\n";
     }
 
-    if (create_buffer(num_indices*sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_memory) != result_success) {
+    if (create_buffer(num_indices*sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_allocation) != result_success) {
         return "Failed to create index buffer\n";
     }
 
     VkBuffer vertex_staging_buffer;
-    VkDeviceMemory vertex_staging_buffer_memory;
-    if (create_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_memory) != result_success) {
+    VmaAllocation vertex_staging_buffer_allocation;
+    if (create_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_allocation) != result_success) {
         return "Failed to create vertex staging buffer\n";
     }
 
-    if (write_to_staging_buffer(vertex_staging_buffer_memory, num_vertices*sizeof(vertex_t), vertices) != result_success) {
+    if (write_to_staging_buffer(vertex_staging_buffer_allocation, num_vertices*sizeof(vertex_t), vertices) != result_success) {
         return "Failed to write to vertex staging buffer\n";
     }
 
     //
 
     VkBuffer index_staging_buffer;
-    VkDeviceMemory index_staging_buffer_memory;
-    if (create_buffer(num_indices*sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_memory) != result_success) {
+    VmaAllocation index_staging_buffer_allocation;
+    if (create_buffer(num_indices*sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_allocation) != result_success) {
         return "Failed to create index staging buffer\n";
     }
 
-    if (write_to_staging_buffer(index_staging_buffer_memory, num_indices*sizeof(uint16_t), indices) != result_success) {
+    if (write_to_staging_buffer(index_staging_buffer_allocation, num_indices*sizeof(uint16_t), indices) != result_success) {
         return "Failed to write to index staging buffer\n";
     }
 
@@ -263,12 +263,9 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
 
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 
-    vkDestroyBuffer(device, image_staging_buffer, NULL);
-    vkFreeMemory(device, image_staging_buffer_memory, NULL);
-    vkDestroyBuffer(device, vertex_staging_buffer, NULL);
-    vkFreeMemory(device, vertex_staging_buffer_memory, NULL);
-    vkDestroyBuffer(device, index_staging_buffer, NULL);
-    vkFreeMemory(device, index_staging_buffer_memory, NULL);
+    vmaDestroyBuffer(allocator, image_staging_buffer, image_staging_buffer_allocation);
+    vmaDestroyBuffer(allocator, vertex_staging_buffer, vertex_staging_buffer_allocation);
+    vmaDestroyBuffer(allocator, index_staging_buffer, index_staging_buffer_allocation);
 
     //
 
@@ -302,11 +299,8 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     }
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-        if (create_buffer(sizeof(clip_space), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &clip_space_uniform_buffers[i], &clip_space_uniform_buffers_memory[i]) != result_success) {
+        if (create_mapped_buffer(sizeof(clip_space), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &clip_space_uniform_buffers[i], &clip_space_uniform_buffers_allocation[i], &mapped_clip_spaces[i]) != result_success) {
             return "Failed to create uniform buffer\n";
-        }
-        if (vkMapMemory(device, clip_space_uniform_buffers_memory[i], 0, sizeof(clip_space), 0, &mapped_clip_spaces[i]) != VK_SUCCESS) {
-            return "Failed to map uniform buffer memory\n";
         }
     }
 

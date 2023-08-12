@@ -15,14 +15,14 @@ extern VkPipelineLayout pipeline_layout;
 extern VkRenderPass render_pass;
 
 extern VkBuffer vertex_buffer;
-extern VkDeviceMemory vertex_buffer_memory;
+extern VmaAllocation vertex_buffer_allocation;
 extern VkBuffer index_buffer;
-extern VkDeviceMemory index_buffer_memory;
+extern VmaAllocation index_buffer_allocation;
 extern VkImage texture_image;
 extern VkDeviceMemory texture_image_memory;
 
 extern VkBuffer clip_space_uniform_buffers[NUM_FRAMES_IN_FLIGHT];
-extern VkDeviceMemory clip_space_uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];
+extern VmaAllocation clip_space_uniform_buffers_allocation[NUM_FRAMES_IN_FLIGHT];
 extern void* mapped_clip_spaces[NUM_FRAMES_IN_FLIGHT];
 
 extern size_t num_indices;

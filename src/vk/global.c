@@ -12,6 +12,7 @@ VkSurfaceKHR surface;
 alignas(64)
 GLFWwindow* window;
 VkDevice device;
+VmaAllocator allocator;
 VkFence in_flight_fences[NUM_FRAMES_IN_FLIGHT];
 VkSwapchainKHR swapchain;
 VkSemaphore image_available_semaphores[NUM_FRAMES_IN_FLIGHT];
@@ -43,16 +44,16 @@ VkPresentModeKHR present_mode;
 bool framebuffer_resized = false;
 
 VkBuffer vertex_buffer;
-VkDeviceMemory vertex_buffer_memory;
+VmaAllocation vertex_buffer_allocation;
 
 VkBuffer index_buffer;
-VkDeviceMemory index_buffer_memory;
+VmaAllocation index_buffer_allocation;
 
 VkImage texture_image;
 VkDeviceMemory texture_image_memory;
 
 VkBuffer clip_space_uniform_buffers[NUM_FRAMES_IN_FLIGHT];
-VkDeviceMemory clip_space_uniform_buffers_memory[NUM_FRAMES_IN_FLIGHT];
+VmaAllocation clip_space_uniform_buffers_allocation[NUM_FRAMES_IN_FLIGHT];
 void* mapped_clip_spaces[NUM_FRAMES_IN_FLIGHT];
 
 size_t num_indices;
