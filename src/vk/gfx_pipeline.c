@@ -298,25 +298,25 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
         }
     }
 
-    for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-        if (create_mapped_buffer(sizeof(clip_space), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &clip_space_uniform_buffers[i], &clip_space_uniform_buffers_allocation[i], &mapped_clip_spaces[i]) != result_success) {
-            return "Failed to create uniform buffer\n";
-        }
-    }
+    // for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
+    //     if (create_mapped_buffer(sizeof(clip_space), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &clip_space_uniform_buffers[i], &clip_space_uniform_buffers_allocation[i], &mapped_clip_spaces[i]) != result_success) {
+    //         return "Failed to create uniform buffer\n";
+    //     }
+    // }
 
     //
 
     {
         VkDescriptorSetLayoutBinding bindings[] = {
+            // {
+            //     .binding = 0,
+            //     .descriptorCount = 1,
+            //     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            //     .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            //     .pImmutableSamplers = NULL
+            // },
             {
                 .binding = 0,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                .pImmutableSamplers = NULL
-            },
-            {
-                .binding = 1,
                 .descriptorCount = 1,
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -337,10 +337,10 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
 
     {
         VkDescriptorPoolSize sizes[] = {
-            {
-                .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .descriptorCount = NUM_FRAMES_IN_FLIGHT
-            },
+            // {
+            //     .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            //     .descriptorCount = NUM_FRAMES_IN_FLIGHT
+            // },
             {
                 .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 .descriptorCount = NUM_FRAMES_IN_FLIGHT
@@ -378,11 +378,11 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     }
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-        VkDescriptorBufferInfo buffer_info = {
-            .buffer = clip_space_uniform_buffers[i],
-            .offset = 0,
-            .range = sizeof(clip_space)
-        };
+        // VkDescriptorBufferInfo buffer_info = {
+        //     .buffer = clip_space_uniform_buffers[i],
+        //     .offset = 0,
+        //     .range = sizeof(clip_space)
+        // };
         VkDescriptorImageInfo image_info = {
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .imageView = texture_image_view,
@@ -390,19 +390,19 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
         };
 
         VkWriteDescriptorSet writes[] = {
+            // {
+            //     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            //     .dstSet = descriptor_sets[i],
+            //     .dstBinding = 0,
+            //     .dstArrayElement = 0,
+            //     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            //     .descriptorCount = 1,
+            //     .pBufferInfo = &buffer_info
+            // },
             {
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .dstSet = descriptor_sets[i],
                 .dstBinding = 0,
-                .dstArrayElement = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .descriptorCount = 1,
-                .pBufferInfo = &buffer_info
-            },
-            {
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_sets[i],
-                .dstBinding = 1,
                 .dstArrayElement = 0,
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 .descriptorCount = 1,
@@ -540,10 +540,18 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     };
 
     {
+        VkPushConstantRange range = {
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+            .offset = 0,
+            .size = sizeof(clip_space)
+        };
+
         VkPipelineLayoutCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1,
-            .pSetLayouts = &descriptor_set_layout
+            .pSetLayouts = &descriptor_set_layout,
+            .pushConstantRangeCount = 1,
+            .pPushConstantRanges = &range
         };
 
         if (vkCreatePipelineLayout(device, &info, NULL, &pipeline_layout) != VK_SUCCESS) {

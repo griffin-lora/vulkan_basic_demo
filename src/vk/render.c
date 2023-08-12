@@ -26,8 +26,6 @@ const char* draw_vulkan_frame(void) {
         }
     }
 
-    memcpy(mapped_clip_spaces[frame_index], &clip_space, sizeof(clip_space));
-
     vkResetFences(device, 1, &in_flight_fence);
 
     vkResetCommandBuffer(command_buffer, 0);
@@ -69,6 +67,7 @@ const char* draw_vulkan_frame(void) {
     vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
 
     vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_sets[frame_index], 0, NULL);
+    vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(clip_space), &clip_space);
 
     VkViewport viewport = {
         .x = 0.0f,

@@ -21,10 +21,6 @@ extern VmaAllocation index_buffer_allocation;
 extern VkImage texture_image;
 extern VmaAllocation texture_image_allocation;
 
-extern VkBuffer clip_space_uniform_buffers[NUM_FRAMES_IN_FLIGHT];
-extern VmaAllocation clip_space_uniform_buffers_allocation[NUM_FRAMES_IN_FLIGHT];
-extern void* mapped_clip_spaces[NUM_FRAMES_IN_FLIGHT];
-
 extern size_t num_indices;
 extern mat4s clip_space;
 

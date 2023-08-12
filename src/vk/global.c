@@ -52,10 +52,6 @@ VmaAllocation index_buffer_allocation;
 VkImage texture_image;
 VmaAllocation texture_image_allocation;
 
-VkBuffer clip_space_uniform_buffers[NUM_FRAMES_IN_FLIGHT];
-VmaAllocation clip_space_uniform_buffers_allocation[NUM_FRAMES_IN_FLIGHT];
-void* mapped_clip_spaces[NUM_FRAMES_IN_FLIGHT];
-
 size_t num_indices;
 mat4s clip_space;
 
