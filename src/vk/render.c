@@ -13,24 +13,22 @@ const char* draw_vulkan_frame(void) {
     VkCommandBuffer command_buffer = render_command_buffers[frame_index];
     VkFence in_flight_fence = in_flight_fences[frame_index];
 
-    frame_index += 1;
-    frame_index %= NUM_FRAMES_IN_FLIGHT;
-
     vkWaitForFences(device, 1, &in_flight_fence, VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, &in_flight_fence);
 
     uint32_t image_index;
     {
         VkResult result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphore, VK_NULL_HANDLE, &image_index);
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebuffer_resized) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             reinit_swapchain();
-            vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_available_semaphore, VK_NULL_HANDLE, &image_index);
-        } else if (result != VK_SUCCESS) {
+            return NULL;
+        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             return "Failed to acquire swapchain image";
         }
     }
 
     memcpy(mapped_clip_spaces[frame_index], &clip_space, sizeof(clip_space));
+
+    vkResetFences(device, 1, &in_flight_fence);
 
     vkResetCommandBuffer(command_buffer, 0);
     // write to command buffer
@@ -129,12 +127,16 @@ const char* draw_vulkan_frame(void) {
 
         VkResult result = vkQueuePresentKHR(presentation_queue, &info);
         
-        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebuffer_resized) {
+            framebuffer_resized = false;
             reinit_swapchain();
         } else if (result != VK_SUCCESS) {
             return "Failed to present swap chain image";
         }
     }
+
+    frame_index += 1;
+    frame_index %= NUM_FRAMES_IN_FLIGHT;
 
     return NULL;
 }
