@@ -342,7 +342,6 @@ static VkFormat get_supported_format(size_t num_formats, const VkFormat formats[
     return VK_FORMAT_MAX_ENUM;
 }
 
-// TODO: Don't use max
 static VkSampleCountFlagBits get_max_multisample_flags(const VkPhysicalDeviceProperties* properties) {
     VkSampleCountFlags flags = properties->limits.framebufferColorSampleCounts & properties->limits.framebufferDepthSampleCounts;
 
