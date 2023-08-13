@@ -14,15 +14,15 @@ layout(location = 2) in vec2 frag_tex_coord;
 layout(location = 0) out vec4 color;
 
 void main() {
+    vec4 light_color = vec4(1.0);
+    vec4 ambient_color = vec4(0.1);
+    vec4 specular_color = vec4(0.3);
+
     vec4 base_color = texture(color_sampler, frag_tex_coord);
     vec3 texture_normal = texture(normal_sampler, frag_tex_coord).xyz * 2.0 - vec3(1.0);
 
     // vec3 normal = texture_normal;
-    vec3 normal = frag_normal;
-
-    vec4 light_color = vec4(1.0);
-    vec4 ambient_color = vec4(0.1);
-    vec4 specular_color = vec4(0.3);
+    vec3 normal = normalize(frag_normal);
     vec3 light_dir = normalize(vec3(1.0, 1.0, 0.0));
 
     vec4 ambient_light = ambient_color * base_color;
