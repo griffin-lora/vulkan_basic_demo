@@ -205,7 +205,7 @@ const char* create_graphics_pipeline(
     VkShaderModule vertex_shader_module, VkShaderModule fragment_shader_module,
     size_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
     size_t num_vertex_bytes, size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[], 
-    size_t num_vertex_push_constants_bytes, size_t num_fragment_push_constants_bytes,
+    size_t num_push_constants_bytes,
     VkRenderPass render_pass,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
 ) {
@@ -340,25 +340,18 @@ const char* create_graphics_pipeline(
     //
 
     {
-        VkPushConstantRange ranges[] = {
-            {
-                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                .offset = 0,
-                .size = num_vertex_push_constants_bytes
-            },
-            {
-                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                .offset = num_vertex_push_constants_bytes,
-                .size = num_fragment_push_constants_bytes
-            }
+        VkPushConstantRange range = {
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            .offset = 0,
+            .size = num_push_constants_bytes
         };
 
         VkPipelineLayoutCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1,
             .pSetLayouts = descriptor_set_layout,
-            .pushConstantRangeCount = 2,
-            .pPushConstantRanges = ranges
+            .pushConstantRangeCount = 1,
+            .pPushConstantRanges = &range
         };
 
         if (vkCreatePipelineLayout(device, &info, NULL, pipeline_layout) != VK_SUCCESS) {

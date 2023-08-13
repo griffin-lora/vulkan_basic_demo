@@ -17,4 +17,4 @@ typedef struct {
     uint16_t* indices;
 } mesh_t;
 
-result_t load_glb_mesh(const char* path, mesh_t* mesh);
+result_t load_gltf_mesh(const char* path, mesh_t* mesh);

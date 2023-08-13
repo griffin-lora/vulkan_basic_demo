@@ -6,6 +6,7 @@
 #include <cglm/struct/vec2.h>
 #include <cglm/struct/vec3.h>
 #include <stdalign.h>
+#include <assert.h>
 
 extern VkDescriptorSetLayout descriptor_set_layout;
 extern VkDescriptorPool descriptor_pool;
@@ -22,14 +23,11 @@ extern VmaAllocation index_buffer_allocation;
 
 extern size_t num_indices;
 typedef struct {
-    struct {
-        mat4s model_view_projection;
-    } vertex;
-    struct {
-        vec3s camera_position;
-    } fragment;
+    mat4s model_view_projection;
+    vec3s camera_position;
 } push_constants_t;
 extern push_constants_t push_constants;
+static_assert(sizeof(push_constants_t) <= 256, "Push constants must be less than or equal to 256 bytes");
 
 #define NUM_WORLD_TEXTURE_IMAGES 2
 extern VkSampler world_texture_image_sampler;

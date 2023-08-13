@@ -133,7 +133,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     uint16_t* indices;
     {
         mesh_t mesh;
-        if (load_glb_mesh("mesh/test.glb", &mesh) != result_success) {
+        if (load_gltf_mesh("mesh/test.gltf", &mesh) != result_success) {
             return "Failed to load mesh\n";
         }
 
@@ -381,7 +381,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             vertex_shader_module, fragment_shader_module,
             NUM_ELEMS(bindings), bindings, infos,
             sizeof(vertex_t), NUM_ELEMS(attributes), attributes,
-            sizeof(push_constants.vertex), sizeof(push_constants.fragment),
+            sizeof(push_constants),
             render_pass,
             &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout, &pipeline
         );

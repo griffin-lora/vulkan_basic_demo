@@ -4,7 +4,7 @@
 #include <malloc.h>
 #include <string.h>
 
-result_t load_glb_mesh(const char* path, mesh_t* mesh) {
+result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
     cgltf_options options = {};
     cgltf_data* data = NULL;
 

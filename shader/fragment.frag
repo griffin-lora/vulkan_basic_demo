@@ -1,7 +1,8 @@
 #version 450
 
 layout(push_constant, std430) uniform fragment_push_constants_t {
-    layout(offset = 64) vec3 camera_position;
+    mat4 model_view_projection;
+    vec3 camera_position;
 };
 
 layout(binding = 0) uniform sampler2D color_sampler;

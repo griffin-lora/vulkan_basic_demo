@@ -3,6 +3,7 @@
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/cam.h>
 #include <cglm/struct/mat3.h>
+#include <cglm/struct/affine.h>
 #include <stdbool.h>
 #include <math.h>
 
@@ -123,7 +124,11 @@ void handle_input(float delta) {
 
     mat4s view = glms_look(cam_pos, cam_forward, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
     
-    push_constants.vertex.model_view_projection = glms_mat4_mul(projection, view);
-    push_constants.fragment.camera_position = cam_pos;
+    mat4s model = glms_translate(glms_mat4_identity(), (vec3s) {{ 2.0f, 0.0f, 0.0f }});
+    mat4s model_view = glms_mat4_mul(view, model);
+
+    push_constants.model_view_projection = glms_mat4_mul(projection, model_view);
+    // push_constants.vertex.model_view = glms_mat4_mul(projection, model_view);
+    push_constants.camera_position = cam_pos;
 
 }
