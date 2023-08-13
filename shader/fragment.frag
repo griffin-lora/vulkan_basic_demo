@@ -1,8 +1,8 @@
 #version 450
 
 layout(push_constant, std430) uniform push_constants_t {
-    mat4 MVP;
-    mat4 V;
+    mat4 model_view_projection;
+    mat4 view;
 };
 
 layout(binding = 0) uniform sampler2D color_sampler;
