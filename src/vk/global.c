@@ -55,7 +55,7 @@ VmaAllocation world_texture_image_allocations[NUM_WORLD_TEXTURE_IMAGES];
 VkImageView world_texture_image_views[NUM_WORLD_TEXTURE_IMAGES];
 
 size_t num_indices;
-mat4s clip_space;
+push_constants_t push_constants;
 
 VkDescriptorSetLayout descriptor_set_layout;
 VkDescriptorPool descriptor_pool;

@@ -573,18 +573,25 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     };
 
     {
-        VkPushConstantRange range = {
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            .offset = 0,
-            .size = sizeof(clip_space)
+        VkPushConstantRange ranges[] = {
+            {
+                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+                .offset = 0,
+                .size = sizeof(push_constants.vertex)
+            },
+            {
+                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .offset = offsetof(push_constants_t, fragment),
+                .size = sizeof(push_constants.fragment)
+            }
         };
 
         VkPipelineLayoutCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1,
             .pSetLayouts = &descriptor_set_layout,
-            .pushConstantRangeCount = 1,
-            .pPushConstantRanges = &range
+            .pushConstantRangeCount = 2,
+            .pPushConstantRanges = ranges
         };
 
         if (vkCreatePipelineLayout(device, &info, NULL, &pipeline_layout) != VK_SUCCESS) {

@@ -5,6 +5,7 @@
 #include <cglm/struct/mat4.h>
 #include <cglm/struct/vec2.h>
 #include <cglm/struct/vec3.h>
+#include <stdalign.h>
 
 extern VkDescriptorSetLayout descriptor_set_layout;
 extern VkDescriptorPool descriptor_pool;
@@ -20,7 +21,15 @@ extern VkBuffer index_buffer;
 extern VmaAllocation index_buffer_allocation;
 
 extern size_t num_indices;
-extern mat4s clip_space;
+typedef struct {
+    struct {
+        mat4s model_view_projection;
+    } vertex;
+    struct {
+        vec3s camera_position;
+    } fragment;
+} push_constants_t;
+extern push_constants_t push_constants;
 
 #define NUM_WORLD_TEXTURE_IMAGES 2
 extern VkSampler world_texture_image_sampler;
