@@ -18,13 +18,14 @@ extern VkBuffer vertex_buffer;
 extern VmaAllocation vertex_buffer_allocation;
 extern VkBuffer index_buffer;
 extern VmaAllocation index_buffer_allocation;
-extern VkImage texture_image;
-extern VmaAllocation texture_image_allocation;
 
 extern size_t num_indices;
 extern mat4s clip_space;
 
-extern VkImageView texture_image_view;
-extern VkSampler texture_image_sampler;
+#define NUM_WORLD_TEXTURE_IMAGES 2
+extern VkSampler world_texture_image_sampler;
+extern VkImage world_texture_images[NUM_WORLD_TEXTURE_IMAGES];
+extern VmaAllocation world_texture_image_allocations[NUM_WORLD_TEXTURE_IMAGES];
+extern VkImageView world_texture_image_views[NUM_WORLD_TEXTURE_IMAGES];
 
 const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* physical_device_properties);

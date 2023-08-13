@@ -586,10 +586,12 @@ void term_vulkan_all(void) {
     vkDestroyDescriptorPool(device, descriptor_pool, NULL);
     vkDestroyDescriptorSetLayout(device, descriptor_set_layout, NULL);
 
-    vkDestroySampler(device, texture_image_sampler, NULL);
-    vkDestroyImageView(device, texture_image_view, NULL);
+    vkDestroySampler(device, world_texture_image_sampler, NULL);
+    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
+        vkDestroyImageView(device, world_texture_image_views[i], NULL);
 
-    vmaDestroyImage(allocator, texture_image, texture_image_allocation);
+        vmaDestroyImage(allocator, world_texture_images[i], world_texture_image_allocations[i]);
+    }
 
     vmaDestroyBuffer(allocator, vertex_buffer, vertex_buffer_allocation);
     vmaDestroyBuffer(allocator, index_buffer, index_buffer_allocation);

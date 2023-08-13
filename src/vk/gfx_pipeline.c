@@ -97,31 +97,35 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     int image_width;
     int image_height;
 
-    VkBuffer image_staging_buffer;
-    VmaAllocation image_staging_buffer_allocation;
+    VkBuffer world_texture_image_staging_buffers[NUM_WORLD_TEXTURE_IMAGES];
+    VmaAllocation world_texture_image_staging_buffer_allocations[NUM_WORLD_TEXTURE_IMAGES];
 
-    {
-        int image_channels;
-        stbi_uc* pixels = stbi_load("image/test.png", &image_width, &image_height, &image_channels, STBI_rgb_alpha);
-        if (pixels == NULL) {
-            return "Failed to load texture image\n";
-        }
-
-        if (create_buffer(image_width*image_height*4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &image_staging_buffer, &image_staging_buffer_allocation) != result_success) {
-            return "Failed to create image staging buffer\n";
-        }
-
-        if (write_to_staging_buffer(image_staging_buffer_allocation, image_width*image_height*4, pixels) != result_success) {
-            return "Failed to write to image staging buffer\n";
-        }
-
-        stbi_image_free(pixels);
-    }
+    int image_channels;
+    stbi_uc* pixel_arrays[] = {
+        stbi_load("image/test_color.jpg", &image_width, &image_height, &image_channels, STBI_rgb_alpha),
+        stbi_load("image/test_normal.jpg", &image_width, &image_height, &image_channels, STBI_rgb_alpha)
+    };
     
     uint32_t num_mip_levels = ((uint32_t)floorf(log2f(max_uint32(image_width, image_height)))) + 1;
 
-    if (create_image(image_width, image_height, num_mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &texture_image, &texture_image_allocation) != result_success) {
-        return "Failed to create texture image\n";
+    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
+        if (pixel_arrays[i] == NULL) {
+            return "Failed to load texture image\n";
+        }
+
+        if (create_buffer(image_width*image_height*4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &world_texture_image_staging_buffers[i], &world_texture_image_staging_buffer_allocations[i]) != result_success) {
+            return "Failed to create image staging buffer\n";
+        }
+
+        if (write_to_staging_buffer(world_texture_image_staging_buffer_allocations[i], image_width*image_height*4, pixel_arrays[i]) != result_success) {
+            return "Failed to write to image staging buffer\n";
+        }
+
+        stbi_image_free(pixel_arrays[i]);
+
+        if (create_image(image_width, image_height, num_mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &world_texture_images[i], &world_texture_image_allocations[i]) != result_success) {
+            return "Failed to create texture image\n";
+        }
     }
 
     size_t num_vertices;
@@ -196,8 +200,10 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
         }
     }
 
-    transition_image_layout(command_buffer, texture_image, num_mip_levels, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-    transfer_from_staging_buffer_to_image(command_buffer, image_width, image_height, image_staging_buffer, texture_image);
+    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
+        transition_image_layout(command_buffer, world_texture_images[i], num_mip_levels, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+        transfer_from_staging_buffer_to_image(command_buffer, image_width, image_height, world_texture_image_staging_buffers[i], world_texture_images[i]);
+    }
 
     {
         VkFormatProperties properties;
@@ -208,40 +214,41 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
         }
     }
     {
-
         uint32_t mip_width = image_width;
         uint32_t mip_height = image_height;
 
         for (size_t i = 1; i < num_mip_levels; i++) {
-            transition_image_layout(command_buffer, texture_image, 1, i - 1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+            for (size_t j = 0; j < NUM_WORLD_TEXTURE_IMAGES; j++) {
+                transition_image_layout(command_buffer, world_texture_images[j], 1, i - 1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-            VkImageBlit blit = {
-                .srcOffsets[0] = { 0, 0, 0 },
-                .srcOffsets[1] = { mip_width, mip_height, 1 },
-                .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .srcSubresource.mipLevel = i - 1,
-                .srcSubresource.baseArrayLayer = 0,
-                .srcSubresource.layerCount = 1,
-                .dstOffsets[0] = { 0, 0, 0 },
-                .dstOffsets[1] = { mip_width > 1 ? mip_width / 2 : 1, mip_height > 1 ? mip_height / 2 : 1, 1 },
-                .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .dstSubresource.mipLevel = i,
-                .dstSubresource.baseArrayLayer = 0,
-                .dstSubresource.layerCount = 1
-            };
+                VkImageBlit blit = {
+                    .srcOffsets[0] = { 0, 0, 0 },
+                    .srcOffsets[1] = { mip_width, mip_height, 1 },
+                    .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .srcSubresource.mipLevel = i - 1,
+                    .srcSubresource.baseArrayLayer = 0,
+                    .srcSubresource.layerCount = 1,
+                    .dstOffsets[0] = { 0, 0, 0 },
+                    .dstOffsets[1] = { mip_width > 1 ? mip_width / 2 : 1, mip_height > 1 ? mip_height / 2 : 1, 1 },
+                    .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .dstSubresource.mipLevel = i,
+                    .dstSubresource.baseArrayLayer = 0,
+                    .dstSubresource.layerCount = 1
+                };
 
-            vkCmdBlitImage(command_buffer, texture_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, texture_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+                vkCmdBlitImage(command_buffer, world_texture_images[j], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, world_texture_images[j], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
 
-            transition_image_layout(command_buffer, texture_image, 1, i - 1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+                transition_image_layout(command_buffer, world_texture_images[j], 1, i - 1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+            }
 
             if (mip_width > 1) { mip_width /= 2; }
             if (mip_height > 1) { mip_height /= 2; }
         }
     }
 
-    transition_image_layout(command_buffer, texture_image, 1, num_mip_levels - 1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-
-    // transition_image_layout(command_buffer, texture_image, num_mip_levels, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
+        transition_image_layout(command_buffer, world_texture_images[i], 1, num_mip_levels - 1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    }
 
     transfer_from_staging_buffer_to_buffer(command_buffer, num_vertices*sizeof(vertex_t), vertex_staging_buffer, vertex_buffer);
     transfer_from_staging_buffer_to_buffer(command_buffer, num_indices*sizeof(uint16_t), index_staging_buffer, index_buffer);
@@ -263,14 +270,18 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
 
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 
-    vmaDestroyBuffer(allocator, image_staging_buffer, image_staging_buffer_allocation);
+    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
+        vmaDestroyBuffer(allocator, world_texture_image_staging_buffers[i], world_texture_image_staging_buffer_allocations[i]);
+    }
     vmaDestroyBuffer(allocator, vertex_staging_buffer, vertex_staging_buffer_allocation);
     vmaDestroyBuffer(allocator, index_staging_buffer, index_staging_buffer_allocation);
 
     //
 
-    if (create_image_view(texture_image, num_mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &texture_image_view) != result_success) {
-        return "Failed to create texture image view\n";
+    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
+        if (create_image_view(world_texture_images[i], num_mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &world_texture_image_views[i]) != result_success) {
+            return "Failed to create texture image view\n";
+        }
     }
 
     {
@@ -293,7 +304,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             .mipLodBias = 0.0f
         };
 
-        if (vkCreateSampler(device, &info, NULL, &texture_image_sampler) != VK_SUCCESS) {
+        if (vkCreateSampler(device, &info, NULL, &world_texture_image_sampler) != VK_SUCCESS) {
             return "Failed to create tetxure image sampler\n";
         }
     }
@@ -321,6 +332,13 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
                 .pImmutableSamplers = NULL
+            },
+            {
+                .binding = 1,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+                .pImmutableSamplers = NULL
             }
         };
 
@@ -341,6 +359,10 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             //     .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             //     .descriptorCount = NUM_FRAMES_IN_FLIGHT
             // },
+            {
+                .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = 1
+            },
             {
                 .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 .descriptorCount = 1
@@ -378,10 +400,17 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
         //     .offset = 0,
         //     .range = sizeof(clip_space)
         // };
-        VkDescriptorImageInfo image_info = {
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .imageView = texture_image_view,
-            .sampler = texture_image_sampler
+        VkDescriptorImageInfo image_infos[] = {
+            {
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                .imageView = world_texture_image_views[0],
+                .sampler = world_texture_image_sampler
+            },
+            {
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                .imageView = world_texture_image_views[1],
+                .sampler = world_texture_image_sampler
+            }
         };
 
         VkWriteDescriptorSet writes[] = {
@@ -401,7 +430,16 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
                 .dstArrayElement = 0,
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 .descriptorCount = 1,
-                .pImageInfo = &image_info
+                .pImageInfo = &image_infos[0]
+            },
+            {
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = descriptor_set,
+                .dstBinding = 1,
+                .dstArrayElement = 0,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .descriptorCount = 1,
+                .pImageInfo = &image_infos[1]
             }
         };
 

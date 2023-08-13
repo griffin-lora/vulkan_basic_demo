@@ -49,8 +49,10 @@ VmaAllocation vertex_buffer_allocation;
 VkBuffer index_buffer;
 VmaAllocation index_buffer_allocation;
 
-VkImage texture_image;
-VmaAllocation texture_image_allocation;
+VkSampler world_texture_image_sampler;
+VkImage world_texture_images[NUM_WORLD_TEXTURE_IMAGES];
+VmaAllocation world_texture_image_allocations[NUM_WORLD_TEXTURE_IMAGES];
+VkImageView world_texture_image_views[NUM_WORLD_TEXTURE_IMAGES];
 
 size_t num_indices;
 mat4s clip_space;
@@ -58,9 +60,6 @@ mat4s clip_space;
 VkDescriptorSetLayout descriptor_set_layout;
 VkDescriptorPool descriptor_pool;
 VkDescriptorSet descriptor_set;
-
-VkImageView texture_image_view;
-VkSampler texture_image_sampler;
 
 VkFormat depth_image_format;
 VkImage depth_image;
