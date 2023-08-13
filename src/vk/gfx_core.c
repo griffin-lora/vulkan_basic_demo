@@ -350,7 +350,7 @@ const char* create_graphics_pipeline(
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = 1,
             .pSetLayouts = descriptor_set_layout,
-            .pushConstantRangeCount = 1,
+            .pushConstantRangeCount = num_push_constants_bytes == 0 ? 0 : 1,
             .pPushConstantRanges = &range
         };
 

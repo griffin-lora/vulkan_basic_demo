@@ -1,40 +1,47 @@
 #version 450
 
-layout(push_constant, std430) uniform fragment_push_constants_t {
-    mat4 model_view_projection;
-    vec3 camera_position;
+layout(push_constant, std430) uniform push_constants_t {
+    mat4 MVP;
+    mat4 V;
 };
 
 layout(binding = 0) uniform sampler2D color_sampler;
 layout(binding = 1) uniform sampler2D normal_sampler;
 
-layout(location = 0) in vec3 frag_position;
-layout(location = 1) in mat3 frag_tangent_space;
-layout(location = 4) in vec2 frag_tex_coord;
+layout(location = 0) in vec3 frag_world_position;
+layout(location = 1) in vec3 frag_view_normal;
+layout(location = 2) in vec3 frag_vertex_to_camera_view_position;
+layout(location = 3) in vec3 frag_light_view_direction;
+layout(location = 4) in vec3 frag_light_tangent_direction;
+layout(location = 5) in vec3 frag_vertex_to_camera_tangent_position;
+layout(location = 6) in vec2 tex_coord;
 
 layout(location = 0) out vec4 color;
 
-void main() {
-    vec4 light_color = vec4(1.0);
-    vec4 ambient_color = vec4(0.1);
-    vec4 specular_color = vec4(0.3);
+void main(){
+    vec3 light_world_position = vec3(3.0);
+	vec3 light_color = vec3(1.0);
+	float light_power = 40.0;
+	
+	vec3 base_color = texture(color_sampler, tex_coord).rgb;
+	vec3 ambient_color = vec3(0.1) * base_color;
+    vec3 specular_color = vec3(0.3);
 
-    vec4 base_color = texture(color_sampler, frag_tex_coord);
-    vec3 texture_normal = texture(normal_sampler, frag_tex_coord).xyz * 2.0 - vec3(1.0);
+	vec3 tangent_normal = normalize(texture(normal_sampler, tex_coord).rgb * 2.0 - 1.0);
+	
+	float light_distance = length(light_world_position - frag_world_position);
 
-    // vec3 normal = texture_normal;
-    vec3 normal = normalize(frag_tangent_space * texture_normal);
-    vec3 light_dir = normalize(vec3(1.0, 1.0, 0.0));
+	vec3 light_tangent_direction = normalize(frag_light_tangent_direction);
+	float cos_theta = clamp(dot(tangent_normal, light_tangent_direction), 0.0, 1.0);
 
-    vec4 ambient_light = ambient_color * base_color;
-
-    float cos_theta = clamp(dot(normal, light_dir), 0.0, 1.0);
-    vec4 diffuse_light = base_color * light_color * cos_theta;
-
-    vec3 view_dir = normalize(camera_position - frag_position);
-    vec3 reflection_dir = reflect(-light_dir, normal);
-    float cos_alpha = clamp(dot(view_dir, reflection_dir), 0.0, 1.0);
-    vec4 specular_light = specular_color * light_color * pow(cos_alpha, 8.0);
-
-    color = ambient_light + specular_light + diffuse_light;
+	vec3 vertex_to_camera_tangent_position = normalize(frag_vertex_to_camera_tangent_position);
+	vec3 reflection_tangent_direction = reflect(-light_tangent_direction, tangent_normal);
+	float cos_alpha = clamp(dot(vertex_to_camera_tangent_position, reflection_tangent_direction), 0.0, 1.0);
+	
+	color = vec4(
+		ambient_color +
+		base_color * light_color * light_power * cos_theta / (light_distance*light_distance) +
+		specular_color * light_color * light_power * pow(cos_alpha, 5.0) / (light_distance*light_distance),
+		1.0
+	);
 }
