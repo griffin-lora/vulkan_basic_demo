@@ -8,8 +8,8 @@ layout(binding = 0) uniform sampler2D color_sampler;
 layout(binding = 1) uniform sampler2D normal_sampler;
 
 layout(location = 0) in vec3 frag_position;
-layout(location = 1) in vec3 frag_normal;
-layout(location = 2) in vec2 frag_tex_coord;
+layout(location = 1) in mat3 frag_tangent_space;
+layout(location = 4) in vec2 frag_tex_coord;
 
 layout(location = 0) out vec4 color;
 
@@ -22,7 +22,7 @@ void main() {
     vec3 texture_normal = texture(normal_sampler, frag_tex_coord).xyz * 2.0 - vec3(1.0);
 
     // vec3 normal = texture_normal;
-    vec3 normal = normalize(frag_normal);
+    vec3 normal = normalize(frag_tangent_space * texture_normal);
     vec3 light_dir = normalize(vec3(1.0, 1.0, 0.0));
 
     vec4 ambient_light = ambient_color * base_color;

@@ -23,7 +23,7 @@ result_t load_glb_mesh(const char* path, mesh_t* mesh) {
 
     const cgltf_primitive* primitive_data = &mesh_data->primitives[0];
 
-    if (primitive_data->attributes_count != 3) {
+    if (primitive_data->attributes_count != 4) {
         return result_failure;
     }
     if (primitive_data->attributes[0].type != cgltf_attribute_type_position) {
@@ -32,7 +32,10 @@ result_t load_glb_mesh(const char* path, mesh_t* mesh) {
     if (primitive_data->attributes[1].type != cgltf_attribute_type_normal) {
         return result_failure;
     }
-    if (primitive_data->attributes[2].type != cgltf_attribute_type_texcoord) {
+    if (primitive_data->attributes[2].type != cgltf_attribute_type_tangent) {
+        return result_failure;
+    }
+    if (primitive_data->attributes[3].type != cgltf_attribute_type_texcoord) {
         return result_failure;
     }
 
@@ -45,12 +48,14 @@ result_t load_glb_mesh(const char* path, mesh_t* mesh) {
 
     const vec3s* position_data = primitive_data->attributes[0].data->buffer_view->buffer->data + primitive_data->attributes[0].data->buffer_view->offset;
     const vec3s* normal_data = primitive_data->attributes[1].data->buffer_view->buffer->data + primitive_data->attributes[1].data->buffer_view->offset;
-    const vec2s* tex_coord_data = primitive_data->attributes[2].data->buffer_view->buffer->data + primitive_data->attributes[2].data->buffer_view->offset;
-    
+    const vec4s* tangent_data = primitive_data->attributes[2].data->buffer_view->buffer->data + primitive_data->attributes[2].data->buffer_view->offset;
+    const vec2s* tex_coord_data = primitive_data->attributes[3].data->buffer_view->buffer->data + primitive_data->attributes[3].data->buffer_view->offset;
+
     for (size_t i = 0; i < num_vertices; i++) {
         vertices[i] = (vertex_t) {
             .position = position_data[i],
             .normal = normal_data[i],
+            .tangent = tangent_data[i],
             .tex_coord = tex_coord_data[i]
         };
     }

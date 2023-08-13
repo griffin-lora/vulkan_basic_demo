@@ -368,6 +368,10 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
                 .offset = offsetof(vertex_t, normal)
             },
             {
+                .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+                .offset = offsetof(vertex_t, tangent)
+            },
+            {
                 .format = VK_FORMAT_R32G32_SFLOAT,
                 .offset = offsetof(vertex_t, tex_coord)
             }

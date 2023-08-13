@@ -6,6 +6,7 @@
 typedef struct {
     vec3s position;
     vec3s normal;
+    vec4s tangent;
     vec2s tex_coord;
 } vertex_t;
 
