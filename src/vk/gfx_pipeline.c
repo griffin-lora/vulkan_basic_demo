@@ -317,137 +317,6 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
 
     //
 
-    {
-        VkDescriptorSetLayoutBinding bindings[] = {
-            // {
-            //     .binding = 0,
-            //     .descriptorCount = 1,
-            //     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            //     .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            //     .pImmutableSamplers = NULL
-            // },
-            {
-                .binding = 0,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                .pImmutableSamplers = NULL
-            },
-            {
-                .binding = 1,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                .pImmutableSamplers = NULL
-            }
-        };
-
-        VkDescriptorSetLayoutCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = NUM_ELEMS(bindings),
-            .pBindings = bindings
-        };
-
-        if (vkCreateDescriptorSetLayout(device, &info, NULL, &descriptor_set_layout) != VK_SUCCESS) {
-            return "Failed to create descriptor set layout\n";
-        }
-    }
-
-    {
-        VkDescriptorPoolSize sizes[] = {
-            // {
-            //     .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            //     .descriptorCount = NUM_FRAMES_IN_FLIGHT
-            // },
-            {
-                .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount = 1
-            },
-            {
-                .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount = 1
-            }
-        };
-
-        VkDescriptorPoolCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .poolSizeCount = NUM_ELEMS(sizes),
-            .pPoolSizes = sizes,
-            .maxSets = 1
-        };
-
-        if (vkCreateDescriptorPool(device, &info, NULL, &descriptor_pool) != VK_SUCCESS) {
-            return "Failed to create descriptor pool\n";
-        }
-    }
-
-    {
-        VkDescriptorSetAllocateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .descriptorPool = descriptor_pool,
-            .descriptorSetCount = 1,
-            .pSetLayouts = &descriptor_set_layout
-        };
-
-        if (vkAllocateDescriptorSets(device, &info, &descriptor_set) != VK_SUCCESS) {
-            return "Failed to allocate descriptor sets\n";
-        }
-    }
-
-    {
-        // VkDescriptorBufferInfo buffer_info = {
-        //     .buffer = clip_space_uniform_buffers[i],
-        //     .offset = 0,
-        //     .range = sizeof(clip_space)
-        // };
-        VkDescriptorImageInfo image_infos[] = {
-            {
-                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                .imageView = world_texture_image_views[0],
-                .sampler = world_texture_image_sampler
-            },
-            {
-                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                .imageView = world_texture_image_views[1],
-                .sampler = world_texture_image_sampler
-            }
-        };
-
-        VkWriteDescriptorSet writes[] = {
-            // {
-            //     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            //     .dstSet = descriptor_sets[i],
-            //     .dstBinding = 0,
-            //     .dstArrayElement = 0,
-            //     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            //     .descriptorCount = 1,
-            //     .pBufferInfo = &buffer_info
-            // },
-            {
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_set,
-                .dstBinding = 0,
-                .dstArrayElement = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount = 1,
-                .pImageInfo = &image_infos[0]
-            },
-            {
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .dstSet = descriptor_set,
-                .dstBinding = 1,
-                .dstArrayElement = 0,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .descriptorCount = 1,
-                .pImageInfo = &image_infos[1]
-            }
-        };
-
-        vkUpdateDescriptorSets(device, NUM_ELEMS(writes), writes, 0, NULL);
-    }
-
-    //
-
     VkShaderModule vertex_shader_module;
     if (create_shader_module("shader/vertex.spv", &vertex_shader_module) != result_success) {
         return "Failed to create vertex shader module\n";
@@ -457,173 +326,66 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     if (create_shader_module("shader/fragment.spv", &fragment_shader_module) != result_success) {
         return "Failed to create vertex shader module\n";
     }
-    
-    VkPipelineShaderStageCreateInfo shader_pipeline_stage_create_infos[] = {
-        {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .module = vertex_shader_module,
-            .pName = "main",
-            .pSpecializationInfo = NULL
-        },
-        {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .module = fragment_shader_module,
-            .pName = "main",
-            .pSpecializationInfo = NULL
-        }
-    };
-
-    //
-
-    VkVertexInputBindingDescription vertex_input_binding_description = {
-        .binding = 0,
-        .stride = sizeof(vertex_t),
-        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-    };
-
-    VkVertexInputAttributeDescription vertex_input_attribute_descriptions[] = {
-        {
-            .binding = 0,
-            .location = 0,
-            .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(vertex_t, position)
-        },
-        {
-            .binding = 0,
-            .location = 1,
-            .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(vertex_t, normal)
-        },
-        {
-            .binding = 0,
-            .location = 2,
-            .format = VK_FORMAT_R32G32_SFLOAT,
-            .offset = offsetof(vertex_t, tex_coord)
-        }
-    };
-
-    VkPipelineVertexInputStateCreateInfo vertex_input_pipeline_state_create_info = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        .vertexBindingDescriptionCount = 1,
-        .pVertexBindingDescriptions = &vertex_input_binding_description,
-        .vertexAttributeDescriptionCount = NUM_ELEMS(vertex_input_attribute_descriptions),
-        .pVertexAttributeDescriptions = vertex_input_attribute_descriptions,
-    };
-
-    //
-
-    VkPipelineInputAssemblyStateCreateInfo input_assembly_pipeline_state_create_info = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        .primitiveRestartEnable = VK_FALSE
-    };
-
-    VkPipelineViewportStateCreateInfo viewport_pipeline_state_create_info = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-        .viewportCount = 1,
-        .scissorCount = 1
-    };
-
-    VkPipelineRasterizationStateCreateInfo rasterization_pipeline_state_create_info = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-        .depthClampEnable = VK_FALSE,
-        .rasterizerDiscardEnable = VK_FALSE,
-        .polygonMode = VK_POLYGON_MODE_FILL, // solid geometry, not wireframe
-        .lineWidth = 1.0f,
-        .cullMode = VK_CULL_MODE_BACK_BIT,
-        .frontFace = VK_FRONT_FACE_CLOCKWISE,
-        .depthBiasEnable = VK_FALSE
-    };
-
-    VkPipelineMultisampleStateCreateInfo multisample_pipeline_state_create_info = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-        .sampleShadingEnable = VK_FALSE,
-        .rasterizationSamples = render_multisample_flags
-    };
-
-    VkPipelineDepthStencilStateCreateInfo depth_stencil_pipeline_state_create_info = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-        .depthTestEnable = VK_TRUE,
-        .depthWriteEnable = VK_TRUE,
-        .depthCompareOp = VK_COMPARE_OP_LESS,
-        .depthBoundsTestEnable = VK_FALSE, // TODO: Use this?
-        .stencilTestEnable = VK_FALSE
-    };
-
-    VkPipelineColorBlendAttachmentState color_blend_attachment_pipeline_state_create_info = {
-        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-        .blendEnable = VK_FALSE
-    };
-
-    VkPipelineColorBlendStateCreateInfo color_blend_pipeline_state_create_info = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-        .logicOpEnable = VK_FALSE,
-        .attachmentCount = 1,
-        .pAttachments = &color_blend_attachment_pipeline_state_create_info
-    };
-
-    VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-
-    VkPipelineDynamicStateCreateInfo dynamic_pipeline_state_create_info = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-        .dynamicStateCount = NUM_ELEMS(dynamic_states),
-        .pDynamicStates = dynamic_states
-    };
 
     {
-        VkPushConstantRange ranges[] = {
+        descriptor_binding_t bindings[] = {
             {
-                .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                .offset = 0,
-                .size = sizeof(push_constants.vertex)
+                .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
             },
             {
-                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                .offset = offsetof(push_constants_t, fragment),
-                .size = sizeof(push_constants.fragment)
+                .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
             }
         };
 
-        VkPipelineLayoutCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = 1,
-            .pSetLayouts = &descriptor_set_layout,
-            .pushConstantRangeCount = 2,
-            .pPushConstantRanges = ranges
+        descriptor_info_t infos[] = {
+            {
+                .type = descriptor_info_type_image,
+                .image = {
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .imageView = world_texture_image_views[0],
+                    .sampler = world_texture_image_sampler
+                }
+            },
+            {
+                .type = descriptor_info_type_image,
+                .image = {
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .imageView = world_texture_image_views[1],
+                    .sampler = world_texture_image_sampler
+                }
+            }
         };
 
-        if (vkCreatePipelineLayout(device, &info, NULL, &pipeline_layout) != VK_SUCCESS) {
-            return "Failed to create pipeline layout\n";
-        }
-    }
-
-    {
-        VkGraphicsPipelineCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-            .stageCount = NUM_ELEMS(shader_pipeline_stage_create_infos),
-            .pStages = shader_pipeline_stage_create_infos,
-            .pVertexInputState = &vertex_input_pipeline_state_create_info,
-            .pInputAssemblyState = &input_assembly_pipeline_state_create_info,
-            .pViewportState = &viewport_pipeline_state_create_info,
-            .pRasterizationState = &rasterization_pipeline_state_create_info,
-            .pMultisampleState = &multisample_pipeline_state_create_info,
-            .pDepthStencilState = &depth_stencil_pipeline_state_create_info,
-            .pColorBlendState = &color_blend_pipeline_state_create_info,
-            .pDynamicState = &dynamic_pipeline_state_create_info,
-            .layout = pipeline_layout,
-            .renderPass = render_pass,
-            .subpass = 0,
-            .basePipelineHandle = VK_NULL_HANDLE,
-            .basePipelineIndex = -1
+        vertex_attribute_t attributes[] = {
+            {
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset = offsetof(vertex_t, position)
+            },
+            {
+                .format = VK_FORMAT_R32G32B32_SFLOAT,
+                .offset = offsetof(vertex_t, normal)
+            },
+            {
+                .format = VK_FORMAT_R32G32_SFLOAT,
+                .offset = offsetof(vertex_t, tex_coord)
+            }
         };
 
-        if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, NULL, &pipeline) != VK_SUCCESS) {
-            return "Failed to create graphics pipeline\n";
+        const char* msg = create_graphics_pipeline(
+            vertex_shader_module, fragment_shader_module,
+            NUM_ELEMS(bindings), bindings, infos,
+            sizeof(vertex_t), NUM_ELEMS(attributes), attributes,
+            sizeof(push_constants.vertex), sizeof(push_constants.fragment),
+            render_pass,
+            &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout, &pipeline
+        );
+        if (msg != NULL) {
+            return msg;
         }
     }
-
+    
     vkDestroyShaderModule(device, vertex_shader_module, NULL);
     vkDestroyShaderModule(device, fragment_shader_module, NULL);
 
