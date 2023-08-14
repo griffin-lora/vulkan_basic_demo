@@ -555,3 +555,100 @@ void destroy_images(size_t num_images, const VkImage images[], const VmaAllocati
         vmaDestroyImage(allocator, images[i], image_allocations[i]);
     }
 }
+
+result_t submit_render_command_buffer(
+    VkCommandBuffer command_buffer,
+    VkFramebuffer image_framebuffer, VkExtent2D image_extent,
+    size_t num_clear_values, const VkClearValue clear_values[],
+    VkRenderPass render_pass, VkDescriptorSet descriptor_set, VkPipelineLayout pipeline_layout, VkPipeline pipeline,
+    size_t num_push_constants_bytes, const void* push_constants,
+    size_t num_vertex_buffers, const VkBuffer vertex_buffers[],
+    size_t num_indices, VkBuffer index_buffer,
+    size_t num_wait_semaphores, const VkSemaphore wait_semaphores[], const VkPipelineStageFlags wait_stage_flags_array[],
+    size_t num_signal_semaphores, const VkSemaphore signal_semaphores[],
+    VkFence signal_fence
+) {
+    vkResetCommandBuffer(command_buffer, 0);
+    // write to command buffer
+    {
+        VkCommandBufferBeginInfo info = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
+        };
+
+        if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    {
+        VkRenderPassBeginInfo info = {
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+            .renderPass = render_pass,
+            .framebuffer = image_framebuffer,
+            .renderArea.offset = { 0, 0 },
+            .renderArea.extent = image_extent,
+            .clearValueCount = num_clear_values,
+            .pClearValues = clear_values
+        };
+
+        vkCmdBeginRenderPass(command_buffer, &info, VK_SUBPASS_CONTENTS_INLINE);
+    }
+
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+    VkDeviceSize* offsets = ds_promise(num_vertex_buffers*sizeof(VkDeviceSize));
+    memset(offsets, 0, num_vertex_buffers*sizeof(VkDeviceSize));
+    vkCmdBindVertexBuffers(command_buffer, 0, num_vertex_buffers, vertex_buffers, offsets);
+
+    vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
+
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 0, NULL);
+    if (num_push_constants_bytes > 0) {
+        vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, num_push_constants_bytes, push_constants);
+    }
+
+    VkViewport viewport = {
+        .x = 0.0f,
+        .y = 0.0f,
+        .width = image_extent.width,
+        .height = image_extent.height,
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f
+    };
+    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+    VkRect2D scissor = {
+        .offset = { 0, 0 },
+        .extent = image_extent
+    };
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+    vkCmdDrawIndexed(command_buffer, num_indices, 1, 0, 0, 0);
+
+    vkCmdEndRenderPass(command_buffer);
+
+    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+        return result_failure;
+    }
+
+    //
+
+    {
+        VkSubmitInfo info = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .waitSemaphoreCount = num_wait_semaphores,
+            .pWaitSemaphores = wait_semaphores,
+            .pWaitDstStageMask = wait_stage_flags_array,
+            .commandBufferCount = 1,
+            .pCommandBuffers = &command_buffer,
+            .signalSemaphoreCount = num_signal_semaphores,
+            .pSignalSemaphores = signal_semaphores
+        };
+
+        if (vkQueueSubmit(graphics_queue, 1, &info, signal_fence) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    return result_success;
+}

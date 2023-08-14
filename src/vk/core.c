@@ -523,8 +523,10 @@ const char* init_vulkan_core(void) {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .commandPool = command_pool,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = NUM_FRAMES_IN_FLIGHT
+        .commandBufferCount = NUM_PIPELINES*NUM_FRAMES_IN_FLIGHT
     };
+
+    VkCommandBuffer* render_command_buffers = &render_command_buffer_array[0][0];
 
     if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, render_command_buffers) != VK_SUCCESS) {
         return "Failed to allocate command buffers\n";
@@ -554,6 +556,24 @@ const char* init_vulkan_core(void) {
     msg = init_vulkan_graphics_pipelines();
     if (msg != NULL) {
         return msg;
+    }
+
+    {
+        VkImageView attachments[] = { shadow_image_view };
+
+        VkFramebufferCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .renderPass = render_passes[SHADOW_PIPELINE_INDEX],
+            .attachmentCount = NUM_ELEMS(attachments),
+            .pAttachments = attachments,
+            .width = SHADOW_IMAGE_SIZE,
+            .height = SHADOW_IMAGE_SIZE,
+            .layers = 1
+        };
+
+        if (vkCreateFramebuffer(device, &info, NULL, &shadow_image_framebuffer) != VK_SUCCESS) {
+            return "Failed to create shadow image framebuffer\n";
+        }
     }
 
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, NULL);
@@ -593,6 +613,10 @@ void term_vulkan_all(void) {
         vkDestroyFence(device, in_flight_fences[i], NULL);
         // vmaDestroyBuffer(allocator, clip_space_uniform_buffers[i], clip_space_uniform_buffers_allocation[i]);
     }
+
+    vkDestroyFramebuffer(device, shadow_image_framebuffer, NULL);
+    vkDestroyImageView(device, shadow_image_view, NULL);
+    vmaDestroyImage(allocator, shadow_image, shadow_image_allocation);
 
     vkDestroySampler(device, world_texture_image_sampler, NULL);
     destroy_images(NUM_TEXTURE_IMAGES, texture_images, texture_image_allocations, texture_image_views);

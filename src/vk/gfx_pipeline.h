@@ -18,6 +18,7 @@ extern VkDescriptorPool descriptor_pools[NUM_PIPELINES];
 extern VkDescriptorSet descriptor_sets[NUM_PIPELINES];
 extern VkPipelineLayout pipeline_layouts[NUM_PIPELINES];
 extern VkPipeline pipelines[NUM_PIPELINES];
+extern VkCommandBuffer render_command_buffer_array[NUM_PIPELINES][NUM_FRAMES_IN_FLIGHT];
 
 typedef struct {
     mat4s model_view_projection;

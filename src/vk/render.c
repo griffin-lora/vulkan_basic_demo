@@ -1,6 +1,7 @@
 #include "render.h"
 #include "core.h"
 #include "gfx_pipeline.h"
+#include "gfx_core.h"
 #include "asset.h"
 #include "result.h"
 #include "util.h"
@@ -11,7 +12,7 @@ static uint32_t frame_index = 0;
 const char* draw_vulkan_frame(void) {
     VkSemaphore image_available_semaphore = image_available_semaphores[frame_index];
     VkSemaphore render_finished_semaphore = render_finished_semaphores[frame_index];
-    VkCommandBuffer command_buffer = render_command_buffers[frame_index];
+    VkCommandBuffer command_buffer = render_command_buffer_array[COLOR_PIPELINE_INDEX][frame_index];
     VkFence in_flight_fence = in_flight_fences[frame_index];
 
     vkWaitForFences(device, 1, &in_flight_fence, VK_TRUE, UINT64_MAX);
@@ -29,91 +30,25 @@ const char* draw_vulkan_frame(void) {
 
     vkResetFences(device, 1, &in_flight_fence);
 
-    vkResetCommandBuffer(command_buffer, 0);
-    // write to command buffer
-    {
-        VkCommandBufferBeginInfo info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
-        };
-
-        if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
-            return "Failed to begin to write to command buffer";
-        }
-    }
-
     VkClearValue clear_values[] = {
         { .color = { .float32 = { 0.0f, 0.0f, 0.0f, 1.0f } } },
         { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
     };
 
-    {
-        VkRenderPassBeginInfo info = {
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .renderPass = render_passes[COLOR_PIPELINE_INDEX],
-            .framebuffer = swapchain_framebuffers[image_index],
-            .renderArea.offset = { 0, 0 },
-            .renderArea.extent = swap_image_extent,
-            .clearValueCount = NUM_ELEMS(clear_values),
-            .pClearValues = clear_values
-        };
+    VkPipelineStageFlags wait_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-        vkCmdBeginRenderPass(command_buffer, &info, VK_SUBPASS_CONTENTS_INLINE);
-    }
-
-    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[COLOR_PIPELINE_INDEX]);
-
-    VkDeviceSize offsets[NUM_VERTEX_ARRAYS];
-    memset(offsets, 0, sizeof(offsets));
-    vkCmdBindVertexBuffers(command_buffer, 0, NUM_VERTEX_ARRAYS, vertex_buffers, offsets);
-
-    vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
-
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts[COLOR_PIPELINE_INDEX], 0, 1, &descriptor_sets[COLOR_PIPELINE_INDEX], 0, NULL);
-    vkCmdPushConstants(command_buffer, pipeline_layouts[COLOR_PIPELINE_INDEX], VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants), &push_constants);
-
-    VkViewport viewport = {
-        .x = 0.0f,
-        .y = 0.0f,
-        .width = swap_image_extent.width,
-        .height = swap_image_extent.height,
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f
-    };
-    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-
-    VkRect2D scissor = {
-        .offset = { 0, 0 },
-        .extent = swap_image_extent
-    };
-    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-    vkCmdDrawIndexed(command_buffer, num_indices, 1, 0, 0, 0);
-
-    vkCmdEndRenderPass(command_buffer);
-
-    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-        return "Failed to write to command buffer";
-    }
-
-    //
-
-    {
-        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        
-        VkSubmitInfo info = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &image_available_semaphore,
-            .pWaitDstStageMask = &wait_stage,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &command_buffer,
-            .signalSemaphoreCount = 1,
-            .pSignalSemaphores = &render_finished_semaphore
-        };
-
-        if (vkQueueSubmit(graphics_queue, 1, &info, in_flight_fence) != VK_SUCCESS) {
-            return "Failed to submit draw command buffer\n";
-        }
+    if (submit_render_command_buffer(
+        command_buffer,
+        swapchain_framebuffers[image_index], swap_image_extent,
+        NUM_ELEMS(clear_values), clear_values,
+        render_passes[COLOR_PIPELINE_INDEX], descriptor_sets[COLOR_PIPELINE_INDEX], pipeline_layouts[COLOR_PIPELINE_INDEX], pipelines[COLOR_PIPELINE_INDEX],
+        sizeof(push_constants), &push_constants,
+        NUM_VERTEX_ARRAYS, vertex_buffers,
+        num_indices, index_buffer,
+        1, &image_available_semaphore, &wait_stage_flags,
+        1, &render_finished_semaphore, in_flight_fence
+    ) != result_success) {
+        return "Failed to submit render command buffer\n";
     }
 
     {

@@ -68,3 +68,16 @@ const char* create_graphics_pipeline(
 result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, VkFormat format, VkSampleCountFlagBits multisample_flags, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VmaAllocation* image_allocation);
 result_t create_image_view(VkImage image, uint32_t num_mip_levels, VkFormat format, VkImageAspectFlags aspect_flags, VkImageView* image_view);
 void destroy_images(size_t num_images, const VkImage images[], const VmaAllocation image_allocations[], const VkImageView image_views[]);
+
+result_t submit_render_command_buffer(
+    VkCommandBuffer command_buffer,
+    VkFramebuffer image_framebuffer, VkExtent2D image_extent,
+    size_t num_clear_values, const VkClearValue clear_values[],
+    VkRenderPass render_pass, VkDescriptorSet descriptor_set, VkPipelineLayout pipeline_layout, VkPipeline pipeline,
+    size_t num_push_constants_bytes, const void* push_constants,
+    size_t num_vertex_buffers, const VkBuffer vertex_buffers[],
+    size_t num_indices, VkBuffer index_buffer,
+    size_t num_wait_semaphores, const VkSemaphore wait_semaphores[], const VkPipelineStageFlags wait_stage_flags_array[],
+    size_t num_signal_semaphores, const VkSemaphore signal_semaphores[],
+    VkFence signal_fence
+);

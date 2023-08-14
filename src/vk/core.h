@@ -34,7 +34,6 @@ extern VkSurfaceKHR surface;
 extern VkExtent2D swap_image_extent;
 extern VkQueue graphics_queue;
 extern VkQueue presentation_queue;
-extern VkCommandBuffer render_command_buffers[];
 extern bool framebuffer_resized;
 
 extern VkSampleCountFlagBits render_multisample_flags;
