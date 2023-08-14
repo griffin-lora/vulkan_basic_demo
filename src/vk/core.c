@@ -3,14 +3,12 @@
 #include "util.h"
 #include "result.h"
 #include "gfx_pipeline.h"
+#include "shadow_pipeline.h"
 #include "asset.h"
 #include "gfx_core.h"
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
-#include <cglm/struct/cam.h>
-#include <cglm/struct/mat3.h>
-#include <cglm/struct/affine.h>
 
 #define WIDTH 640
 #define HEIGHT 480
@@ -557,103 +555,13 @@ const char* init_vulkan_core(void) {
     }
     
     const char* msg = init_vulkan_assets(&physical_device_properties);
-    if (msg != NULL) {
-        return msg;
-    }
+    if (msg != NULL) { return msg; }
 
     msg = init_vulkan_graphics_pipelines();
-    if (msg != NULL) {
-        return msg;
-    }
+    if (msg != NULL) { return msg; }
 
-    {
-        VkCommandBuffer command_buffer;
-        {
-            VkCommandBufferAllocateInfo info = {
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                .commandPool = command_pool, // TODO: Use separate command pool
-                .commandBufferCount = 1
-            };
-
-            if (vkAllocateCommandBuffers(device, &info, &command_buffer) != VK_SUCCESS) {
-                return "Failed to create command buffer\n";
-            }
-        }
-
-        {
-            VkCommandBufferBeginInfo info = {
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-            };
-            if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
-                return "Failed to write to command buffer\n";
-            }
-        }
-
-        VkFramebuffer framebuffer;
-        {
-            VkImageView attachments[] = { shadow_image_view };
-
-            VkFramebufferCreateInfo info = {
-                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                .renderPass = shadow_pipeline.render_pass,
-                .attachmentCount = NUM_ELEMS(attachments),
-                .pAttachments = attachments,
-                .width = SHADOW_IMAGE_SIZE,
-                .height = SHADOW_IMAGE_SIZE,
-                .layers = 1
-            };
-
-            if (vkCreateFramebuffer(device, &info, NULL, &framebuffer) != VK_SUCCESS) {
-                return "Failed to create shadow image framebuffer\n";
-            }
-        }
-
-        VkClearValue clear_values[] = {
-            { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
-        };
-
-        struct {
-            mat4s model_view_projection;
-        } shadow_push_constants;
-
-        mat4s projection = glms_perspective((GLM_PI*2.0f) / 5.0f, 1, 0.01f, 300.0f);
-        mat4s view = glms_look((vec3s) {{ 5.5f, 4.0f, -6.0f }}, (vec3s) {{ -0.5f, -0.5f, 0.5f }}, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
-
-        shadow_push_constants.model_view_projection = glms_mat4_mul(projection, view);
-
-        VkBuffer pass_vertex_buffers[] = {
-            vertex_buffers[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX]
-        };
-    
-       draw_scene(
-            command_buffer,
-            framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
-            NUM_ELEMS(clear_values), clear_values,
-            shadow_pipeline.render_pass, NULL, shadow_pipeline.pipeline_layout, shadow_pipeline.pipeline,
-            sizeof(shadow_push_constants), &shadow_push_constants,
-            NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
-            num_indices, index_buffer
-        );
-
-        if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-            return "Failed to write to transfer command buffer\n";
-        }
-
-        {
-            VkSubmitInfo info = {
-                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                .commandBufferCount = 1,
-                .pCommandBuffers = &command_buffer
-            };
-
-            vkQueueSubmit(graphics_queue, 1, &info, VK_NULL_HANDLE);
-            vkQueueWaitIdle(graphics_queue);
-        }
-
-        vkDestroyFramebuffer(device, framebuffer, NULL);
-    }
+    msg = draw_shadow_pipeline();
+    if (msg != NULL) { return msg; }
 
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, NULL);
     swapchain_images = ds_push(num_swapchain_images*sizeof(VkImage));
@@ -672,9 +580,7 @@ void term_vulkan_all(void) {
 
     vkDestroyCommandPool(device, command_pool, NULL);
 
-    vkDestroyPipeline(device, shadow_pipeline.pipeline, NULL);
-    vkDestroyPipelineLayout(device, shadow_pipeline.pipeline_layout, NULL);
-    vkDestroyRenderPass(device, shadow_pipeline.render_pass, NULL);
+    term_shadow_pipeline();
 
     vkDestroyPipeline(device, color_pipeline.pipeline, NULL);
     vkDestroyPipelineLayout(device, color_pipeline.pipeline_layout, NULL);
@@ -692,9 +598,6 @@ void term_vulkan_all(void) {
         vkDestroyFence(device, in_flight_fences[i], NULL);
         // vmaDestroyBuffer(allocator, clip_space_uniform_buffers[i], clip_space_uniform_buffers_allocation[i]);
     }
-
-    vkDestroyImageView(device, shadow_image_view, NULL);
-    vmaDestroyImage(allocator, shadow_image, shadow_image_allocation);
 
     vkDestroySampler(device, world_texture_image_sampler, NULL);
     destroy_images(NUM_TEXTURE_IMAGES, texture_images, texture_image_allocations, texture_image_views);

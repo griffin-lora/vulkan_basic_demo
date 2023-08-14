@@ -17,10 +17,4 @@ extern VkImage texture_images[NUM_TEXTURE_IMAGES];
 extern VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
 extern VkImageView texture_image_views[NUM_TEXTURE_IMAGES];
 
-#define SHADOW_IMAGE_SIZE 512
-
-extern VkImage shadow_image;
-extern VmaAllocation shadow_image_allocation;
-extern VkImageView shadow_image_view;
-
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties);

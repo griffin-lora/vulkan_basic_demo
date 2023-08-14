@@ -1,5 +1,6 @@
 #include "core.h"
 #include "gfx_pipeline.h"
+#include "shadow_pipeline.h"
 #include "asset.h"
 #include <stdalign.h>
 #include <assert.h>
@@ -66,9 +67,4 @@ VkImageView color_image_view;
 
 VkSampleCountFlagBits render_multisample_flags;
 
-shadow_pipeline_t shadow_pipeline;
 color_pipeline_t color_pipeline;
-
-VkImage shadow_image;
-VmaAllocation shadow_image_allocation;
-VkImageView shadow_image_view;

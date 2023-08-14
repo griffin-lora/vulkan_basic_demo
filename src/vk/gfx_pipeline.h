@@ -10,14 +10,6 @@
 
 typedef struct {
     VkRenderPass render_pass;
-    VkPipelineLayout pipeline_layout;
-    VkPipeline pipeline;
-} shadow_pipeline_t;
-
-extern shadow_pipeline_t shadow_pipeline;
-
-typedef struct {
-    VkRenderPass render_pass;
     VkDescriptorSetLayout descriptor_set_layout;
     VkDescriptorPool descriptor_pool;
     VkDescriptorSet descriptor_set;

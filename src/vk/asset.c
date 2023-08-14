@@ -7,14 +7,6 @@
 #include <string.h>
 
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties) {
-    if (create_image(SHADOW_IMAGE_SIZE, SHADOW_IMAGE_SIZE, 1, depth_image_format, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &shadow_image, &shadow_image_allocation) != result_success) {
-        return "Failed to create shadow image\n";
-    }
-
-    if (create_image_view(shadow_image, 1, depth_image_format, depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, &shadow_image_view) != result_success) {
-        return "Failed to create shadow image view\n";
-    }
-
     const char* image_paths[] = {
         "image/test_color.jpg",
         "image/test_normal.jpg"

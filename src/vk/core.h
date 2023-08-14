@@ -47,7 +47,6 @@ extern VkImage depth_image;
 extern VmaAllocation depth_image_allocation;
 extern VkImageView depth_image_view;
 
-
 void reinit_swapchain(void);
 
 const char* init_vulkan_core(void);
