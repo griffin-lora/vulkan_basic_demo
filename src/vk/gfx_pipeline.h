@@ -8,13 +8,16 @@
 #include <stdalign.h>
 #include <assert.h>
 
-extern VkDescriptorSetLayout descriptor_set_layout;
-extern VkDescriptorPool descriptor_pool;
-extern VkDescriptorSet descriptor_set;
+#define NUM_PIPELINES 2
+#define SHADOW_PIPELINE_INDEX 0
+#define COLOR_PIPELINE_INDEX 1
 
-extern VkPipeline pipeline;
-extern VkPipelineLayout pipeline_layout;
-extern VkRenderPass render_pass;
+extern VkRenderPass render_passes[NUM_PIPELINES];
+extern VkDescriptorSetLayout descriptor_set_layouts[NUM_PIPELINES];
+extern VkDescriptorPool descriptor_pools[NUM_PIPELINES];
+extern VkDescriptorSet descriptor_sets[NUM_PIPELINES];
+extern VkPipelineLayout pipeline_layouts[NUM_PIPELINES];
+extern VkPipeline pipelines[NUM_PIPELINES];
 
 extern VkBuffer vertex_buffers[NUM_VERTEX_ARRAYS];
 extern VmaAllocation vertex_buffer_allocations[NUM_VERTEX_ARRAYS];

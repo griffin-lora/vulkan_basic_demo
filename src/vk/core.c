@@ -260,7 +260,7 @@ static result_t init_swapchain_framebuffers(void) {
 
         VkFramebufferCreateInfo framebuffer_create_info = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = render_pass,
+            .renderPass = render_passes[COLOR_PIPELINE_INDEX],
             .attachmentCount = NUM_ELEMS(attachments),
             .pAttachments = attachments,
             .width = swap_image_extent.width,
@@ -567,10 +567,15 @@ void term_vulkan_all(void) {
 
     vkDestroyCommandPool(device, command_pool, NULL);
 
-    vkDestroyPipeline(device, pipeline, NULL);
-    vkDestroyPipelineLayout(device, pipeline_layout, NULL);
+    for (size_t i = 0; i < NUM_PIPELINES; i++) {
+        vkDestroyPipeline(device, pipelines[i], NULL);
+        vkDestroyPipelineLayout(device, pipeline_layouts[i], NULL);
 
-    vkDestroyRenderPass(device, render_pass, NULL);
+        vkDestroyRenderPass(device, render_passes[i], NULL);
+
+        vkDestroyDescriptorPool(device, descriptor_pools[i], NULL);
+        vkDestroyDescriptorSetLayout(device, descriptor_set_layouts[i], NULL);
+    }
     
     term_color_image();
     term_depth_image();
@@ -582,9 +587,6 @@ void term_vulkan_all(void) {
         vkDestroyFence(device, in_flight_fences[i], NULL);
         // vmaDestroyBuffer(allocator, clip_space_uniform_buffers[i], clip_space_uniform_buffers_allocation[i]);
     }
-
-    vkDestroyDescriptorPool(device, descriptor_pool, NULL);
-    vkDestroyDescriptorSetLayout(device, descriptor_set_layout, NULL);
 
     vkDestroySampler(device, world_texture_image_sampler, NULL);
     destroy_images(NUM_TEXTURE_IMAGES, texture_images, texture_image_allocations, texture_image_views);

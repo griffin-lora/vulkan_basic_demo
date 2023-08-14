@@ -8,91 +8,6 @@
 #include <string.h>
 
 const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* physical_device_properties) {
-    //
-
-    VkAttachmentReference color_attachment_reference = {
-        .attachment = 0,
-        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
-
-    VkAttachmentReference depth_attachment_reference = {
-        .attachment = 1,
-        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-    };
-
-    VkAttachmentReference resolve_attachment_reference = {
-        .attachment = 2,
-        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
-
-    VkSubpassDescription subpass = {
-        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        .colorAttachmentCount = 1,
-        .pColorAttachments = &color_attachment_reference,
-        .pResolveAttachments = &resolve_attachment_reference,
-        .pDepthStencilAttachment = &depth_attachment_reference
-    };
-
-    VkSubpassDependency subpass_dependency = {
-        .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-        .srcAccessMask = 0,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
-    };
-
-    VkAttachmentDescription attachments[] = {
-        {
-            .format = surface_format.format,
-            .samples = render_multisample_flags,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-        },
-        {
-            .format = depth_image_format,
-            .samples = render_multisample_flags,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-        },
-        {
-            .format = surface_format.format,
-            .samples = VK_SAMPLE_COUNT_1_BIT,
-            .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-        }
-    };
-
-    {
-        VkRenderPassCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            .attachmentCount = NUM_ELEMS(attachments),
-            .pAttachments = attachments,
-            .subpassCount = 1,
-            .pSubpasses = &subpass,
-            .dependencyCount = 1,
-            .pDependencies = &subpass_dependency
-        };
-
-        if (vkCreateRenderPass(device, &info, NULL, &render_pass) != VK_SUCCESS) {
-            return "Failed to create render pass\n";
-        }
-    }
-
-    //
-
     const char* image_paths[] = {
         "image/test_color.jpg",
         "image/test_normal.jpg"
@@ -263,7 +178,88 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     //     }
     // }
 
-    //
+    {
+        VkAttachmentReference color_attachment_reference = {
+            .attachment = 0,
+            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        };
+
+        VkAttachmentReference depth_attachment_reference = {
+            .attachment = 1,
+            .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+
+        VkAttachmentReference resolve_attachment_reference = {
+            .attachment = 2,
+            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+        };
+
+        VkSubpassDescription subpass = {
+            .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .colorAttachmentCount = 1,
+            .pColorAttachments = &color_attachment_reference,
+            .pResolveAttachments = &resolve_attachment_reference,
+            .pDepthStencilAttachment = &depth_attachment_reference
+        };
+
+        VkSubpassDependency subpass_dependency = {
+            .srcSubpass = VK_SUBPASS_EXTERNAL,
+            .dstSubpass = 0,
+            .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+            .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+            .srcAccessMask = 0,
+            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+        };
+
+        VkAttachmentDescription attachments[] = {
+            {
+                .format = surface_format.format,
+                .samples = render_multisample_flags,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+            },
+            {
+                .format = depth_image_format,
+                .samples = render_multisample_flags,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            },
+            {
+                .format = surface_format.format,
+                .samples = VK_SAMPLE_COUNT_1_BIT,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+            }
+        };
+
+        {
+            VkRenderPassCreateInfo info = {
+                .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+                .attachmentCount = NUM_ELEMS(attachments),
+                .pAttachments = attachments,
+                .subpassCount = 1,
+                .pSubpasses = &subpass,
+                .dependencyCount = 1,
+                .pDependencies = &subpass_dependency
+            };
+
+            if (vkCreateRenderPass(device, &info, NULL, &render_passes[COLOR_PIPELINE_INDEX]) != VK_SUCCESS) {
+                return "Failed to create render pass\n";
+            }
+        }
+    }
 
     VkShaderModule vertex_shader_module;
     if (create_shader_module("shader/vertex.spv", &vertex_shader_module) != result_success) {
@@ -340,8 +336,8 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             NUM_VERTEX_ARRAYS, num_vertex_bytes_array_uint32,
             NUM_ELEMS(attributes), attributes,
             sizeof(push_constants),
-            render_pass,
-            &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout, &pipeline
+            render_passes[COLOR_PIPELINE_INDEX],
+            &descriptor_set_layouts[COLOR_PIPELINE_INDEX], &descriptor_pools[COLOR_PIPELINE_INDEX], &descriptor_sets[COLOR_PIPELINE_INDEX], &pipeline_layouts[COLOR_PIPELINE_INDEX], &pipelines[COLOR_PIPELINE_INDEX]
         );
         if (msg != NULL) {
             return msg;

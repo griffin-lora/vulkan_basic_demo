@@ -21,6 +21,8 @@ typedef union {
 } vertex_array_t;
 
 #define NUM_VERTEX_ARRAYS 2
+#define GENERAL_PASS_VERTEX_ARRAY_INDEX 0
+#define COLOR_PASS_VERTEX_ARRAY_INDEX 1
 
 extern size_t num_vertex_bytes_array[NUM_VERTEX_ARRAYS];
 

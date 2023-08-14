@@ -48,7 +48,7 @@ const char* draw_vulkan_frame(void) {
     {
         VkRenderPassBeginInfo info = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .renderPass = render_pass,
+            .renderPass = render_passes[COLOR_PIPELINE_INDEX],
             .framebuffer = swapchain_framebuffers[image_index],
             .renderArea.offset = { 0, 0 },
             .renderArea.extent = swap_image_extent,
@@ -59,7 +59,7 @@ const char* draw_vulkan_frame(void) {
         vkCmdBeginRenderPass(command_buffer, &info, VK_SUBPASS_CONTENTS_INLINE);
     }
 
-    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[COLOR_PIPELINE_INDEX]);
 
     VkDeviceSize offsets[NUM_VERTEX_ARRAYS];
     memset(offsets, 0, sizeof(offsets));
@@ -67,8 +67,8 @@ const char* draw_vulkan_frame(void) {
 
     vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
 
-    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 0, NULL);
-    vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants), &push_constants);
+    vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layouts[COLOR_PIPELINE_INDEX], 0, 1, &descriptor_sets[COLOR_PIPELINE_INDEX], 0, NULL);
+    vkCmdPushConstants(command_buffer, pipeline_layouts[COLOR_PIPELINE_INDEX], VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_constants), &push_constants);
 
     VkViewport viewport = {
         .x = 0.0f,
