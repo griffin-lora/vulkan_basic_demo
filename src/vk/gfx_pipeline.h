@@ -8,17 +8,26 @@
 #include <stdalign.h>
 #include <assert.h>
 
-#define NUM_PIPELINES 2
-#define SHADOW_PIPELINE_INDEX 0
-#define COLOR_PIPELINE_INDEX 1
+typedef struct {
+    VkRenderPass render_pass;
+    VkPipelineLayout pipeline_layout;
+    VkPipeline pipeline;
+} shadow_pass_t;
 
-extern VkRenderPass render_passes[NUM_PIPELINES];
-extern VkDescriptorSetLayout descriptor_set_layouts[NUM_PIPELINES];
-extern VkDescriptorPool descriptor_pools[NUM_PIPELINES];
-extern VkDescriptorSet descriptor_sets[NUM_PIPELINES];
-extern VkPipelineLayout pipeline_layouts[NUM_PIPELINES];
-extern VkPipeline pipelines[NUM_PIPELINES];
-extern VkCommandBuffer render_command_buffer_array[NUM_PIPELINES][NUM_FRAMES_IN_FLIGHT];
+extern shadow_pass_t shadow_pass;
+
+typedef struct {
+    VkRenderPass render_pass;
+    VkDescriptorSetLayout descriptor_set_layout;
+    VkDescriptorPool descriptor_pool;
+    VkDescriptorSet descriptor_set;
+    VkPipelineLayout pipeline_layout;
+    VkPipeline pipeline;
+} color_pass_t;
+
+extern color_pass_t color_pass;
+
+extern VkCommandBuffer color_command_buffers[NUM_FRAMES_IN_FLIGHT];
 
 typedef struct {
     mat4s model_view_projection;

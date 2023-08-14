@@ -271,7 +271,7 @@ static result_t init_swapchain_framebuffers(void) {
 
         VkFramebufferCreateInfo framebuffer_create_info = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = render_passes[COLOR_PIPELINE_INDEX],
+            .renderPass = color_pass.render_pass,
             .attachmentCount = NUM_ELEMS(attachments),
             .pAttachments = attachments,
             .width = swap_image_extent.width,
@@ -533,12 +533,10 @@ const char* init_vulkan_core(void) {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .commandPool = command_pool,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = NUM_PIPELINES*NUM_FRAMES_IN_FLIGHT
+        .commandBufferCount = NUM_FRAMES_IN_FLIGHT
     };
 
-    VkCommandBuffer* render_command_buffers = &render_command_buffer_array[0][0];
-
-    if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, render_command_buffers) != VK_SUCCESS) {
+    if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, color_command_buffers) != VK_SUCCESS) {
         return "Failed to allocate command buffers\n";
     }
 
@@ -599,7 +597,7 @@ const char* init_vulkan_core(void) {
 
             VkFramebufferCreateInfo info = {
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                .renderPass = render_passes[SHADOW_PIPELINE_INDEX],
+                .renderPass = shadow_pass.render_pass,
                 .attachmentCount = NUM_ELEMS(attachments),
                 .pAttachments = attachments,
                 .width = SHADOW_IMAGE_SIZE,
@@ -633,7 +631,7 @@ const char* init_vulkan_core(void) {
             command_buffer,
             framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
             NUM_ELEMS(clear_values), clear_values,
-            render_passes[SHADOW_PIPELINE_INDEX], descriptor_sets[SHADOW_PIPELINE_INDEX], pipeline_layouts[SHADOW_PIPELINE_INDEX], pipelines[SHADOW_PIPELINE_INDEX],
+            shadow_pass.render_pass, NULL, shadow_pass.pipeline_layout, shadow_pass.pipeline,
             sizeof(shadow_push_constants), &shadow_push_constants,
             NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
             num_indices, index_buffer
@@ -674,15 +672,15 @@ void term_vulkan_all(void) {
 
     vkDestroyCommandPool(device, command_pool, NULL);
 
-    for (size_t i = 0; i < NUM_PIPELINES; i++) {
-        vkDestroyPipeline(device, pipelines[i], NULL);
-        vkDestroyPipelineLayout(device, pipeline_layouts[i], NULL);
+    vkDestroyPipeline(device, shadow_pass.pipeline, NULL);
+    vkDestroyPipelineLayout(device, shadow_pass.pipeline_layout, NULL);
+    vkDestroyRenderPass(device, shadow_pass.render_pass, NULL);
 
-        vkDestroyRenderPass(device, render_passes[i], NULL);
-
-        vkDestroyDescriptorPool(device, descriptor_pools[i], NULL);
-        vkDestroyDescriptorSetLayout(device, descriptor_set_layouts[i], NULL);
-    }
+    vkDestroyPipeline(device, color_pass.pipeline, NULL);
+    vkDestroyPipelineLayout(device, color_pass.pipeline_layout, NULL);
+    vkDestroyRenderPass(device, color_pass.render_pass, NULL);
+    vkDestroyDescriptorPool(device, color_pass.descriptor_pool, NULL);
+    vkDestroyDescriptorSetLayout(device, color_pass.descriptor_set_layout, NULL);
     
     term_color_image();
     term_depth_image();

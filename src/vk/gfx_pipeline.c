@@ -4,7 +4,7 @@
 #include "util.h"
 #include "asset.h"
 
-static const char* init_shadow_pipeline(size_t pipeline_index) {
+static const char* init_shadow_pipeline(void) {
     VkAttachmentReference depth_attachment_reference = {
         .attachment = 0,
         .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
@@ -39,7 +39,7 @@ static const char* init_shadow_pipeline(size_t pipeline_index) {
             .dependencyCount = 0
         };
 
-        if (vkCreateRenderPass(device, &info, NULL, &render_passes[pipeline_index]) != VK_SUCCESS) {
+        if (vkCreateRenderPass(device, &info, NULL, &shadow_pass.render_pass) != VK_SUCCESS) {
             return "Failed to create render pass\n";
         }
     }
@@ -75,8 +75,8 @@ static const char* init_shadow_pipeline(size_t pipeline_index) {
         NUM_ELEMS(attributes), attributes,
         sizeof(push_constants),
         VK_SAMPLE_COUNT_1_BIT,
-        render_passes[pipeline_index],
-        &descriptor_set_layouts[pipeline_index], &descriptor_pools[pipeline_index], &descriptor_sets[pipeline_index], &pipeline_layouts[pipeline_index], &pipelines[pipeline_index]
+        shadow_pass.render_pass,
+        NULL, NULL, NULL, &shadow_pass.pipeline_layout, &shadow_pass.pipeline
     );
     if (msg != NULL) {
         return msg;
@@ -87,7 +87,7 @@ static const char* init_shadow_pipeline(size_t pipeline_index) {
     return NULL;
 }
 
-static const char* init_color_pipeline(size_t pipeline_index) {
+static const char* init_color_pipeline(void) {
     VkAttachmentReference color_attachment_reference = {
         .attachment = 0,
         .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -164,7 +164,7 @@ static const char* init_color_pipeline(size_t pipeline_index) {
             .pDependencies = &subpass_dependency
         };
 
-        if (vkCreateRenderPass(device, &info, NULL, &render_passes[pipeline_index]) != VK_SUCCESS) {
+        if (vkCreateRenderPass(device, &info, NULL, &color_pass.render_pass) != VK_SUCCESS) {
             return "Failed to create render pass\n";
         }
     }
@@ -267,8 +267,8 @@ static const char* init_color_pipeline(size_t pipeline_index) {
         NUM_ELEMS(attributes), attributes,
         sizeof(push_constants),
         render_multisample_flags,
-        render_passes[pipeline_index],
-        &descriptor_set_layouts[pipeline_index], &descriptor_pools[pipeline_index], &descriptor_sets[pipeline_index], &pipeline_layouts[pipeline_index], &pipelines[pipeline_index]
+        color_pass.render_pass,
+        &color_pass.descriptor_set_layout, &color_pass.descriptor_pool, &color_pass.descriptor_set, &color_pass.pipeline_layout, &color_pass.pipeline
     );
     if (msg != NULL) {
         return msg;
@@ -281,12 +281,12 @@ static const char* init_color_pipeline(size_t pipeline_index) {
 }
 
 const char* init_vulkan_graphics_pipelines() {
-    const char* msg = init_shadow_pipeline(SHADOW_PIPELINE_INDEX);
+    const char* msg = init_shadow_pipeline();
     if (msg != NULL) {
         return msg;
     }
 
-    msg = init_color_pipeline(COLOR_PIPELINE_INDEX);
+    msg = init_color_pipeline();
     if (msg != NULL) {
         return msg;
     }

@@ -17,7 +17,7 @@ VmaAllocator allocator;
 VkFence in_flight_fences[NUM_FRAMES_IN_FLIGHT];
 VkSwapchainKHR swapchain;
 VkSemaphore image_available_semaphores[NUM_FRAMES_IN_FLIGHT];
-VkCommandBuffer render_command_buffer_array[NUM_PIPELINES][NUM_FRAMES_IN_FLIGHT];;
+VkCommandBuffer color_command_buffers[NUM_FRAMES_IN_FLIGHT];
 VkFramebuffer* swapchain_framebuffers;
 // static_assert(sizeof(window) + sizeof(device) + sizeof(in_flight_fence) + sizeof(swapchain) + sizeof(image_available_semaphore) + sizeof(command_buffer) + sizeof(render_pass) + sizeof(swapchain_framebuffers) == 64, "");
 
@@ -66,12 +66,8 @@ VkImageView color_image_view;
 
 VkSampleCountFlagBits render_multisample_flags;
 
-VkRenderPass render_passes[NUM_PIPELINES];
-VkDescriptorSetLayout descriptor_set_layouts[NUM_PIPELINES];
-VkDescriptorPool descriptor_pools[NUM_PIPELINES];
-VkDescriptorSet descriptor_sets[NUM_PIPELINES];
-VkPipelineLayout pipeline_layouts[NUM_PIPELINES];
-VkPipeline pipelines[NUM_PIPELINES];
+shadow_pass_t shadow_pass;
+color_pass_t color_pass;
 
 VkImage shadow_image;
 VmaAllocation shadow_image_allocation;
