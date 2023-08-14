@@ -27,6 +27,10 @@ int main(void) {
         double end = glfwGetTime();
         double delta = end - start;
 
+        if (delta > (1.0f/60.0f)) {
+            printf("%f\n", delta);
+        }
+
         double remaining = (1.0f/60.0f) - delta;
         if (remaining > 0.0f) {
             usleep(remaining * 1000000);

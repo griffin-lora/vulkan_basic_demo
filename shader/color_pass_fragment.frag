@@ -48,5 +48,5 @@ void main(){
 	);
 
 	float shadow_depth = texture(shadow_sampler, tex_coord).r;
-	color = vec4(shadow_depth, shadow_depth, shadow_depth, 1.0);
+	// color = vec4(shadow_depth, shadow_depth, shadow_depth, 1.0);
 }

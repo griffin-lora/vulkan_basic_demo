@@ -569,6 +569,30 @@ const char* init_vulkan_core(void) {
     }
 
     {
+        VkCommandBuffer command_buffer;
+        {
+            VkCommandBufferAllocateInfo info = {
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                .commandPool = command_pool, // TODO: Use separate command pool
+                .commandBufferCount = 1
+            };
+
+            if (vkAllocateCommandBuffers(device, &info, &command_buffer) != VK_SUCCESS) {
+                return "Failed to create command buffer\n";
+            }
+        }
+
+        {
+            VkCommandBufferBeginInfo info = {
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+            };
+            if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
+                return "Failed to write to command buffer\n";
+            }
+        }
+
         VkFramebuffer framebuffer;
         {
             VkImageView attachments[] = { shadow_image_view };
@@ -585,16 +609,6 @@ const char* init_vulkan_core(void) {
 
             if (vkCreateFramebuffer(device, &info, NULL, &framebuffer) != VK_SUCCESS) {
                 return "Failed to create shadow image framebuffer\n";
-            }
-        }
-
-        VkFence signal_fence;
-        {
-            VkFenceCreateInfo info = {
-                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
-            };
-            if (vkCreateFence(device, &info, NULL, &signal_fence) != VK_SUCCESS) {
-                return "Failed to create shadow signal fence\n";
             }
         }
 
@@ -615,24 +629,32 @@ const char* init_vulkan_core(void) {
             vertex_buffers[GENERAL_PASS_VERTEX_ARRAY_INDEX]
         };
     
-        if (submit_render_command_buffer(render_command_buffer_array[SHADOW_PIPELINE_INDEX][0],
+       draw_scene(
+            command_buffer,
             framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
             NUM_ELEMS(clear_values), clear_values,
             render_passes[SHADOW_PIPELINE_INDEX], descriptor_sets[SHADOW_PIPELINE_INDEX], pipeline_layouts[SHADOW_PIPELINE_INDEX], pipelines[SHADOW_PIPELINE_INDEX],
             sizeof(shadow_push_constants), &shadow_push_constants,
             NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
-            num_indices, index_buffer,
-            0, NULL, NULL,
-            0, NULL,
-            signal_fence
-        ) != result_success) {
-            return "Failed to render shadow image\n";
+            num_indices, index_buffer
+        );
+
+        if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
+            return "Failed to write to transfer command buffer\n";
         }
 
-        vkWaitForFences(device, 1, &signal_fence, VK_TRUE, UINT64_MAX);
+        {
+            VkSubmitInfo info = {
+                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                .commandBufferCount = 1,
+                .pCommandBuffers = &command_buffer
+            };
+
+            vkQueueSubmit(graphics_queue, 1, &info, VK_NULL_HANDLE);
+            vkQueueWaitIdle(graphics_queue);
+        }
 
         vkDestroyFramebuffer(device, framebuffer, NULL);
-        vkDestroyFence(device, signal_fence, NULL);
     }
 
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, NULL);

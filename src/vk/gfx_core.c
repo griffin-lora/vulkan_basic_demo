@@ -556,30 +556,15 @@ void destroy_images(size_t num_images, const VkImage images[], const VmaAllocati
     }
 }
 
-result_t submit_render_command_buffer(
+void draw_scene(
     VkCommandBuffer command_buffer,
     VkFramebuffer image_framebuffer, VkExtent2D image_extent,
     size_t num_clear_values, const VkClearValue clear_values[],
     VkRenderPass render_pass, VkDescriptorSet descriptor_set, VkPipelineLayout pipeline_layout, VkPipeline pipeline,
     size_t num_push_constants_bytes, const void* push_constants,
     size_t num_vertex_buffers, const VkBuffer vertex_buffers[],
-    size_t num_indices, VkBuffer index_buffer,
-    size_t num_wait_semaphores, const VkSemaphore wait_semaphores[], const VkPipelineStageFlags wait_stage_flags_array[],
-    size_t num_signal_semaphores, const VkSemaphore signal_semaphores[],
-    VkFence signal_fence
+    size_t num_indices, VkBuffer index_buffer
 ) {
-    vkResetCommandBuffer(command_buffer, 0);
-    // write to command buffer
-    {
-        VkCommandBufferBeginInfo info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
-        };
-
-        if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
-            return result_failure;
-        }
-    }
-
     {
         VkRenderPassBeginInfo info = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -628,29 +613,4 @@ result_t submit_render_command_buffer(
     vkCmdDrawIndexed(command_buffer, num_indices, 1, 0, 0, 0);
 
     vkCmdEndRenderPass(command_buffer);
-
-    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-        return result_failure;
-    }
-
-    //
-
-    {
-        VkSubmitInfo info = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .waitSemaphoreCount = num_wait_semaphores,
-            .pWaitSemaphores = wait_semaphores,
-            .pWaitDstStageMask = wait_stage_flags_array,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &command_buffer,
-            .signalSemaphoreCount = num_signal_semaphores,
-            .pSignalSemaphores = signal_semaphores
-        };
-
-        if (vkQueueSubmit(graphics_queue, 1, &info, signal_fence) != VK_SUCCESS) {
-            return result_failure;
-        }
-    }
-
-    return result_success;
 }
