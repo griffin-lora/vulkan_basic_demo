@@ -7,7 +7,89 @@
 #include <malloc.h>
 #include <string.h>
 
-static const char* init_color_pipeline(void) {
+static const char* init_shadow_pipeline(size_t pipeline_index) {
+    VkAttachmentReference depth_attachment_reference = {
+        .attachment = 0,
+        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+    };
+
+    VkSubpassDescription subpass = {
+        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        .colorAttachmentCount = 0,
+        .pDepthStencilAttachment = &depth_attachment_reference
+    };
+
+    VkAttachmentDescription attachments[] = {
+        {
+            .format = depth_image_format,
+            .samples = render_multisample_flags,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        }
+    };
+
+    {
+        VkRenderPassCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            .attachmentCount = NUM_ELEMS(attachments),
+            .pAttachments = attachments,
+            .subpassCount = 1,
+            .pSubpasses = &subpass,
+            .dependencyCount = 0
+        };
+
+        if (vkCreateRenderPass(device, &info, NULL, &render_passes[pipeline_index]) != VK_SUCCESS) {
+            return "Failed to create render pass\n";
+        }
+    }
+
+    VkShaderModule vertex_shader_module;
+    if (create_shader_module("shader/shadow_pass_vertex.spv", &vertex_shader_module) != result_success) {
+        return "Failed to create vertex shader module\n";
+    }
+
+    shader_t shaders[] = {
+        {
+            .stage_flags = VK_SHADER_STAGE_VERTEX_BIT,
+            .module = vertex_shader_module
+        }
+    };
+    
+    uint32_t num_pass_vertex_bytes_array[] = {
+        num_vertex_bytes_array[GENERAL_PASS_VERTEX_ARRAY_INDEX]
+    };
+
+    vertex_attribute_t attributes[] = {
+        {
+            .binding = 0,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = offsetof(general_pass_vertex_t, position)
+        }
+    };
+
+    const char* msg = create_graphics_pipeline(
+        NUM_ELEMS(shaders), shaders,
+        0, NULL, NULL,
+        NUM_ELEMS(num_pass_vertex_bytes_array), num_pass_vertex_bytes_array,
+        NUM_ELEMS(attributes), attributes,
+        sizeof(push_constants),
+        render_passes[pipeline_index],
+        &descriptor_set_layouts[pipeline_index], &descriptor_pools[pipeline_index], &descriptor_sets[pipeline_index], &pipeline_layouts[pipeline_index], &pipelines[pipeline_index]
+    );
+    if (msg != NULL) {
+        return msg;
+    }
+
+    vkDestroyShaderModule(device, vertex_shader_module, NULL);
+
+    return NULL;
+}
+
+static const char* init_color_pipeline(size_t pipeline_index) {
     VkAttachmentReference color_attachment_reference = {
         .attachment = 0,
         .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -84,7 +166,7 @@ static const char* init_color_pipeline(void) {
             .pDependencies = &subpass_dependency
         };
 
-        if (vkCreateRenderPass(device, &info, NULL, &render_passes[COLOR_PIPELINE_INDEX]) != VK_SUCCESS) {
+        if (vkCreateRenderPass(device, &info, NULL, &render_passes[pipeline_index]) != VK_SUCCESS) {
             return "Failed to create render pass\n";
         }
     }
@@ -99,7 +181,7 @@ static const char* init_color_pipeline(void) {
         return "Failed to create fragment shader module\n";
     }
 
-    shader_t color_pass_shaders[] = {
+    shader_t shaders[] = {
         {
             .stage_flags = VK_SHADER_STAGE_VERTEX_BIT,
             .module = vertex_shader_module
@@ -140,10 +222,10 @@ static const char* init_color_pipeline(void) {
         }
     };
     
-    uint32_t num_vertex_bytes_array_uint32[NUM_VERTEX_ARRAYS];
-    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
-        num_vertex_bytes_array_uint32[i] = num_vertex_bytes_array[i];
-    }
+    uint32_t num_pass_vertex_bytes_array[] = {
+        num_vertex_bytes_array[GENERAL_PASS_VERTEX_ARRAY_INDEX],
+        num_vertex_bytes_array[COLOR_PASS_VERTEX_ARRAY_INDEX],
+    };
 
     vertex_attribute_t attributes[] = {
         {
@@ -169,13 +251,13 @@ static const char* init_color_pipeline(void) {
     };
 
     const char* msg = create_graphics_pipeline(
-        NUM_ELEMS(color_pass_shaders), color_pass_shaders,
+        NUM_ELEMS(shaders), shaders,
         NUM_ELEMS(bindings), bindings, infos,
-        NUM_VERTEX_ARRAYS, num_vertex_bytes_array_uint32,
+        NUM_ELEMS(num_pass_vertex_bytes_array), num_pass_vertex_bytes_array,
         NUM_ELEMS(attributes), attributes,
         sizeof(push_constants),
-        render_passes[COLOR_PIPELINE_INDEX],
-        &descriptor_set_layouts[COLOR_PIPELINE_INDEX], &descriptor_pools[COLOR_PIPELINE_INDEX], &descriptor_sets[COLOR_PIPELINE_INDEX], &pipeline_layouts[COLOR_PIPELINE_INDEX], &pipelines[COLOR_PIPELINE_INDEX]
+        render_passes[pipeline_index],
+        &descriptor_set_layouts[pipeline_index], &descriptor_pools[pipeline_index], &descriptor_sets[pipeline_index], &pipeline_layouts[pipeline_index], &pipelines[pipeline_index]
     );
     if (msg != NULL) {
         return msg;
@@ -358,11 +440,14 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     //     }
     // }
 
-    {
-        const char* msg = init_color_pipeline();
-        if (msg != NULL) {
-            return msg;
-        }
+    const char* msg = init_shadow_pipeline(SHADOW_PIPELINE_INDEX);
+    if (msg != NULL) {
+        return msg;
+    }
+
+    msg = init_color_pipeline(COLOR_PIPELINE_INDEX);
+    if (msg != NULL) {
+        return msg;
     }
 
     return NULL;
