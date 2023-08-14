@@ -61,8 +61,9 @@ const char* draw_vulkan_frame(void) {
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-    VkDeviceSize offset = 0;
-    vkCmdBindVertexBuffers(command_buffer, 0, 1, &vertex_buffers[0], &offset);
+    VkDeviceSize offsets[NUM_VERTEX_ARRAYS];
+    memset(offsets, 0, sizeof(offsets));
+    vkCmdBindVertexBuffers(command_buffer, 0, NUM_VERTEX_ARRAYS, vertex_buffers, offsets);
 
     vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
 

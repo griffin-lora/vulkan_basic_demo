@@ -206,7 +206,8 @@ result_t create_image_view(VkImage image, uint32_t num_mip_levels, VkFormat form
 const char* create_graphics_pipeline(
     VkShaderModule vertex_shader_module, VkShaderModule fragment_shader_module,
     size_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
-    size_t num_vertex_bytes, size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[], 
+    size_t num_vertex_bindings, const uint32_t num_vertex_bytes_array[],
+    size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
     size_t num_push_constants_bytes,
     VkRenderPass render_pass,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
@@ -316,17 +317,22 @@ const char* create_graphics_pipeline(
 
     //
 
-    VkVertexInputBindingDescription vertex_input_binding_description = {
-        .binding = 0,
-        .stride = num_vertex_bytes,
-        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-    };
+    VkVertexInputBindingDescription* vertex_input_binding_descriptions = ds_push(num_vertex_bindings*sizeof(VkVertexInputBindingDescription));
+
+    for (size_t i = 0; i < num_vertex_bindings; i++) {
+        vertex_input_binding_descriptions[i] = (VkVertexInputBindingDescription) {
+            .binding = i,
+            .stride = num_vertex_bytes_array[i],
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+        };
+    }
 
     VkVertexInputAttributeDescription* vertex_input_attribute_descriptions = ds_promise(num_vertex_attributes*sizeof(VkVertexInputAttributeDescription));
     for (size_t i = 0; i < num_vertex_attributes; i++) {
         vertex_attribute_t attribute = vertex_attributes[i];
+
         vertex_input_attribute_descriptions[i] = (VkVertexInputAttributeDescription) {
-            .binding = 0,
+            .binding = attribute.binding,
             .location = i,
             .format = attribute.format,
             .offset = attribute.offset
@@ -335,11 +341,13 @@ const char* create_graphics_pipeline(
 
     VkPipelineVertexInputStateCreateInfo vertex_input_pipeline_state_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        .vertexBindingDescriptionCount = 1,
-        .pVertexBindingDescriptions = &vertex_input_binding_description,
+        .vertexBindingDescriptionCount = num_vertex_bindings,
+        .pVertexBindingDescriptions = vertex_input_binding_descriptions,
         .vertexAttributeDescriptionCount = num_vertex_attributes,
         .pVertexAttributeDescriptions = vertex_input_attribute_descriptions,
     };
+
+    ds_restore(vertex_input_binding_descriptions);
 
     //
 

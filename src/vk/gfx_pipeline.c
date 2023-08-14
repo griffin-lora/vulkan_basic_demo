@@ -305,30 +305,40 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
                 }
             }
         };
+        
+        uint32_t num_vertex_bytes_array_uint32[NUM_VERTEX_ARRAYS];
+        for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
+            num_vertex_bytes_array_uint32[i] = num_vertex_bytes_array[i];
+        }
 
         vertex_attribute_t attributes[] = {
             {
+                .binding = 0,
                 .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(vertex_t, position)
+                .offset = offsetof(general_pass_vertex_t, position)
             },
             {
+                .binding = 1,
                 .format = VK_FORMAT_R32G32B32_SFLOAT,
-                .offset = offsetof(vertex_t, normal)
+                .offset = offsetof(color_pass_vertex_t, normal)
             },
             {
+                .binding = 1,
                 .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-                .offset = offsetof(vertex_t, tangent)
+                .offset = offsetof(color_pass_vertex_t, tangent)
             },
             {
+                .binding = 1,
                 .format = VK_FORMAT_R32G32_SFLOAT,
-                .offset = offsetof(vertex_t, tex_coord)
+                .offset = offsetof(color_pass_vertex_t, tex_coord)
             }
         };
 
         const char* msg = create_graphics_pipeline(
             vertex_shader_module, fragment_shader_module,
             NUM_ELEMS(bindings), bindings, infos,
-            sizeof(vertex_t), NUM_ELEMS(attributes), attributes,
+            NUM_VERTEX_ARRAYS, num_vertex_bytes_array_uint32,
+            NUM_ELEMS(attributes), attributes,
             sizeof(push_constants),
             render_pass,
             &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout, &pipeline

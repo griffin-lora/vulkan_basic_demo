@@ -37,4 +37,3 @@ void main() {
 	frag_vertex_to_camera_tangent_position = tangent_matrix * frag_vertex_to_camera_view_position;
 	frag_tex_coord = tex_coord;
 }
-

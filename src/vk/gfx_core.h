@@ -43,6 +43,7 @@ typedef struct {
 } descriptor_info_t;
 
 typedef struct {
+    uint32_t binding;
     VkFormat format;
     uint32_t offset;
 } vertex_attribute_t;
@@ -50,7 +51,8 @@ typedef struct {
 const char* create_graphics_pipeline(
     VkShaderModule vertex_shader_module, VkShaderModule fragment_shader_module,
     size_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
-    size_t num_vertex_bytes, size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[], 
+    size_t num_vertex_bindings, const uint32_t num_vertex_bytes_array[],
+    size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
     size_t num_push_constants_bytes,
     VkRenderPass render_pass,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline

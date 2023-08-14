@@ -5,9 +5,8 @@
 #include <string.h>
 
 size_t num_vertex_bytes_array[NUM_VERTEX_ARRAYS] = {
-    // sizeof(general_pass_vertex_t),
-    // sizeof(color_pass_vertex_t)
-    sizeof(vertex_t)
+    sizeof(general_pass_vertex_t),
+    sizeof(color_pass_vertex_t)
 };
 
 result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
@@ -63,16 +62,10 @@ result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
     const vec2s* tex_coord_data = primitive_data->attributes[3].data->buffer_view->buffer->data + primitive_data->attributes[3].data->buffer_view->offset;
 
     for (size_t i = 0; i < num_vertices; i++) {
-        // vertex_arrays[0].general_pass_vertices[i] = (general_pass_vertex_t) {
-        //     .position = position_data[i]
-        // };
-        // vertex_arrays[1].color_pass_vertices[i] = (color_pass_vertex_t) {
-        //     .normal = normal_data[i],
-        //     .tangent = tangent_data[i],
-        //     .tex_coord = tex_coord_data[i]
-        // };
-        vertex_arrays[0].vertices[i] = (vertex_t) {
-            .position = position_data[i],
+        vertex_arrays[0].general_pass_vertices[i] = (general_pass_vertex_t) {
+            .position = position_data[i]
+        };
+        vertex_arrays[1].color_pass_vertices[i] = (color_pass_vertex_t) {
             .normal = normal_data[i],
             .tangent = tangent_data[i],
             .tex_coord = tex_coord_data[i]
