@@ -1,6 +1,7 @@
 #include "render.h"
 #include "core.h"
 #include "gfx_pipeline.h"
+#include "asset.h"
 #include "result.h"
 #include "util.h"
 #include <string.h>

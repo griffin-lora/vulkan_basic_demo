@@ -1,5 +1,6 @@
 #include "core.h"
 #include "gfx_pipeline.h"
+#include "asset.h"
 #include <stdalign.h>
 #include <assert.h>
 

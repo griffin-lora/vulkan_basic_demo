@@ -59,6 +59,7 @@ const char* create_graphics_pipeline(
     size_t num_vertex_bindings, const uint32_t num_vertex_bytes_array[],
     size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
     size_t num_push_constants_bytes,
+    VkSampleCountFlagBits multisample_flags,
     VkRenderPass render_pass,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
 );

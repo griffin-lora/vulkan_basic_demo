@@ -209,6 +209,7 @@ const char* create_graphics_pipeline(
     size_t num_vertex_bindings, const uint32_t num_vertex_bytes_array[],
     size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
     size_t num_push_constants_bytes,
+    VkSampleCountFlagBits multisample_flags,
     VkRenderPass render_pass,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
 ) {
@@ -380,7 +381,7 @@ const char* create_graphics_pipeline(
     VkPipelineMultisampleStateCreateInfo multisample_pipeline_state_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .sampleShadingEnable = VK_FALSE,
-        .rasterizationSamples = render_multisample_flags
+        .rasterizationSamples = multisample_flags
     };
 
     VkPipelineDepthStencilStateCreateInfo depth_stencil_pipeline_state_create_info = {

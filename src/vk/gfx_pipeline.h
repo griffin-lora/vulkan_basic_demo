@@ -19,13 +19,6 @@ extern VkDescriptorSet descriptor_sets[NUM_PIPELINES];
 extern VkPipelineLayout pipeline_layouts[NUM_PIPELINES];
 extern VkPipeline pipelines[NUM_PIPELINES];
 
-extern VkBuffer vertex_buffers[NUM_VERTEX_ARRAYS];
-extern VmaAllocation vertex_buffer_allocations[NUM_VERTEX_ARRAYS];
-
-extern VkBuffer index_buffer;
-extern VmaAllocation index_buffer_allocation;
-
-extern size_t num_indices;
 typedef struct {
     mat4s model_view_projection;
     mat4s view;
@@ -33,10 +26,4 @@ typedef struct {
 extern push_constants_t push_constants;
 static_assert(sizeof(push_constants_t) <= 256, "Push constants must be less than or equal to 256 bytes");
 
-#define NUM_TEXTURE_IMAGES 2
-extern VkSampler world_texture_image_sampler;
-extern VkImage texture_images[NUM_TEXTURE_IMAGES];
-extern VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
-extern VkImageView texture_image_views[NUM_TEXTURE_IMAGES];
-
-const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* physical_device_properties);
+const char* init_vulkan_graphics_pipelines(void);

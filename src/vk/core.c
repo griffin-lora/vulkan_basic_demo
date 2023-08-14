@@ -3,6 +3,7 @@
 #include "util.h"
 #include "result.h"
 #include "gfx_pipeline.h"
+#include "asset.h"
 #include "gfx_core.h"
 #include <stdbool.h>
 #include <string.h>
@@ -544,8 +545,13 @@ const char* init_vulkan_core(void) {
     if (init_depth_image() != result_success) {
         return "Failed to create depth image\n";
     }
+    
+    const char* msg = init_vulkan_assets(&physical_device_properties);
+    if (msg != NULL) {
+        return msg;
+    }
 
-    const char* msg = init_vulkan_graphics_pipeline(&physical_device_properties);
+    msg = init_vulkan_graphics_pipelines();
     if (msg != NULL) {
         return msg;
     }
