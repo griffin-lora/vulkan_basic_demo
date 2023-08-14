@@ -19,7 +19,7 @@ layout(location = 5) out vec3 frag_vertex_to_camera_tangent_position;
 layout(location = 6) out vec2 frag_tex_coord;
 
 void main() {
-    vec3 light_world_position = vec3(3.0);
+    vec3 light_world_position = vec3(12.0);
 	gl_Position = model_view_projection * vec4(position, 1.0);
 	
 	vec3 vertex_view_position = (view * vec4(position, 1.0)).xyz;

@@ -19,17 +19,18 @@ layout(location = 6) in vec2 tex_coord;
 layout(location = 0) out vec4 color;
 
 void main(){
-    vec3 light_world_position = vec3(3.0);
+    vec3 light_world_position = vec3(12.0);
 	vec3 light_color = vec3(1.0);
-	float light_power = 40.0;
+	float light_power = 2.0;
 	
 	vec3 base_color = texture(color_sampler, tex_coord).rgb;
-	vec3 ambient_color = vec3(0.1) * base_color;
+	vec3 ambient_color = vec3(0.7) * base_color;
     vec3 specular_color = vec3(0.3);
 
 	vec3 tangent_normal = normalize(texture(normal_sampler, tex_coord).rgb * 2.0 - 1.0);
 	
-	float light_distance = length(light_world_position - frag_world_position);
+	// float light_distance = length(light_world_position - frag_world_position);
+	float light_distance = 1.0;
 
 	vec3 light_tangent_direction = normalize(frag_light_tangent_direction);
 	float cos_theta = clamp(dot(tangent_normal, light_tangent_direction), 0.0, 1.0);
