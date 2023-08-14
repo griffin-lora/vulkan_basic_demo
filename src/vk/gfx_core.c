@@ -204,7 +204,7 @@ result_t create_image_view(VkImage image, uint32_t num_mip_levels, VkFormat form
 }
 
 const char* create_graphics_pipeline(
-    VkShaderModule vertex_shader_module, VkShaderModule fragment_shader_module,
+    size_t num_shaders, const shader_t shaders[],
     size_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
     size_t num_vertex_bindings, const uint32_t num_vertex_bytes_array[],
     size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
@@ -212,24 +212,6 @@ const char* create_graphics_pipeline(
     VkRenderPass render_pass,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
 ) {
-    VkPipelineShaderStageCreateInfo shader_pipeline_stage_create_infos[] = {
-        {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_VERTEX_BIT,
-            .module = vertex_shader_module,
-            .pName = "main",
-            .pSpecializationInfo = NULL
-        },
-        {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .module = fragment_shader_module,
-            .pName = "main",
-
-            .pSpecializationInfo = NULL
-        }
-    };
-
     {
         VkDescriptorSetLayoutBinding* bindings = ds_promise(num_descriptor_bindings*sizeof(VkDescriptorSetLayoutBinding));
         for (size_t i = 0; i < num_descriptor_bindings; i++) {
@@ -327,7 +309,7 @@ const char* create_graphics_pipeline(
         };
     }
 
-    VkVertexInputAttributeDescription* vertex_input_attribute_descriptions = ds_promise(num_vertex_attributes*sizeof(VkVertexInputAttributeDescription));
+    VkVertexInputAttributeDescription* vertex_input_attribute_descriptions = ds_push(num_vertex_attributes*sizeof(VkVertexInputAttributeDescription));
     for (size_t i = 0; i < num_vertex_attributes; i++) {
         vertex_attribute_t attribute = vertex_attributes[i];
 
@@ -346,8 +328,6 @@ const char* create_graphics_pipeline(
         .vertexAttributeDescriptionCount = num_vertex_attributes,
         .pVertexAttributeDescriptions = vertex_input_attribute_descriptions,
     };
-
-    ds_restore(vertex_input_binding_descriptions);
 
     //
 
@@ -429,10 +409,23 @@ const char* create_graphics_pipeline(
         .pDynamicStates = dynamic_states
     };
 
+    VkPipelineShaderStageCreateInfo* shader_pipeline_stage_create_infos = ds_promise(num_shaders*sizeof(VkPipelineShaderStageCreateInfo));
+    for (size_t i = 0; i < num_shaders; i++) {
+        shader_t shader = shaders[i];
+
+        shader_pipeline_stage_create_infos[i] = (VkPipelineShaderStageCreateInfo) {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = shader.stage_flags,
+            .module = shader.module,
+            .pName = "main",
+            .pSpecializationInfo = NULL
+        };
+    }
+
     {
         VkGraphicsPipelineCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-            .stageCount = NUM_ELEMS(shader_pipeline_stage_create_infos),
+            .stageCount = num_shaders,
             .pStages = shader_pipeline_stage_create_infos,
             .pVertexInputState = &vertex_input_pipeline_state_create_info,
             .pInputAssemblyState = &input_assembly_pipeline_state_create_info,
@@ -453,6 +446,8 @@ const char* create_graphics_pipeline(
             return "Failed to create graphics pipeline\n";
         }
     }
+
+    ds_restore(vertex_input_binding_descriptions);
 
     return NULL;
 }

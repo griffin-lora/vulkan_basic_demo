@@ -48,8 +48,13 @@ typedef struct {
     uint32_t offset;
 } vertex_attribute_t;
 
+typedef struct {
+    VkShaderStageFlagBits stage_flags;
+    VkShaderModule module;
+} shader_t;
+
 const char* create_graphics_pipeline(
-    VkShaderModule vertex_shader_module, VkShaderModule fragment_shader_module,
+    size_t num_shaders, const shader_t shaders[],
     size_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
     size_t num_vertex_bindings, const uint32_t num_vertex_bytes_array[],
     size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
