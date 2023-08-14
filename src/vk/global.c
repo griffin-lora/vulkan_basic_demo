@@ -43,8 +43,8 @@ VkSurfaceFormatKHR surface_format;
 VkPresentModeKHR present_mode;
 bool framebuffer_resized = false;
 
-VkBuffer vertex_buffer;
-VmaAllocation vertex_buffer_allocation;
+VkBuffer vertex_buffers[NUM_VERTEX_ARRAYS];
+VmaAllocation vertex_buffer_allocations[NUM_VERTEX_ARRAYS];
 
 VkBuffer index_buffer;
 VmaAllocation index_buffer_allocation;

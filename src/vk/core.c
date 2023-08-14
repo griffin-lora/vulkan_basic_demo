@@ -589,7 +589,9 @@ void term_vulkan_all(void) {
     vkDestroySampler(device, world_texture_image_sampler, NULL);
     destroy_images(NUM_TEXTURE_IMAGES, texture_images, texture_image_allocations, texture_image_views);
 
-    vmaDestroyBuffer(allocator, vertex_buffer, vertex_buffer_allocation);
+    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
+        vmaDestroyBuffer(allocator, vertex_buffers[i], vertex_buffer_allocations[i]);
+    }
     vmaDestroyBuffer(allocator, index_buffer, index_buffer_allocation);
 
     vmaDestroyAllocator(allocator);

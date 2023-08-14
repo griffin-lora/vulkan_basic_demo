@@ -4,6 +4,12 @@
 #include <malloc.h>
 #include <string.h>
 
+size_t num_vertex_bytes_array[NUM_VERTEX_ARRAYS] = {
+    // sizeof(general_pass_vertex_t),
+    // sizeof(color_pass_vertex_t)
+    sizeof(vertex_t)
+};
+
 result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
     cgltf_options options = {};
     cgltf_data* data = NULL;
@@ -44,7 +50,12 @@ result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
     }
 
     cgltf_size num_vertices = primitive_data->attributes[0].data->count;
-    vertex_t* vertices = memalign(64, num_vertices*sizeof(vertex_t));
+
+    vertex_array_t vertex_arrays[NUM_VERTEX_ARRAYS];
+
+    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
+        vertex_arrays[i].data = memalign(64, num_vertices*num_vertex_bytes_array[i]);
+    }
 
     const vec3s* position_data = primitive_data->attributes[0].data->buffer_view->buffer->data + primitive_data->attributes[0].data->buffer_view->offset;
     const vec3s* normal_data = primitive_data->attributes[1].data->buffer_view->buffer->data + primitive_data->attributes[1].data->buffer_view->offset;
@@ -52,7 +63,15 @@ result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
     const vec2s* tex_coord_data = primitive_data->attributes[3].data->buffer_view->buffer->data + primitive_data->attributes[3].data->buffer_view->offset;
 
     for (size_t i = 0; i < num_vertices; i++) {
-        vertices[i] = (vertex_t) {
+        // vertex_arrays[0].general_pass_vertices[i] = (general_pass_vertex_t) {
+        //     .position = position_data[i]
+        // };
+        // vertex_arrays[1].color_pass_vertices[i] = (color_pass_vertex_t) {
+        //     .normal = normal_data[i],
+        //     .tangent = tangent_data[i],
+        //     .tex_coord = tex_coord_data[i]
+        // };
+        vertex_arrays[0].vertices[i] = (vertex_t) {
             .position = position_data[i],
             .normal = normal_data[i],
             .tangent = tangent_data[i],
@@ -72,8 +91,8 @@ result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
     *mesh = (mesh_t) {
         .num_vertices = num_vertices,
         .num_indices = num_indices,
-        .vertices = vertices,
         .indices = indices
     };
+    memcpy(mesh->vertex_arrays, vertex_arrays, sizeof(vertex_arrays));
     return result_success;
 }

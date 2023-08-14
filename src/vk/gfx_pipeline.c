@@ -108,7 +108,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     }
 
     size_t num_vertices;
-    vertex_t* vertices;
+    vertex_array_t vertex_arrays[NUM_VERTEX_ARRAYS];
     uint16_t* indices;
     {
         mesh_t mesh;
@@ -118,26 +118,34 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
 
         num_vertices = mesh.num_vertices;
         num_indices = mesh.num_indices;
-        vertices = mesh.vertices;
+        memcpy(vertex_arrays, mesh.vertex_arrays, sizeof(mesh.vertex_arrays));
         indices = mesh.indices;
     }
 
-    if (create_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_allocation) != result_success) {
-        return "Failed to create vertex buffer\n";
+    VkBuffer vertex_staging_buffers[NUM_VERTEX_ARRAYS];
+    VmaAllocation vertex_staging_buffer_allocations[NUM_VERTEX_ARRAYS];
+    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
+        vertex_array_t vertex_array = vertex_arrays[i];
+        size_t num_vertex_array_bytes = num_vertices*num_vertex_bytes_array[i];
+
+        if (create_buffer(num_vertex_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffers[i], &vertex_buffer_allocations[i]) != result_success) {
+            return "Failed to create vertex buffer\n";
+        }
+
+        if (create_buffer(num_vertex_array_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffers[i], &vertex_staging_buffer_allocations[i]) != result_success) {
+            return "Failed to create vertex staging buffer\n";
+        }
+
+        if (write_to_staging_buffer(vertex_staging_buffer_allocations[i], num_vertex_array_bytes, vertex_array.data) != result_success) {
+            return "Failed to write to vertex staging buffer\n";
+        }
+
+        free(vertex_array.data);
     }
+
 
     if (create_buffer(num_indices*sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_allocation) != result_success) {
         return "Failed to create index buffer\n";
-    }
-
-    VkBuffer vertex_staging_buffer;
-    VmaAllocation vertex_staging_buffer_allocation;
-    if (create_buffer(num_vertices*sizeof(vertex_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffer, &vertex_staging_buffer_allocation) != result_success) {
-        return "Failed to create vertex staging buffer\n";
-    }
-
-    if (write_to_staging_buffer(vertex_staging_buffer_allocation, num_vertices*sizeof(vertex_t), vertices) != result_success) {
-        return "Failed to write to vertex staging buffer\n";
     }
 
     //
@@ -152,7 +160,6 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
         return "Failed to write to index staging buffer\n";
     }
 
-    free(vertices);
     free(indices);
 
     VkCommandBuffer command_buffer;
@@ -190,7 +197,10 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
 
     transfer_images(command_buffer, NUM_TEXTURE_IMAGES, image_extents, num_mip_levels_array, image_staging_buffers, texture_images);
 
-    transfer_from_staging_buffer_to_buffer(command_buffer, num_vertices*sizeof(vertex_t), vertex_staging_buffer, vertex_buffer);
+    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
+        transfer_from_staging_buffer_to_buffer(command_buffer, num_vertices*num_vertex_bytes_array[i], vertex_staging_buffers[i], vertex_buffers[i]);
+    }
+
     transfer_from_staging_buffer_to_buffer(command_buffer, num_indices*sizeof(uint16_t), index_staging_buffer, index_buffer);
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
@@ -211,7 +221,9 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 
     end_images(NUM_TEXTURE_IMAGES, image_staging_buffers, image_staging_allocations);
-    vmaDestroyBuffer(allocator, vertex_staging_buffer, vertex_staging_buffer_allocation);
+    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
+        vmaDestroyBuffer(allocator, vertex_staging_buffers[i], vertex_staging_buffer_allocations[i]);
+    }
     vmaDestroyBuffer(allocator, index_staging_buffer, index_staging_buffer_allocation);
 
     //

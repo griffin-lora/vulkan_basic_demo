@@ -16,8 +16,9 @@ extern VkPipeline pipeline;
 extern VkPipelineLayout pipeline_layout;
 extern VkRenderPass render_pass;
 
-extern VkBuffer vertex_buffer;
-extern VmaAllocation vertex_buffer_allocation;
+extern VkBuffer vertex_buffers[NUM_VERTEX_ARRAYS];
+extern VmaAllocation vertex_buffer_allocations[NUM_VERTEX_ARRAYS];
+
 extern VkBuffer index_buffer;
 extern VmaAllocation index_buffer_allocation;
 
