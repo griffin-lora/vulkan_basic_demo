@@ -50,9 +50,9 @@ VkBuffer index_buffer;
 VmaAllocation index_buffer_allocation;
 
 VkSampler world_texture_image_sampler;
-VkImage world_texture_images[NUM_WORLD_TEXTURE_IMAGES];
-VmaAllocation world_texture_image_allocations[NUM_WORLD_TEXTURE_IMAGES];
-VkImageView world_texture_image_views[NUM_WORLD_TEXTURE_IMAGES];
+VkImage texture_images[NUM_TEXTURE_IMAGES];
+VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
+VkImageView texture_image_views[NUM_TEXTURE_IMAGES];
 
 size_t num_indices;
 push_constants_t push_constants;

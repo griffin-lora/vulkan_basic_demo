@@ -4,7 +4,6 @@
 #include "ds.h"
 #include "util.h"
 #include "mesh.h"
-#include <stb_image.h>
 #include <malloc.h>
 #include <string.h>
 
@@ -94,38 +93,18 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
 
     //
 
-    int image_width;
-    int image_height;
-
-    VkBuffer world_texture_image_staging_buffers[NUM_WORLD_TEXTURE_IMAGES];
-    VmaAllocation world_texture_image_staging_buffer_allocations[NUM_WORLD_TEXTURE_IMAGES];
-
-    int image_channels;
-    stbi_uc* pixel_arrays[] = {
-        stbi_load("image/test_color.jpg", &image_width, &image_height, &image_channels, STBI_rgb_alpha),
-        stbi_load("image/test_normal.jpg", &image_width, &image_height, &image_channels, STBI_rgb_alpha)
+    const char* image_paths[] = {
+        "image/test_color.jpg",
+        "image/test_normal.jpg"
     };
-    
-    uint32_t num_mip_levels = ((uint32_t)floorf(log2f(max_uint32(image_width, image_height)))) + 1;
 
-    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
-        if (pixel_arrays[i] == NULL) {
-            return "Failed to load texture image\n";
-        }
+    image_extent_t image_extents[NUM_TEXTURE_IMAGES];
+    uint32_t num_mip_levels_array[NUM_TEXTURE_IMAGES];
+    VkBuffer image_staging_buffers[NUM_TEXTURE_IMAGES];
+    VmaAllocation image_staging_allocations[NUM_TEXTURE_IMAGES];
 
-        if (create_buffer(image_width*image_height*4, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &world_texture_image_staging_buffers[i], &world_texture_image_staging_buffer_allocations[i]) != result_success) {
-            return "Failed to create image staging buffer\n";
-        }
-
-        if (write_to_staging_buffer(world_texture_image_staging_buffer_allocations[i], image_width*image_height*4, pixel_arrays[i]) != result_success) {
-            return "Failed to write to image staging buffer\n";
-        }
-
-        stbi_image_free(pixel_arrays[i]);
-
-        if (create_image(image_width, image_height, num_mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &world_texture_images[i], &world_texture_image_allocations[i]) != result_success) {
-            return "Failed to create texture image\n";
-        }
+    if (begin_images(NUM_TEXTURE_IMAGES, image_paths, image_extents, num_mip_levels_array, image_staging_buffers, image_staging_allocations, texture_images, texture_image_allocations) != result_success) {
+        return "Failed to begin creating images\n";
     }
 
     size_t num_vertices;
@@ -200,11 +179,6 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
         }
     }
 
-    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
-        transition_image_layout(command_buffer, world_texture_images[i], num_mip_levels, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-        transfer_from_staging_buffer_to_image(command_buffer, image_width, image_height, world_texture_image_staging_buffers[i], world_texture_images[i]);
-    }
-
     {
         VkFormatProperties properties;
         vkGetPhysicalDeviceFormatProperties(physical_device, VK_FORMAT_R8G8B8_SRGB, &properties);
@@ -213,42 +187,8 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             return "Texture image format does not support linear blitting\n";
         }
     }
-    {
-        uint32_t mip_width = image_width;
-        uint32_t mip_height = image_height;
 
-        for (size_t i = 1; i < num_mip_levels; i++) {
-            for (size_t j = 0; j < NUM_WORLD_TEXTURE_IMAGES; j++) {
-                transition_image_layout(command_buffer, world_texture_images[j], 1, i - 1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-                VkImageBlit blit = {
-                    .srcOffsets[0] = { 0, 0, 0 },
-                    .srcOffsets[1] = { mip_width, mip_height, 1 },
-                    .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .srcSubresource.mipLevel = i - 1,
-                    .srcSubresource.baseArrayLayer = 0,
-                    .srcSubresource.layerCount = 1,
-                    .dstOffsets[0] = { 0, 0, 0 },
-                    .dstOffsets[1] = { mip_width > 1 ? mip_width / 2 : 1, mip_height > 1 ? mip_height / 2 : 1, 1 },
-                    .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .dstSubresource.mipLevel = i,
-                    .dstSubresource.baseArrayLayer = 0,
-                    .dstSubresource.layerCount = 1
-                };
-
-                vkCmdBlitImage(command_buffer, world_texture_images[j], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, world_texture_images[j], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
-
-                transition_image_layout(command_buffer, world_texture_images[j], 1, i - 1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-            }
-
-            if (mip_width > 1) { mip_width /= 2; }
-            if (mip_height > 1) { mip_height /= 2; }
-        }
-    }
-
-    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
-        transition_image_layout(command_buffer, world_texture_images[i], 1, num_mip_levels - 1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-    }
+    transfer_images(command_buffer, NUM_TEXTURE_IMAGES, image_extents, num_mip_levels_array, image_staging_buffers, texture_images);
 
     transfer_from_staging_buffer_to_buffer(command_buffer, num_vertices*sizeof(vertex_t), vertex_staging_buffer, vertex_buffer);
     transfer_from_staging_buffer_to_buffer(command_buffer, num_indices*sizeof(uint16_t), index_staging_buffer, index_buffer);
@@ -270,18 +210,14 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
 
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 
-    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
-        vmaDestroyBuffer(allocator, world_texture_image_staging_buffers[i], world_texture_image_staging_buffer_allocations[i]);
-    }
+    end_images(NUM_TEXTURE_IMAGES, image_staging_buffers, image_staging_allocations);
     vmaDestroyBuffer(allocator, vertex_staging_buffer, vertex_staging_buffer_allocation);
     vmaDestroyBuffer(allocator, index_staging_buffer, index_staging_buffer_allocation);
 
     //
 
-    for (size_t i = 0; i < NUM_WORLD_TEXTURE_IMAGES; i++) {
-        if (create_image_view(world_texture_images[i], num_mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &world_texture_image_views[i]) != result_success) {
-            return "Failed to create texture image view\n";
-        }
+    if (create_image_views(NUM_TEXTURE_IMAGES, num_mip_levels_array, texture_images, texture_image_views) != result_success) {
+        return "Failed to create texture image view\n";
     }
 
     {
@@ -300,7 +236,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
             .compareOp = VK_COMPARE_OP_ALWAYS,
             .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
             .minLod = 0.0f,
-            .maxLod = num_mip_levels,
+            .maxLod = num_mip_levels_array[0],
             .mipLodBias = 0.0f
         };
 
@@ -344,7 +280,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
                 .type = descriptor_info_type_image,
                 .image = {
                     .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    .imageView = world_texture_image_views[0],
+                    .imageView = texture_image_views[0],
                     .sampler = world_texture_image_sampler
                 }
             },
@@ -352,7 +288,7 @@ const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* phys
                 .type = descriptor_info_type_image,
                 .image = {
                     .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    .imageView = world_texture_image_views[1],
+                    .imageView = texture_image_views[1],
                     .sampler = world_texture_image_sampler
                 }
             }

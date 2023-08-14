@@ -7,6 +7,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stb_image.h>
+#include <math.h>
 
 result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
     if (access(path, F_OK) != 0) {
@@ -230,11 +232,12 @@ const char* create_graphics_pipeline(
     {
         VkDescriptorSetLayoutBinding* bindings = ds_promise(num_descriptor_bindings*sizeof(VkDescriptorSetLayoutBinding));
         for (size_t i = 0; i < num_descriptor_bindings; i++) {
+            descriptor_binding_t binding = descriptor_bindings[i];
             bindings[i] = (VkDescriptorSetLayoutBinding) {
                 .binding = i,
-                .descriptorType = descriptor_bindings[i].type,
+                .descriptorType = binding.type,
                 .descriptorCount = 1,
-                .stageFlags = descriptor_bindings[i].stage_flags,
+                .stageFlags = binding.stage_flags,
                 .pImmutableSamplers = NULL
             };
         }
@@ -321,11 +324,12 @@ const char* create_graphics_pipeline(
 
     VkVertexInputAttributeDescription* vertex_input_attribute_descriptions = ds_promise(num_vertex_attributes*sizeof(VkVertexInputAttributeDescription));
     for (size_t i = 0; i < num_vertex_attributes; i++) {
+        vertex_attribute_t attribute = vertex_attributes[i];
         vertex_input_attribute_descriptions[i] = (VkVertexInputAttributeDescription) {
             .binding = 0,
             .location = i,
-            .format = vertex_attributes[i].format,
-            .offset = vertex_attributes[i].offset
+            .format = attribute.format,
+            .offset = attribute.offset
         };
     }
 
@@ -443,4 +447,104 @@ const char* create_graphics_pipeline(
     }
 
     return NULL;
+}
+
+result_t begin_images(size_t num_images, const char* image_paths[], image_extent_t image_extents[], uint32_t num_mip_levels_array[], VkBuffer image_staging_buffers[], VmaAllocation image_staging_allocations[], VkImage images[], VmaAllocation image_allocations[]) {
+    int image_channels;
+
+    for (size_t i = 0; i < num_images; i++) {
+        image_extent_t image_extent;
+        stbi_uc* pixels = stbi_load(image_paths[i], &image_extent.width, &image_extent.height, &image_channels, STBI_rgb_alpha);
+        if (pixels == NULL) {
+            return result_failure;
+        }
+        size_t num_image_bytes = image_extent.width*image_extent.height*4;
+
+        image_extents[i] = image_extent;
+        uint32_t num_mip_levels = ((uint32_t)floorf(log2f(max_uint32(image_extent.width, image_extent.height)))) + 1;
+        num_mip_levels_array[i] = num_mip_levels;
+
+        if (create_buffer(num_image_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &image_staging_buffers[i], &image_staging_allocations[i]) != result_success) {
+            return result_failure;
+        }
+
+        if (write_to_staging_buffer(image_staging_allocations[i], num_image_bytes, pixels) != result_success) {
+            return result_failure;
+        }
+
+        stbi_image_free(pixels);
+
+        if (create_image(image_extent.width, image_extent.height, num_mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &images[i], &image_allocations[i]) != result_success) {
+            return result_failure;
+        }
+    }
+    
+    return result_success;
+}
+
+void transfer_images(VkCommandBuffer command_buffer, size_t num_images, const image_extent_t image_extents[], const uint32_t num_mip_levels_array[], const VkBuffer image_staging_buffers[], const VkImage images[]) {
+    for (size_t i = 0; i < num_images; i++) {
+        image_extent_t image_extent = image_extents[i];
+        uint32_t num_mip_levels = num_mip_levels_array[i];
+        VkBuffer image_staging_buffer = image_staging_buffers[i];
+        VkImage image = images[i];
+
+        transition_image_layout(command_buffer, image, num_mip_levels, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+        transfer_from_staging_buffer_to_image(command_buffer, image_extent.width, image_extent.height, image_staging_buffer, image);
+
+        uint32_t mip_width = image_extent.width;
+        uint32_t mip_height = image_extent.height;
+
+        for (size_t i = 1; i < num_mip_levels; i++) {
+            transition_image_layout(command_buffer, image, 1, i - 1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+            VkImageBlit blit = {
+                .srcOffsets[0] = { 0, 0, 0 },
+                .srcOffsets[1] = { mip_width, mip_height, 1 },
+                .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .srcSubresource.mipLevel = i - 1,
+                .srcSubresource.baseArrayLayer = 0,
+                .srcSubresource.layerCount = 1,
+                .dstOffsets[0] = { 0, 0, 0 },
+                .dstOffsets[1] = { mip_width > 1 ? mip_width / 2 : 1, mip_height > 1 ? mip_height / 2 : 1, 1 },
+                .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .dstSubresource.mipLevel = i,
+                .dstSubresource.baseArrayLayer = 0,
+                .dstSubresource.layerCount = 1
+            };
+
+            vkCmdBlitImage(command_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+
+            transition_image_layout(command_buffer, image, 1, i - 1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+            if (mip_width > 1) { mip_width /= 2; }
+            if (mip_height > 1) { mip_height /= 2; }
+        }
+
+        transition_image_layout(command_buffer, image, 1, num_mip_levels - 1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    }
+}
+
+void end_images(size_t num_images, const VkBuffer image_staging_buffers[], const VmaAllocation image_staging_buffer_allocations[]) {
+    for (size_t i = 0; i < num_images; i++) {
+        vmaDestroyBuffer(allocator, image_staging_buffers[i], image_staging_buffer_allocations[i]);
+    }
+}
+
+result_t create_image_views(size_t num_images, const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]) {
+    for (size_t i = 0; i < num_images; i++) {
+        if (create_image_view(images[i], num_mip_levels_array[i], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &image_views[i]) != result_success) {
+            return result_failure;
+        }
+    }
+
+    return result_success;
+}
+
+void destroy_images(size_t num_images, const VkImage images[], const VmaAllocation image_allocations[], const VkImageView image_views[]) {
+    for (size_t i = 0; i < num_images; i++) {
+        vkDestroyImageView(device, image_views[i], NULL);
+
+        vmaDestroyImage(allocator, images[i], image_allocations[i]);
+    }
 }

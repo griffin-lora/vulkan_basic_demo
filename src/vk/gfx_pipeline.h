@@ -29,10 +29,10 @@ typedef struct {
 extern push_constants_t push_constants;
 static_assert(sizeof(push_constants_t) <= 256, "Push constants must be less than or equal to 256 bytes");
 
-#define NUM_WORLD_TEXTURE_IMAGES 2
+#define NUM_TEXTURE_IMAGES 2
 extern VkSampler world_texture_image_sampler;
-extern VkImage world_texture_images[NUM_WORLD_TEXTURE_IMAGES];
-extern VmaAllocation world_texture_image_allocations[NUM_WORLD_TEXTURE_IMAGES];
-extern VkImageView world_texture_image_views[NUM_WORLD_TEXTURE_IMAGES];
+extern VkImage texture_images[NUM_TEXTURE_IMAGES];
+extern VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
+extern VkImageView texture_image_views[NUM_TEXTURE_IMAGES];
 
 const char* init_vulkan_graphics_pipeline(const VkPhysicalDeviceProperties* physical_device_properties);
