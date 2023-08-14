@@ -7,6 +7,7 @@ layout(push_constant, std430) uniform push_constants_t {
 
 layout(binding = 0) uniform sampler2D color_sampler;
 layout(binding = 1) uniform sampler2D normal_sampler;
+layout(binding = 2) uniform sampler2D shadow_sampler;
 
 layout(location = 0) in vec3 frag_world_position;
 layout(location = 1) in vec3 frag_view_normal;
@@ -45,4 +46,7 @@ void main(){
 		specular_color * light_color * light_power * pow(cos_alpha, 5.0) / (light_distance*light_distance),
 		1.0
 	);
+
+	float shadow_depth = texture(shadow_sampler, tex_coord).r;
+	color = vec4(shadow_depth, shadow_depth, shadow_depth, 1.0);
 }

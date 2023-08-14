@@ -35,6 +35,11 @@ const char* draw_vulkan_frame(void) {
         { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
     };
 
+    VkBuffer pass_vertex_buffers[] = {
+        vertex_buffers[GENERAL_PASS_VERTEX_ARRAY_INDEX],
+        vertex_buffers[COLOR_PASS_VERTEX_ARRAY_INDEX]
+    };
+
     VkPipelineStageFlags wait_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     if (submit_render_command_buffer(
@@ -43,7 +48,7 @@ const char* draw_vulkan_frame(void) {
         NUM_ELEMS(clear_values), clear_values,
         render_passes[COLOR_PIPELINE_INDEX], descriptor_sets[COLOR_PIPELINE_INDEX], pipeline_layouts[COLOR_PIPELINE_INDEX], pipelines[COLOR_PIPELINE_INDEX],
         sizeof(push_constants), &push_constants,
-        NUM_VERTEX_ARRAYS, vertex_buffers,
+        NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
         num_indices, index_buffer,
         1, &image_available_semaphore, &wait_stage_flags,
         1, &render_finished_semaphore, in_flight_fence

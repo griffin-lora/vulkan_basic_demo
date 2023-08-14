@@ -126,5 +126,4 @@ void handle_input(float delta) {
     
     push_constants.model_view_projection = glms_mat4_mul(projection, view);
     push_constants.view = view;
-
 }

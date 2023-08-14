@@ -76,4 +76,3 @@ VkPipeline pipelines[NUM_PIPELINES];
 VkImage shadow_image;
 VmaAllocation shadow_image_allocation;
 VkImageView shadow_image_view;
-VkFramebuffer shadow_image_framebuffer;

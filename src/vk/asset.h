@@ -22,6 +22,5 @@ extern VkImageView texture_image_views[NUM_TEXTURE_IMAGES];
 extern VkImage shadow_image;
 extern VmaAllocation shadow_image_allocation;
 extern VkImageView shadow_image_view;
-extern VkFramebuffer shadow_image_framebuffer;
 
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties);

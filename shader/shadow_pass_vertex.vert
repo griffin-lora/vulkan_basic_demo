@@ -2,7 +2,6 @@
 
 layout(push_constant, std430) uniform push_constants_t {
     mat4 model_view_projection;
-    mat4 view;
 };
 
 layout(location = 0) in vec3 position;

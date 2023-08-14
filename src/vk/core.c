@@ -8,6 +8,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
+#include <cglm/struct/cam.h>
+#include <cglm/struct/mat3.h>
+#include <cglm/struct/affine.h>
 
 #define WIDTH 640
 #define HEIGHT 480
@@ -559,21 +562,70 @@ const char* init_vulkan_core(void) {
     }
 
     {
-        VkImageView attachments[] = { shadow_image_view };
+        VkFramebuffer framebuffer;
+        {
+            VkImageView attachments[] = { shadow_image_view };
 
-        VkFramebufferCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = render_passes[SHADOW_PIPELINE_INDEX],
-            .attachmentCount = NUM_ELEMS(attachments),
-            .pAttachments = attachments,
-            .width = SHADOW_IMAGE_SIZE,
-            .height = SHADOW_IMAGE_SIZE,
-            .layers = 1
+            VkFramebufferCreateInfo info = {
+                .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+                .renderPass = render_passes[SHADOW_PIPELINE_INDEX],
+                .attachmentCount = NUM_ELEMS(attachments),
+                .pAttachments = attachments,
+                .width = SHADOW_IMAGE_SIZE,
+                .height = SHADOW_IMAGE_SIZE,
+                .layers = 1
+            };
+
+            if (vkCreateFramebuffer(device, &info, NULL, &framebuffer) != VK_SUCCESS) {
+                return "Failed to create shadow image framebuffer\n";
+            }
+        }
+
+        VkFence signal_fence;
+        {
+            VkFenceCreateInfo info = {
+                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
+            };
+            if (vkCreateFence(device, &info, NULL, &signal_fence) != VK_SUCCESS) {
+                return "Failed to create shadow signal fence\n";
+            }
+        }
+
+        VkClearValue clear_values[] = {
+            { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
         };
 
-        if (vkCreateFramebuffer(device, &info, NULL, &shadow_image_framebuffer) != VK_SUCCESS) {
-            return "Failed to create shadow image framebuffer\n";
+        struct {
+            mat4s model_view_projection;
+        } shadow_push_constants;
+
+        mat4s projection = glms_perspective((GLM_PI*2.0f) / 5.0f, 1, 0.01f, 300.0f);
+        mat4s view = glms_look((vec3s) {{ 5.5f, 4.0f, -6.0f }}, (vec3s) {{ -0.5f, -0.5f, 0.5f }}, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
+
+        shadow_push_constants.model_view_projection = glms_mat4_mul(projection, view);
+
+        VkBuffer pass_vertex_buffers[] = {
+            vertex_buffers[GENERAL_PASS_VERTEX_ARRAY_INDEX]
+        };
+    
+        if (submit_render_command_buffer(render_command_buffer_array[SHADOW_PIPELINE_INDEX][0],
+            framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
+            NUM_ELEMS(clear_values), clear_values,
+            render_passes[SHADOW_PIPELINE_INDEX], descriptor_sets[SHADOW_PIPELINE_INDEX], pipeline_layouts[SHADOW_PIPELINE_INDEX], pipelines[SHADOW_PIPELINE_INDEX],
+            sizeof(shadow_push_constants), &shadow_push_constants,
+            NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
+            num_indices, index_buffer,
+            0, NULL, NULL,
+            0, NULL,
+            signal_fence
+        ) != result_success) {
+            return "Failed to render shadow image\n";
         }
+
+        vkWaitForFences(device, 1, &signal_fence, VK_TRUE, UINT64_MAX);
+
+        vkDestroyFramebuffer(device, framebuffer, NULL);
+        vkDestroyFence(device, signal_fence, NULL);
     }
 
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, NULL);
@@ -614,7 +666,6 @@ void term_vulkan_all(void) {
         // vmaDestroyBuffer(allocator, clip_space_uniform_buffers[i], clip_space_uniform_buffers_allocation[i]);
     }
 
-    vkDestroyFramebuffer(device, shadow_image_framebuffer, NULL);
     vkDestroyImageView(device, shadow_image_view, NULL);
     vmaDestroyImage(allocator, shadow_image, shadow_image_allocation);
 
