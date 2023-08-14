@@ -39,13 +39,13 @@ static const char* init_shadow_pipeline(void) {
             .dependencyCount = 0
         };
 
-        if (vkCreateRenderPass(device, &info, NULL, &shadow_pass.render_pass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(device, &info, NULL, &shadow_pipeline.render_pass) != VK_SUCCESS) {
             return "Failed to create render pass\n";
         }
     }
 
     VkShaderModule vertex_shader_module;
-    if (create_shader_module("shader/shadow_pass_vertex.spv", &vertex_shader_module) != result_success) {
+    if (create_shader_module("shader/shadow_pipeline_vertex.spv", &vertex_shader_module) != result_success) {
         return "Failed to create vertex shader module\n";
     }
 
@@ -57,14 +57,14 @@ static const char* init_shadow_pipeline(void) {
     };
     
     uint32_t num_pass_vertex_bytes_array[] = {
-        num_vertex_bytes_array[GENERAL_PASS_VERTEX_ARRAY_INDEX]
+        num_vertex_bytes_array[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX]
     };
 
     vertex_attribute_t attributes[] = {
         {
             .binding = 0,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(general_pass_vertex_t, position)
+            .offset = offsetof(general_pipeline_vertex_t, position)
         }
     };
 
@@ -75,8 +75,8 @@ static const char* init_shadow_pipeline(void) {
         NUM_ELEMS(attributes), attributes,
         sizeof(push_constants),
         VK_SAMPLE_COUNT_1_BIT,
-        shadow_pass.render_pass,
-        NULL, NULL, NULL, &shadow_pass.pipeline_layout, &shadow_pass.pipeline
+        shadow_pipeline.render_pass,
+        NULL, NULL, NULL, &shadow_pipeline.pipeline_layout, &shadow_pipeline.pipeline
     );
     if (msg != NULL) {
         return msg;
@@ -164,18 +164,18 @@ static const char* init_color_pipeline(void) {
             .pDependencies = &subpass_dependency
         };
 
-        if (vkCreateRenderPass(device, &info, NULL, &color_pass.render_pass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(device, &info, NULL, &color_pipeline.render_pass) != VK_SUCCESS) {
             return "Failed to create render pass\n";
         }
     }
 
     VkShaderModule vertex_shader_module;
-    if (create_shader_module("shader/color_pass_vertex.spv", &vertex_shader_module) != result_success) {
+    if (create_shader_module("shader/color_pipeline_vertex.spv", &vertex_shader_module) != result_success) {
         return "Failed to create vertex shader module\n";
     }
 
     VkShaderModule fragment_shader_module;
-    if (create_shader_module("shader/color_pass_fragment.spv", &fragment_shader_module) != result_success) {
+    if (create_shader_module("shader/color_pipeline_fragment.spv", &fragment_shader_module) != result_success) {
         return "Failed to create fragment shader module\n";
     }
 
@@ -233,30 +233,30 @@ static const char* init_color_pipeline(void) {
     };
     
     uint32_t num_pass_vertex_bytes_array[] = {
-        num_vertex_bytes_array[GENERAL_PASS_VERTEX_ARRAY_INDEX],
-        num_vertex_bytes_array[COLOR_PASS_VERTEX_ARRAY_INDEX],
+        num_vertex_bytes_array[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
+        num_vertex_bytes_array[COLOR_PIPELINE_VERTEX_ARRAY_INDEX],
     };
 
     vertex_attribute_t attributes[] = {
         {
             .binding = 0,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(general_pass_vertex_t, position)
+            .offset = offsetof(general_pipeline_vertex_t, position)
         },
         {
             .binding = 1,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
-            .offset = offsetof(color_pass_vertex_t, normal)
+            .offset = offsetof(color_pipeline_vertex_t, normal)
         },
         {
             .binding = 1,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
-            .offset = offsetof(color_pass_vertex_t, tangent)
+            .offset = offsetof(color_pipeline_vertex_t, tangent)
         },
         {
             .binding = 1,
             .format = VK_FORMAT_R32G32_SFLOAT,
-            .offset = offsetof(color_pass_vertex_t, tex_coord)
+            .offset = offsetof(color_pipeline_vertex_t, tex_coord)
         }
     };
 
@@ -267,8 +267,8 @@ static const char* init_color_pipeline(void) {
         NUM_ELEMS(attributes), attributes,
         sizeof(push_constants),
         render_multisample_flags,
-        color_pass.render_pass,
-        &color_pass.descriptor_set_layout, &color_pass.descriptor_pool, &color_pass.descriptor_set, &color_pass.pipeline_layout, &color_pass.pipeline
+        color_pipeline.render_pass,
+        &color_pipeline.descriptor_set_layout, &color_pipeline.descriptor_pool, &color_pipeline.descriptor_set, &color_pipeline.pipeline_layout, &color_pipeline.pipeline
     );
     if (msg != NULL) {
         return msg;

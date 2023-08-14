@@ -66,8 +66,8 @@ VkImageView color_image_view;
 
 VkSampleCountFlagBits render_multisample_flags;
 
-shadow_pass_t shadow_pass;
-color_pass_t color_pass;
+shadow_pipeline_t shadow_pipeline;
+color_pipeline_t color_pipeline;
 
 VkImage shadow_image;
 VmaAllocation shadow_image_allocation;

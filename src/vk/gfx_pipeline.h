@@ -12,9 +12,9 @@ typedef struct {
     VkRenderPass render_pass;
     VkPipelineLayout pipeline_layout;
     VkPipeline pipeline;
-} shadow_pass_t;
+} shadow_pipeline_t;
 
-extern shadow_pass_t shadow_pass;
+extern shadow_pipeline_t shadow_pipeline;
 
 typedef struct {
     VkRenderPass render_pass;
@@ -23,9 +23,9 @@ typedef struct {
     VkDescriptorSet descriptor_set;
     VkPipelineLayout pipeline_layout;
     VkPipeline pipeline;
-} color_pass_t;
+} color_pipeline_t;
 
-extern color_pass_t color_pass;
+extern color_pipeline_t color_pipeline;
 
 extern VkCommandBuffer color_command_buffers[NUM_FRAMES_IN_FLIGHT];
 

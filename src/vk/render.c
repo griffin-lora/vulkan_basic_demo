@@ -47,15 +47,15 @@ const char* draw_vulkan_frame(void) {
     };
 
     VkBuffer pass_vertex_buffers[] = {
-        vertex_buffers[GENERAL_PASS_VERTEX_ARRAY_INDEX],
-        vertex_buffers[COLOR_PASS_VERTEX_ARRAY_INDEX]
+        vertex_buffers[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
+        vertex_buffers[COLOR_PIPELINE_VERTEX_ARRAY_INDEX]
     };
 
     draw_scene(
         command_buffer,
         swapchain_framebuffers[image_index], swap_image_extent,
         NUM_ELEMS(clear_values), clear_values,
-        color_pass.render_pass, color_pass.descriptor_set, color_pass.pipeline_layout, color_pass.pipeline,
+        color_pipeline.render_pass, color_pipeline.descriptor_set, color_pipeline.pipeline_layout, color_pipeline.pipeline,
         sizeof(push_constants), &push_constants,
         NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
         num_indices, index_buffer

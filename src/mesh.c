@@ -5,8 +5,8 @@
 #include <string.h>
 
 size_t num_vertex_bytes_array[NUM_VERTEX_ARRAYS] = {
-    [GENERAL_PASS_VERTEX_ARRAY_INDEX] = sizeof(general_pass_vertex_t),
-    [COLOR_PASS_VERTEX_ARRAY_INDEX] sizeof(color_pass_vertex_t)
+    [GENERAL_PIPELINE_VERTEX_ARRAY_INDEX] = sizeof(general_pipeline_vertex_t),
+    [COLOR_PIPELINE_VERTEX_ARRAY_INDEX] sizeof(color_pipeline_vertex_t)
 };
 
 result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
@@ -62,10 +62,10 @@ result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
     const vec2s* tex_coord_data = primitive_data->attributes[3].data->buffer_view->buffer->data + primitive_data->attributes[3].data->buffer_view->offset;
 
     for (size_t i = 0; i < num_vertices; i++) {
-        vertex_arrays[GENERAL_PASS_VERTEX_ARRAY_INDEX].general_pass_vertices[i] = (general_pass_vertex_t) {
+        vertex_arrays[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX].general_pipeline_vertices[i] = (general_pipeline_vertex_t) {
             .position = position_data[i]
         };
-        vertex_arrays[COLOR_PASS_VERTEX_ARRAY_INDEX].color_pass_vertices[i] = (color_pass_vertex_t) {
+        vertex_arrays[COLOR_PIPELINE_VERTEX_ARRAY_INDEX].color_pipeline_vertices[i] = (color_pipeline_vertex_t) {
             .normal = normal_data[i],
             .tangent = tangent_data[i],
             .tex_coord = tex_coord_data[i]

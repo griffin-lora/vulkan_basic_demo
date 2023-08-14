@@ -271,7 +271,7 @@ static result_t init_swapchain_framebuffers(void) {
 
         VkFramebufferCreateInfo framebuffer_create_info = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = color_pass.render_pass,
+            .renderPass = color_pipeline.render_pass,
             .attachmentCount = NUM_ELEMS(attachments),
             .pAttachments = attachments,
             .width = swap_image_extent.width,
@@ -597,7 +597,7 @@ const char* init_vulkan_core(void) {
 
             VkFramebufferCreateInfo info = {
                 .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                .renderPass = shadow_pass.render_pass,
+                .renderPass = shadow_pipeline.render_pass,
                 .attachmentCount = NUM_ELEMS(attachments),
                 .pAttachments = attachments,
                 .width = SHADOW_IMAGE_SIZE,
@@ -624,14 +624,14 @@ const char* init_vulkan_core(void) {
         shadow_push_constants.model_view_projection = glms_mat4_mul(projection, view);
 
         VkBuffer pass_vertex_buffers[] = {
-            vertex_buffers[GENERAL_PASS_VERTEX_ARRAY_INDEX]
+            vertex_buffers[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX]
         };
     
        draw_scene(
             command_buffer,
             framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
             NUM_ELEMS(clear_values), clear_values,
-            shadow_pass.render_pass, NULL, shadow_pass.pipeline_layout, shadow_pass.pipeline,
+            shadow_pipeline.render_pass, NULL, shadow_pipeline.pipeline_layout, shadow_pipeline.pipeline,
             sizeof(shadow_push_constants), &shadow_push_constants,
             NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
             num_indices, index_buffer
@@ -672,15 +672,15 @@ void term_vulkan_all(void) {
 
     vkDestroyCommandPool(device, command_pool, NULL);
 
-    vkDestroyPipeline(device, shadow_pass.pipeline, NULL);
-    vkDestroyPipelineLayout(device, shadow_pass.pipeline_layout, NULL);
-    vkDestroyRenderPass(device, shadow_pass.render_pass, NULL);
+    vkDestroyPipeline(device, shadow_pipeline.pipeline, NULL);
+    vkDestroyPipelineLayout(device, shadow_pipeline.pipeline_layout, NULL);
+    vkDestroyRenderPass(device, shadow_pipeline.render_pass, NULL);
 
-    vkDestroyPipeline(device, color_pass.pipeline, NULL);
-    vkDestroyPipelineLayout(device, color_pass.pipeline_layout, NULL);
-    vkDestroyRenderPass(device, color_pass.render_pass, NULL);
-    vkDestroyDescriptorPool(device, color_pass.descriptor_pool, NULL);
-    vkDestroyDescriptorSetLayout(device, color_pass.descriptor_set_layout, NULL);
+    vkDestroyPipeline(device, color_pipeline.pipeline, NULL);
+    vkDestroyPipelineLayout(device, color_pipeline.pipeline_layout, NULL);
+    vkDestroyRenderPass(device, color_pipeline.render_pass, NULL);
+    vkDestroyDescriptorPool(device, color_pipeline.descriptor_pool, NULL);
+    vkDestroyDescriptorSetLayout(device, color_pipeline.descriptor_set_layout, NULL);
     
     term_color_image();
     term_depth_image();
