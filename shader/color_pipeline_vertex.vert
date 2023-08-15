@@ -17,7 +17,7 @@ layout(location = 1) out vec3 frag_vertex_to_camera_direction;
 layout(location = 2) out vec3 frag_light_direction;
 layout(location = 3) out vec3 frag_position_to_light_direction;
 
-vec3 light_direction = normalize(vec3(1.0, -3.0, 1.0));
+vec3 light_direction = normalize(vec3(-2.0, -1.0, 0.0));
 vec3 position_to_light_direction = -light_direction;
 
 void main() {
