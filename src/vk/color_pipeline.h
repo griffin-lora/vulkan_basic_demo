@@ -8,25 +8,10 @@
 #include <cglm/struct/vec3.h>
 #include <assert.h>
 
-typedef struct {
-    VkRenderPass render_pass;
-    VkDescriptorSetLayout descriptor_set_layout;
-    VkDescriptorPool descriptor_pool;
-    VkDescriptorSet descriptor_set;
-    VkPipelineLayout pipeline_layout;
-    VkPipeline pipeline;
-} color_pipeline_t;
+extern VkRenderPass color_pipeline_render_pass;
 
-extern color_pipeline_t color_pipeline;
-
-extern VkCommandBuffer color_command_buffers[NUM_FRAMES_IN_FLIGHT];
-
-extern VkImage color_image;
-extern VmaAllocation color_image_allocation;
 extern VkImageView color_image_view;
 
-extern VkImage depth_image;
-extern VmaAllocation depth_image_allocation;
 extern VkImageView depth_image_view;
 
 typedef struct {

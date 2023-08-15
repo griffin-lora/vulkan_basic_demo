@@ -11,16 +11,21 @@
 #include <cglm/struct/mat3.h>
 #include <cglm/struct/affine.h>
 
-color_pipeline_t color_pipeline;
+VkRenderPass color_pipeline_render_pass;
+static VkDescriptorSetLayout descriptor_set_layout;
+static VkDescriptorPool descriptor_pool;
+static VkDescriptorSet descriptor_set;
+static VkPipelineLayout pipeline_layout;
+static VkPipeline pipeline;
 
-VkCommandBuffer color_command_buffers[NUM_FRAMES_IN_FLIGHT];
+static VkCommandBuffer color_command_buffers[NUM_FRAMES_IN_FLIGHT];
 
-VkImage color_image;
-VmaAllocation color_image_allocation;
+static VkImage color_image;
+static VmaAllocation color_image_allocation;
 VkImageView color_image_view;
 
-VkImage depth_image;
-VmaAllocation depth_image_allocation;
+static VkImage depth_image;
+static VmaAllocation depth_image_allocation;
 VkImageView depth_image_view;
 
 color_pipeline_push_constants_t color_pipeline_push_constants;
@@ -141,7 +146,7 @@ const char* init_color_pipeline(void) {
             .pDependencies = &subpass_dependency
         };
 
-        if (vkCreateRenderPass(device, &info, NULL, &color_pipeline.render_pass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(device, &info, NULL, &color_pipeline_render_pass) != VK_SUCCESS) {
             return "Failed to create render pass\n";
         }
     }
@@ -244,8 +249,8 @@ const char* init_color_pipeline(void) {
         NUM_ELEMS(attributes), attributes,
         sizeof(color_pipeline_push_constants),
         render_multisample_flags,
-        color_pipeline.render_pass,
-        &color_pipeline.descriptor_set_layout, &color_pipeline.descriptor_pool, &color_pipeline.descriptor_set, &color_pipeline.pipeline_layout, &color_pipeline.pipeline
+        color_pipeline_render_pass,
+        &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout, &pipeline
     );
     if (msg != NULL) {
         return msg;
@@ -286,7 +291,7 @@ const char* draw_color_pipeline(size_t frame_index, size_t image_index, VkComman
         command_buffer,
         swapchain_framebuffers[image_index], swap_image_extent,
         NUM_ELEMS(clear_values), clear_values,
-        color_pipeline.render_pass, color_pipeline.descriptor_set, color_pipeline.pipeline_layout, color_pipeline.pipeline,
+        color_pipeline_render_pass, descriptor_set, pipeline_layout, pipeline,
         sizeof(color_pipeline_push_constants), &color_pipeline_push_constants,
         NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
         num_indices, index_buffer
@@ -300,11 +305,11 @@ const char* draw_color_pipeline(size_t frame_index, size_t image_index, VkComman
 }
 
 void term_color_pipeline(void) {
-    vkDestroyPipeline(device, color_pipeline.pipeline, NULL);
-    vkDestroyPipelineLayout(device, color_pipeline.pipeline_layout, NULL);
-    vkDestroyRenderPass(device, color_pipeline.render_pass, NULL);
-    vkDestroyDescriptorPool(device, color_pipeline.descriptor_pool, NULL);
-    vkDestroyDescriptorSetLayout(device, color_pipeline.descriptor_set_layout, NULL);
+    vkDestroyPipeline(device, pipeline, NULL);
+    vkDestroyPipelineLayout(device, pipeline_layout, NULL);
+    vkDestroyRenderPass(device, color_pipeline_render_pass, NULL);
+    vkDestroyDescriptorPool(device, descriptor_pool, NULL);
+    vkDestroyDescriptorSetLayout(device, descriptor_set_layout, NULL);
 
     term_color_pipeline_swapchain_dependents();
 }

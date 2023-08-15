@@ -10,11 +10,9 @@
 #include <cglm/struct/mat3.h>
 #include <cglm/struct/affine.h>
 
-static struct {
-    VkRenderPass render_pass;
-    VkPipelineLayout pipeline_layout;
-    VkPipeline pipeline;
-} shadow_pipeline;
+static VkRenderPass render_pass;
+static VkPipelineLayout pipeline_layout;
+static VkPipeline pipeline;
 
 static struct {
     mat4s model_view_projection;
@@ -69,7 +67,7 @@ const char* init_shadow_pipeline(void) {
             .dependencyCount = 0
         };
 
-        if (vkCreateRenderPass(device, &info, NULL, &shadow_pipeline.render_pass) != VK_SUCCESS) {
+        if (vkCreateRenderPass(device, &info, NULL, &render_pass) != VK_SUCCESS) {
             return "Failed to create render pass\n";
         }
     }
@@ -105,8 +103,8 @@ const char* init_shadow_pipeline(void) {
         NUM_ELEMS(attributes), attributes,
         sizeof(shadow_pipeline_push_constants),
         VK_SAMPLE_COUNT_1_BIT,
-        shadow_pipeline.render_pass,
-        NULL, NULL, NULL, &shadow_pipeline.pipeline_layout, &shadow_pipeline.pipeline
+        render_pass,
+        NULL, NULL, NULL, &pipeline_layout, &pipeline
     );
     if (msg != NULL) {
         return msg;
@@ -153,7 +151,7 @@ const char* draw_shadow_pipeline(void) {
 
         VkFramebufferCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = shadow_pipeline.render_pass,
+            .renderPass = render_pass,
             .attachmentCount = NUM_ELEMS(attachments),
             .pAttachments = attachments,
             .width = SHADOW_IMAGE_SIZE,
@@ -178,7 +176,7 @@ const char* draw_shadow_pipeline(void) {
         command_buffer,
         framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
         NUM_ELEMS(clear_values), clear_values,
-        shadow_pipeline.render_pass, NULL, shadow_pipeline.pipeline_layout, shadow_pipeline.pipeline,
+        render_pass, NULL, pipeline_layout, pipeline,
         sizeof(shadow_pipeline_push_constants), &shadow_pipeline_push_constants,
         NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
         num_indices, index_buffer
@@ -205,9 +203,9 @@ const char* draw_shadow_pipeline(void) {
 }
 
 void term_shadow_pipeline(void) {
-    vkDestroyPipeline(device, shadow_pipeline.pipeline, NULL);
-    vkDestroyPipelineLayout(device, shadow_pipeline.pipeline_layout, NULL);
-    vkDestroyRenderPass(device, shadow_pipeline.render_pass, NULL);
+    vkDestroyPipeline(device, pipeline, NULL);
+    vkDestroyPipelineLayout(device, pipeline_layout, NULL);
+    vkDestroyRenderPass(device, render_pass, NULL);
 
     vkDestroyImageView(device, shadow_image_view, NULL);
     vmaDestroyImage(allocator, shadow_image, shadow_image_allocation);

@@ -250,7 +250,7 @@ static result_t init_swapchain_framebuffers(void) {
 
         VkFramebufferCreateInfo framebuffer_create_info = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = color_pipeline.render_pass,
+            .renderPass = color_pipeline_render_pass,
             .attachmentCount = NUM_ELEMS(attachments),
             .pAttachments = attachments,
             .width = swap_image_extent.width,
