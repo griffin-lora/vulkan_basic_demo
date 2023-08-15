@@ -1,7 +1,10 @@
 #include "input.h"
-#include "vk/gfx_pipeline.h"
+#include "vk/core.h"
+#include "vk/color_pipeline.h"
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/cam.h>
+#include <cglm/struct/vec2.h>
+#include <cglm/struct/vec3.h>
 #include <cglm/struct/mat3.h>
 #include <cglm/struct/affine.h>
 #include <stdbool.h>
@@ -124,6 +127,6 @@ void handle_input(float delta) {
 
     mat4s view = glms_look(cam_pos, cam_forward, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
     
-    push_constants.model_view_projection = glms_mat4_mul(projection, view);
-    push_constants.view = view;
+    color_pipeline_push_constants.model_view_projection = glms_mat4_mul(projection, view);
+    color_pipeline_push_constants.view = view;
 }

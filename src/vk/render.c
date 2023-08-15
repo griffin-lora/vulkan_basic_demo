@@ -1,6 +1,7 @@
 #include "render.h"
 #include "core.h"
 #include "gfx_pipeline.h"
+#include "color_pipeline.h"
 #include "gfx_core.h"
 #include "asset.h"
 #include "result.h"
@@ -12,7 +13,6 @@ static uint32_t frame_index = 0;
 const char* draw_vulkan_frame(void) {
     VkSemaphore image_available_semaphore = image_available_semaphores[frame_index];
     VkSemaphore render_finished_semaphore = render_finished_semaphores[frame_index];
-    VkCommandBuffer command_buffer = color_command_buffers[frame_index];
     VkFence in_flight_fence = in_flight_fences[frame_index];
 
     vkWaitForFences(device, 1, &in_flight_fence, VK_TRUE, UINT64_MAX);
@@ -30,39 +30,10 @@ const char* draw_vulkan_frame(void) {
 
     vkResetFences(device, 1, &in_flight_fence);
 
-    vkResetCommandBuffer(command_buffer, 0);
-    {
-        VkCommandBufferBeginInfo info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
-        };
-
-        if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
-            return "Failed to begin writing to command buffer\n";
-        }
-    }
-
-    VkClearValue clear_values[] = {
-        { .color = { .float32 = { 0.0f, 0.0f, 0.0f, 1.0f } } },
-        { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
-    };
-
-    VkBuffer pass_vertex_buffers[] = {
-        vertex_buffers[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
-        vertex_buffers[COLOR_PIPELINE_VERTEX_ARRAY_INDEX]
-    };
-
-    draw_scene(
-        command_buffer,
-        swapchain_framebuffers[image_index], swap_image_extent,
-        NUM_ELEMS(clear_values), clear_values,
-        color_pipeline.render_pass, color_pipeline.descriptor_set, color_pipeline.pipeline_layout, color_pipeline.pipeline,
-        sizeof(push_constants), &push_constants,
-        NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
-        num_indices, index_buffer
-    );
-
-    if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
-        return "Failed to end command buffer\n";
+    VkCommandBuffer command_buffer;
+    const char* msg = draw_color_pipeline(frame_index, image_index, &command_buffer);
+    if (msg != NULL) {
+        return msg;
     }
 
     {

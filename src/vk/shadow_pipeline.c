@@ -4,6 +4,8 @@
 #include "asset.h"
 #include "util.h"
 #include "mesh.h"
+#include <vk_mem_alloc.h>
+#include <cglm/struct/mat4.h>
 #include <cglm/struct/cam.h>
 #include <cglm/struct/mat3.h>
 #include <cglm/struct/affine.h>

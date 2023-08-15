@@ -38,14 +38,7 @@ extern bool framebuffer_resized;
 
 extern VkSampleCountFlagBits render_multisample_flags;
 
-extern VkImage color_image;
-extern VmaAllocation color_image_allocation;
-extern VkImageView color_image_view;
-
 extern VkFormat depth_image_format;
-extern VkImage depth_image;
-extern VmaAllocation depth_image_allocation;
-extern VkImageView depth_image_view;
 
 void reinit_swapchain(void);
 

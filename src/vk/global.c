@@ -18,7 +18,6 @@ VmaAllocator allocator;
 VkFence in_flight_fences[NUM_FRAMES_IN_FLIGHT];
 VkSwapchainKHR swapchain;
 VkSemaphore image_available_semaphores[NUM_FRAMES_IN_FLIGHT];
-VkCommandBuffer color_command_buffers[NUM_FRAMES_IN_FLIGHT];
 VkFramebuffer* swapchain_framebuffers;
 // static_assert(sizeof(window) + sizeof(device) + sizeof(in_flight_fence) + sizeof(swapchain) + sizeof(image_available_semaphore) + sizeof(command_buffer) + sizeof(render_pass) + sizeof(swapchain_framebuffers) == 64, "");
 
@@ -54,17 +53,7 @@ VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
 VkImageView texture_image_views[NUM_TEXTURE_IMAGES];
 
 size_t num_indices;
-push_constants_t push_constants;
 
 VkFormat depth_image_format;
-VkImage depth_image;
-VmaAllocation depth_image_allocation;
-VkImageView depth_image_view;
-
-VkImage color_image;
-VmaAllocation color_image_allocation;
-VkImageView color_image_view;
 
 VkSampleCountFlagBits render_multisample_flags;
-
-color_pipeline_t color_pipeline;

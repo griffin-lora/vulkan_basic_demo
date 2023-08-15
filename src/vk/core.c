@@ -4,6 +4,7 @@
 #include "result.h"
 #include "gfx_pipeline.h"
 #include "shadow_pipeline.h"
+#include "color_pipeline.h"
 #include "asset.h"
 #include "gfx_core.h"
 #include <stdbool.h>
@@ -235,26 +236,6 @@ static result_t init_swapchain(void) {
     return result_success;
 }
 
-static result_t init_color_image(void) {
-    if (create_image(swap_image_extent.width, swap_image_extent.height, 1, surface_format.format, render_multisample_flags, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &color_image, &color_image_allocation) != result_success) {
-        return result_failure;
-    }
-    if (create_image_view(color_image, 1, surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &color_image_view) != result_success) {
-        return result_failure;
-    }
-    return result_success;
-}
-
-static result_t init_depth_image(void) {
-    if (create_image(swap_image_extent.width, swap_image_extent.height, 1, depth_image_format, render_multisample_flags, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &depth_image, &depth_image_allocation) != result_success) {
-        return result_failure;
-    }
-    if (create_image_view(depth_image, 1, depth_image_format, depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, &depth_image_view) != result_success) {
-        return result_failure;
-    }
-    return result_success;
-}
-
 static result_t init_swapchain_framebuffers(void) {
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, swapchain_images);
 
@@ -293,16 +274,6 @@ static void term_swapchain(void) {
     vkDestroySwapchainKHR(device, swapchain, NULL);
 }
 
-static void term_color_image(void) {
-    vkDestroyImageView(device, color_image_view, NULL);
-    vmaDestroyImage(allocator, color_image, color_image_allocation);
-}
-
-static void term_depth_image(void) {
-    vkDestroyImageView(device, depth_image_view, NULL);
-    vmaDestroyImage(allocator, depth_image, depth_image_allocation);
-}
-
 void reinit_swapchain(void) {
     // Even the tutorials use bad hacks, im all in
     int width;
@@ -317,12 +288,10 @@ void reinit_swapchain(void) {
 
     vkDeviceWaitIdle(device);
     
-    term_color_image();
-    term_depth_image();
+    term_color_pipeline_swapchain_dependents();
     term_swapchain();
     init_swapchain();
-    init_color_image();
-    init_depth_image();
+    init_color_pipeline_swapchain_dependents();
     init_swapchain_framebuffers();
 }
 
@@ -526,21 +495,6 @@ const char* init_vulkan_core(void) {
     if (vkCreateCommandPool(device, &command_pool_create_info, NULL, &command_pool) != VK_SUCCESS) {
         return "Failed to create command pool\n";
     }
-
-    VkCommandBufferAllocateInfo command_buffer_allocate_info = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = command_pool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = NUM_FRAMES_IN_FLIGHT
-    };
-
-    if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, color_command_buffers) != VK_SUCCESS) {
-        return "Failed to allocate command buffers\n";
-    }
-
-    if (init_color_image() != result_success) {
-        return "Failed to create color image\n";
-    }
     
     {
         VkFormat formats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
@@ -548,10 +502,6 @@ const char* init_vulkan_core(void) {
     }
     if (depth_image_format == VK_FORMAT_MAX_ENUM) {
         return "Failed to get a supported depth image format\n";
-    }
-    
-    if (init_depth_image() != result_success) {
-        return "Failed to create depth image\n";
     }
     
     const char* msg = init_vulkan_assets(&physical_device_properties);
@@ -580,16 +530,8 @@ void term_vulkan_all(void) {
 
     vkDestroyCommandPool(device, command_pool, NULL);
 
-    term_shadow_pipeline();
-
-    vkDestroyPipeline(device, color_pipeline.pipeline, NULL);
-    vkDestroyPipelineLayout(device, color_pipeline.pipeline_layout, NULL);
-    vkDestroyRenderPass(device, color_pipeline.render_pass, NULL);
-    vkDestroyDescriptorPool(device, color_pipeline.descriptor_pool, NULL);
-    vkDestroyDescriptorSetLayout(device, color_pipeline.descriptor_set_layout, NULL);
+    term_vulkan_graphics_pipelines();
     
-    term_color_image();
-    term_depth_image();
     term_swapchain();
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {

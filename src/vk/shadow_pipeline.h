@@ -1,7 +1,5 @@
 #pragma once
 #include "vk.h"
-#include <vk_mem_alloc.h>
-#include <cglm/struct/mat4.h>
 
 extern VkImageView shadow_image_view;
 
