@@ -128,5 +128,5 @@ void handle_input(float delta) {
     mat4s view = glms_look(cam_pos, cam_forward, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
     
     color_pipeline_push_constants.model_view_projection = glms_mat4_mul(projection, view);
-    color_pipeline_push_constants.view = view;
+    color_pipeline_push_constants.camera_position = cam_pos;
 }
