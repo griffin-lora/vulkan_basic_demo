@@ -10,31 +10,31 @@ layout(binding = 1) uniform sampler2D normal_sampler;
 layout(binding = 2) uniform sampler2D shadow_sampler;
 
 layout(location = 0) in vec2 frag_tex_coord;
-layout(location = 1) in vec3 frag_normal;
-layout(location = 2) in vec3 frag_vertex_to_camera_direction;
+
+// All in normal texture space
+layout(location = 1) in vec3 frag_vertex_to_camera_direction;
+layout(location = 2) in vec3 frag_light_direction;
+layout(location = 3) in vec3 frag_position_to_light_direction;
 
 layout(location = 0) out vec4 color;
-
-vec3 light_direction = normalize(vec3(1.0, -3.0, 1.0));
-vec3 position_to_light_direction = -light_direction;
 
 vec3 ambient_base_color = vec3(0.1);
 vec3 diffuse_base_color = vec3(2.0);
 vec3 specular_base_color = vec3(0.3);
-float specular_intensity = 10.0;
+float specular_intensity = 5.0;
 
 void main() {
-	vec3 normal = normalize(frag_normal);
-	float cos_normal_to_position_to_light = clamp(dot(normal, position_to_light_direction), 0.0, 1.0);
-
 	vec3 base_color = texture(color_sampler, frag_tex_coord).rgb;
-
 	vec3 ambient_color = ambient_base_color * base_color;
+
+	// All of this is done with normal texture (aka inverse normal space) space vectors
+	vec3 normal = normalize(2.0 * (texture(normal_sampler, frag_tex_coord).xyz - vec3(0.5)));
+	float cos_normal_to_position_to_light = clamp(dot(normal, frag_position_to_light_direction), 0.0, 1.0);
 	vec3 diffuse_color = vec3(base_color * diffuse_base_color * cos_normal_to_position_to_light);
 
 	vec3 specular_color = vec3(0);
 	if (cos_normal_to_position_to_light >= 0) {
-		vec3 reflection_direction = reflect(light_direction, normal);
+		vec3 reflection_direction = reflect(frag_light_direction, normal);
 		float specular_factor = clamp(dot(reflection_direction, normalize(frag_vertex_to_camera_direction)), 0.0, 1.0);
 		specular_color = specular_base_color * pow(specular_factor, specular_intensity);
 	}
