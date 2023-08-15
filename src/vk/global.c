@@ -57,3 +57,6 @@ size_t num_indices;
 VkFormat depth_image_format;
 
 VkSampleCountFlagBits render_multisample_flags;
+
+VkBuffer shadow_model_view_projection_buffer;
+VmaAllocation shadow_model_view_projection_buffer_allocation;

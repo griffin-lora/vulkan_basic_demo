@@ -91,13 +91,13 @@ result_t create_mapped_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags 
     return result_success;
 }
 
-result_t write_to_staging_buffer(VmaAllocation staging_buffer_allocation, size_t num_bytes, const void* data) {
+result_t write_to_buffer(VmaAllocation buffer_allocation, size_t num_bytes, const void* data) {
     void* mapped_data;
-    if (vmaMapMemory(allocator, staging_buffer_allocation, &mapped_data) != VK_SUCCESS) {
+    if (vmaMapMemory(allocator, buffer_allocation, &mapped_data) != VK_SUCCESS) {
         return result_failure;
     }
     memcpy(mapped_data, data, num_bytes);
-    vmaUnmapMemory(allocator, staging_buffer_allocation);
+    vmaUnmapMemory(allocator, buffer_allocation);
 
     return result_success;
 }
@@ -475,7 +475,7 @@ result_t begin_images(size_t num_images, const char* image_paths[], image_extent
             return result_failure;
         }
 
-        if (write_to_staging_buffer(image_staging_allocations[i], num_image_bytes, pixels) != result_success) {
+        if (write_to_buffer(image_staging_allocations[i], num_image_bytes, pixels) != result_success) {
             return result_failure;
         }
 

@@ -5,18 +5,18 @@
 #include "util.h"
 #include "mesh.h"
 #include <vk_mem_alloc.h>
+#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/mat4.h>
 #include <cglm/struct/cam.h>
 #include <cglm/struct/mat3.h>
 #include <cglm/struct/affine.h>
 
 static VkRenderPass render_pass;
+static VkDescriptorSetLayout descriptor_set_layout;
+static VkDescriptorPool descriptor_pool;
+static VkDescriptorSet descriptor_set;
 static VkPipelineLayout pipeline_layout;
 static VkPipeline pipeline;
-
-static struct {
-    mat4s model_view_projection;
-} shadow_pipeline_push_constants;
 
 #define SHADOW_IMAGE_SIZE 512
 
@@ -83,6 +83,24 @@ const char* init_shadow_pipeline(void) {
             .module = vertex_shader_module
         }
     };
+
+    descriptor_binding_t bindings[] = {
+        {
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
+        }
+    };
+
+    descriptor_info_t infos[] = {
+        {
+            .type = descriptor_info_type_buffer,
+            .buffer = {
+                .buffer = shadow_model_view_projection_buffer,
+                .offset = 0,
+                .range = sizeof(shadow_model_view_projection_buffer)
+            }
+        }
+    };
     
     uint32_t num_pass_vertex_bytes_array[] = {
         num_vertex_bytes_array[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX]
@@ -98,24 +116,19 @@ const char* init_shadow_pipeline(void) {
 
     const char* msg = create_graphics_pipeline(
         NUM_ELEMS(shaders), shaders,
-        0, NULL, NULL,
+        NUM_ELEMS(bindings), bindings, infos,
         NUM_ELEMS(num_pass_vertex_bytes_array), num_pass_vertex_bytes_array,
         NUM_ELEMS(attributes), attributes,
-        sizeof(shadow_pipeline_push_constants),
+        0,
         VK_SAMPLE_COUNT_1_BIT,
         render_pass,
-        NULL, NULL, NULL, &pipeline_layout, &pipeline
+        &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout, &pipeline
     );
     if (msg != NULL) {
         return msg;
     }
 
     vkDestroyShaderModule(device, vertex_shader_module, NULL);
-
-    mat4s projection = glms_perspective((GLM_PI*2.0f) / 5.0f, 1, 0.01f, 300.0f);
-    mat4s view = glms_look((vec3s) {{ 5.5f, 4.0f, -6.0f }}, (vec3s) {{ -0.5f, -0.5f, 0.5f }}, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
-
-    shadow_pipeline_push_constants.model_view_projection = glms_mat4_mul(projection, view);
 
     return NULL;
 }
@@ -176,8 +189,8 @@ const char* draw_shadow_pipeline(void) {
         command_buffer,
         framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
         NUM_ELEMS(clear_values), clear_values,
-        render_pass, NULL, pipeline_layout, pipeline,
-        sizeof(shadow_pipeline_push_constants), &shadow_pipeline_push_constants,
+        render_pass, descriptor_set, pipeline_layout, pipeline,
+        0, 0,
         NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
         num_indices, index_buffer
     );
@@ -206,6 +219,9 @@ void term_shadow_pipeline(void) {
     vkDestroyPipeline(device, pipeline, NULL);
     vkDestroyPipelineLayout(device, pipeline_layout, NULL);
     vkDestroyRenderPass(device, render_pass, NULL);
+    vkDestroyDescriptorPool(device, descriptor_pool, NULL);
+    vkDestroyDescriptorSetLayout(device, descriptor_set_layout, NULL);
+
 
     vkDestroyImageView(device, shadow_image_view, NULL);
     vmaDestroyImage(allocator, shadow_image, shadow_image_allocation);

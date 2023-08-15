@@ -541,13 +541,7 @@ void term_vulkan_all(void) {
         // vmaDestroyBuffer(allocator, clip_space_uniform_buffers[i], clip_space_uniform_buffers_allocation[i]);
     }
 
-    vkDestroySampler(device, world_texture_image_sampler, NULL);
-    destroy_images(NUM_TEXTURE_IMAGES, texture_images, texture_image_allocations, texture_image_views);
-
-    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
-        vmaDestroyBuffer(allocator, vertex_buffers[i], vertex_buffer_allocations[i]);
-    }
-    vmaDestroyBuffer(allocator, index_buffer, index_buffer_allocation);
+    term_vulkan_assets();
 
     vmaDestroyAllocator(allocator);
 

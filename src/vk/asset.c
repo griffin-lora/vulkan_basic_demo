@@ -5,6 +5,12 @@
 #include "gfx_core.h"
 #include <malloc.h>
 #include <string.h>
+#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <cglm/struct/cam.h>
+#include <cglm/struct/vec2.h>
+#include <cglm/struct/vec3.h>
+#include <cglm/struct/mat3.h>
+#include <cglm/struct/affine.h>
 
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties) {
     const char* image_paths[] = {
@@ -50,7 +56,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
             return "Failed to create vertex staging buffer\n";
         }
 
-        if (write_to_staging_buffer(vertex_staging_buffer_allocations[i], num_vertex_array_bytes, vertex_array.data) != result_success) {
+        if (write_to_buffer(vertex_staging_buffer_allocations[i], num_vertex_array_bytes, vertex_array.data) != result_success) {
             return "Failed to write to vertex staging buffer\n";
         }
 
@@ -70,7 +76,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         return "Failed to create index staging buffer\n";
     }
 
-    if (write_to_staging_buffer(index_staging_buffer_allocation, num_indices*sizeof(uint16_t), indices) != result_success) {
+    if (write_to_buffer(index_staging_buffer_allocation, num_indices*sizeof(uint16_t), indices) != result_success) {
         return "Failed to write to index staging buffer\n";
     }
 
@@ -171,11 +177,31 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         }
     }
 
-    // for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-    //     if (create_mapped_buffer(sizeof(clip_space), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &clip_space_uniform_buffers[i], &clip_space_uniform_buffers_allocation[i], &mapped_clip_spaces[i]) != result_success) {
-    //         return "Failed to create uniform buffer\n";
-    //     }
-    // }
+    //
+    mat4s projection = glms_perspective((GLM_PI*2.0f) / 5.0f, 1, 0.01f, 300.0f);
+    mat4s view = glms_look((vec3s) {{ 5.5f, 4.0f, -6.0f }}, (vec3s) {{ -0.5f, -0.5f, 0.5f }}, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
+
+    mat4s shadow_model_view_projection = glms_mat4_mul(projection, view);
+
+    if (create_buffer(sizeof(shadow_model_view_projection), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &shadow_model_view_projection_buffer, &shadow_model_view_projection_buffer_allocation) != result_success) {
+        return "Failed to create shadow view projection buffer\n";
+    }
+
+    if (write_to_buffer(shadow_model_view_projection_buffer_allocation, sizeof(shadow_model_view_projection), &shadow_model_view_projection)) {
+        return "Failed to write to shadow view projection buffer\n";
+    }
 
     return NULL;
+}
+
+void term_vulkan_assets(void) {
+    vmaDestroyBuffer(allocator, shadow_model_view_projection_buffer, shadow_model_view_projection_buffer_allocation);
+
+    vkDestroySampler(device, world_texture_image_sampler, NULL);
+    destroy_images(NUM_TEXTURE_IMAGES, texture_images, texture_image_allocations, texture_image_views);
+
+    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
+        vmaDestroyBuffer(allocator, vertex_buffers[i], vertex_buffer_allocations[i]);
+    }
+    vmaDestroyBuffer(allocator, index_buffer, index_buffer_allocation);
 }
