@@ -14,7 +14,7 @@ extern VmaAllocation index_buffer_allocation;
 extern size_t num_indices;
 
 #define NUM_TEXTURE_IMAGES 2
-extern VkSampler world_texture_image_sampler;
+extern VkSampler texture_image_sampler;
 extern VkImage texture_images[NUM_TEXTURE_IMAGES];
 extern VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
 extern VkImageView texture_image_views[NUM_TEXTURE_IMAGES];

@@ -28,8 +28,8 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     }
 
     size_t num_vertices;
-    vertex_array_t vertex_arrays[NUM_VERTEX_ARRAYS];
     uint16_t* indices;
+    vertex_array_t vertex_arrays[NUM_VERTEX_ARRAYS];
     {
         mesh_t mesh;
         if (load_gltf_mesh("mesh/test.gltf", &mesh) != result_success) {
@@ -44,43 +44,15 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     VkBuffer vertex_staging_buffers[NUM_VERTEX_ARRAYS];
     VmaAllocation vertex_staging_buffer_allocations[NUM_VERTEX_ARRAYS];
-    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
-        vertex_array_t vertex_array = vertex_arrays[i];
-        size_t num_vertex_array_bytes = num_vertices*num_vertex_bytes_array[i];
-
-        if (create_buffer(num_vertex_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffers[i], &vertex_buffer_allocations[i]) != result_success) {
-            return "Failed to create vertex buffer\n";
-        }
-
-        if (create_buffer(num_vertex_array_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffers[i], &vertex_staging_buffer_allocations[i]) != result_success) {
-            return "Failed to create vertex staging buffer\n";
-        }
-
-        if (write_to_buffer(vertex_staging_buffer_allocations[i], num_vertex_array_bytes, vertex_array.data) != result_success) {
-            return "Failed to write to vertex staging buffer\n";
-        }
-
-        free(vertex_array.data);
+    if (begin_vertex_arrays(num_vertices, NUM_VERTEX_ARRAYS, &vertex_arrays[0].data, num_vertex_bytes_array, vertex_staging_buffers, vertex_staging_buffer_allocations, vertex_buffers, vertex_buffer_allocations) != result_success) {
+        return "Failed to begin creating vertex buffers\n";
     }
-
-
-    if (create_buffer(num_indices*sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &index_buffer_allocation) != result_success) {
-        return "Failed to create index buffer\n";
-    }
-
-    //
 
     VkBuffer index_staging_buffer;
     VmaAllocation index_staging_buffer_allocation;
-    if (create_buffer(num_indices*sizeof(uint16_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &index_staging_buffer, &index_staging_buffer_allocation) != result_success) {
-        return "Failed to create index staging buffer\n";
+    if (begin_indices(sizeof(uint16_t), num_indices, indices, &index_staging_buffer, &index_staging_buffer_allocation, &index_buffer, &index_buffer_allocation) != result_success) {
+        return "Failed to begin creating index buffer\n";
     }
-
-    if (write_to_buffer(index_staging_buffer_allocation, num_indices*sizeof(uint16_t), indices) != result_success) {
-        return "Failed to write to index staging buffer\n";
-    }
-
-    free(indices);
 
     VkCommandBuffer command_buffer;
     {
@@ -116,12 +88,8 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     }
 
     transfer_images(command_buffer, NUM_TEXTURE_IMAGES, image_extents, num_mip_levels_array, image_staging_buffers, texture_images);
-
-    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
-        transfer_from_staging_buffer_to_buffer(command_buffer, num_vertices*num_vertex_bytes_array[i], vertex_staging_buffers[i], vertex_buffers[i]);
-    }
-
-    transfer_from_staging_buffer_to_buffer(command_buffer, num_indices*sizeof(uint16_t), index_staging_buffer, index_buffer);
+    transfer_vertex_arrays(command_buffer, num_vertices, NUM_VERTEX_ARRAYS, num_vertex_bytes_array, vertex_staging_buffers, vertex_buffers);
+    transfer_indices(command_buffer, sizeof(uint16_t), num_indices, index_staging_buffer, index_buffer);
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
         return "Failed to write to transfer command buffer\n";
@@ -141,10 +109,8 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 
     end_images(NUM_TEXTURE_IMAGES, image_staging_buffers, image_staging_allocations);
-    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
-        vmaDestroyBuffer(allocator, vertex_staging_buffers[i], vertex_staging_buffer_allocations[i]);
-    }
-    vmaDestroyBuffer(allocator, index_staging_buffer, index_staging_buffer_allocation);
+    end_vertex_arrays(NUM_VERTEX_ARRAYS, vertex_staging_buffers, vertex_staging_buffer_allocations);
+    end_indices(index_staging_buffer, index_staging_buffer_allocation);
 
     //
 
@@ -172,7 +138,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
             .mipLodBias = 0.0f
         };
 
-        if (vkCreateSampler(device, &info, NULL, &world_texture_image_sampler) != VK_SUCCESS) {
+        if (vkCreateSampler(device, &info, NULL, &texture_image_sampler) != VK_SUCCESS) {
             return "Failed to create tetxure image sampler\n";
         }
     }
@@ -197,7 +163,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 void term_vulkan_assets(void) {
     vmaDestroyBuffer(allocator, shadow_model_view_projection_buffer, shadow_model_view_projection_buffer_allocation);
 
-    vkDestroySampler(device, world_texture_image_sampler, NULL);
+    vkDestroySampler(device, texture_image_sampler, NULL);
     destroy_images(NUM_TEXTURE_IMAGES, texture_images, texture_image_allocations, texture_image_views);
 
     for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {

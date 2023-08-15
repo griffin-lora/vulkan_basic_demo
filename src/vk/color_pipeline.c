@@ -194,7 +194,7 @@ const char* init_color_pipeline(void) {
             .image = {
                 .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 .imageView = texture_image_views[0],
-                .sampler = world_texture_image_sampler
+                .sampler = texture_image_sampler
             }
         },
         {
@@ -202,7 +202,7 @@ const char* init_color_pipeline(void) {
             .image = {
                 .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 .imageView = texture_image_views[1],
-                .sampler = world_texture_image_sampler
+                .sampler = texture_image_sampler
             }
         },
         {
@@ -210,7 +210,7 @@ const char* init_color_pipeline(void) {
             .image = {
                 .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 .imageView = shadow_image_view,
-                .sampler = world_texture_image_sampler
+                .sampler = texture_image_sampler
             }
         }
     };

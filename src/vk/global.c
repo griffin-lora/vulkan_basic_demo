@@ -47,7 +47,7 @@ VmaAllocation vertex_buffer_allocations[NUM_VERTEX_ARRAYS];
 VkBuffer index_buffer;
 VmaAllocation index_buffer_allocation;
 
-VkSampler world_texture_image_sampler;
+VkSampler texture_image_sampler;
 VkImage texture_images[NUM_TEXTURE_IMAGES];
 VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
 VkImageView texture_image_views[NUM_TEXTURE_IMAGES];

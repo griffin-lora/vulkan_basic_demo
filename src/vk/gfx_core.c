@@ -614,3 +614,69 @@ void draw_scene(
 
     vkCmdEndRenderPass(command_buffer);
 }
+
+result_t begin_vertex_arrays(
+    size_t num_vertices,
+    size_t num_vertex_arrays, void* const vertex_arrays[], const size_t num_vertex_bytes_array[], VkBuffer vertex_staging_buffers[], VmaAllocation vertex_staging_buffer_allocations[], VkBuffer vertex_buffers[], VmaAllocation vertex_buffer_allocations[]
+) {
+    for (size_t i = 0; i < num_vertex_arrays; i++) {
+        void* vertex_array = vertex_arrays[i];
+        size_t num_vertex_array_bytes = num_vertices*num_vertex_bytes_array[i];
+
+        if (create_buffer(num_vertex_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffers[i], &vertex_buffer_allocations[i]) != result_success) {
+            return result_failure;
+        }
+
+        if (create_buffer(num_vertex_array_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffers[i], &vertex_staging_buffer_allocations[i]) != result_success) {
+            return result_failure;
+        }
+
+        if (write_to_buffer(vertex_staging_buffer_allocations[i], num_vertex_array_bytes, vertex_array) != result_success) {
+            return result_failure;
+        }
+
+        free(vertex_array);
+    }
+
+    return result_success;
+}
+
+void transfer_vertex_arrays(VkCommandBuffer command_buffer, size_t num_vertices, size_t num_vertex_arrays, const size_t num_vertex_bytes_array[], const VkBuffer vertex_staging_buffers[], const VkBuffer vertex_buffers[]) {
+    for (size_t i = 0; i < num_vertex_arrays; i++) {
+        transfer_from_staging_buffer_to_buffer(command_buffer, num_vertices*num_vertex_bytes_array[i], vertex_staging_buffers[i], vertex_buffers[i]);
+    }
+}
+
+void end_vertex_arrays(size_t num_vertex_arrays, const VkBuffer vertex_staging_buffers[], const VmaAllocation vertex_staging_buffer_allocations[]) {
+    for (size_t i = 0; i < num_vertex_arrays; i++) {
+        vmaDestroyBuffer(allocator, vertex_staging_buffers[i], vertex_staging_buffer_allocations[i]);
+    }
+}
+
+result_t begin_indices(size_t num_index_bytes, size_t num_indices, void* indices, VkBuffer* index_staging_buffer, VmaAllocation* index_staging_buffer_allocation, VkBuffer* index_buffer, VmaAllocation* index_buffer_allocation) {
+    size_t num_index_array_bytes = num_indices*num_index_bytes;
+
+    if (create_buffer(num_index_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, index_buffer, index_buffer_allocation) != result_success) {
+        return result_failure;
+    }
+
+    if (create_buffer(num_index_array_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, index_staging_buffer, index_staging_buffer_allocation) != result_success) {
+        return result_failure;
+    }
+
+    if (write_to_buffer(*index_staging_buffer_allocation, num_index_array_bytes, indices) != result_success) {
+        return result_failure;
+    }
+
+    free(indices);
+
+    return result_success;
+}
+
+void transfer_indices(VkCommandBuffer command_buffer, size_t num_index_bytes, size_t num_indices, VkBuffer index_staging_buffer, VkBuffer index_buffer) {
+    transfer_from_staging_buffer_to_buffer(command_buffer, num_indices*num_index_bytes, index_staging_buffer, index_buffer);
+}
+
+void end_indices(VkBuffer index_staging_buffer, VmaAllocation index_staging_buffer_allocation) {
+    vmaDestroyBuffer(allocator, index_staging_buffer, index_staging_buffer_allocation);
+}
