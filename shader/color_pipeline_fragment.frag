@@ -18,10 +18,10 @@ layout(location = 3) in vec3 frag_position_to_light_direction;
 
 layout(location = 0) out vec4 color;
 
-vec3 ambient_base_color = vec3(0.1);
-vec3 diffuse_base_color = vec3(2.0);
-vec3 specular_base_color = vec3(0.3);
-float specular_intensity = 5.0;
+vec3 ambient_base_color = vec3(0.3);
+vec3 diffuse_base_color = vec3(4.0);
+vec3 specular_base_color = vec3(0.4);
+float specular_intensity = 20.0;
 
 void main() {
 	vec3 base_color = texture(color_sampler, frag_tex_coord).rgb;
