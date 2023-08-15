@@ -78,15 +78,6 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         }
     }
 
-    {
-        VkFormatProperties properties;
-        vkGetPhysicalDeviceFormatProperties(physical_device, VK_FORMAT_R8G8B8_SRGB, &properties);
-
-        if (!(properties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
-            return "Texture image format does not support linear blitting\n";
-        }
-    }
-
     transfer_images(command_buffer, NUM_TEXTURE_IMAGES, image_extents, num_mip_levels_array, image_staging_buffers, texture_images);
     transfer_vertex_arrays(command_buffer, num_vertices, NUM_VERTEX_ARRAYS, num_vertex_bytes_array, vertex_staging_buffers, vertex_buffers);
     transfer_indices(command_buffer, sizeof(uint16_t), num_indices, index_staging_buffer, index_buffer);

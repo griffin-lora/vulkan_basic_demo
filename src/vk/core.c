@@ -105,6 +105,12 @@ static result_t get_physical_device(size_t num_physical_devices, const VkPhysica
             continue;
         }
 
+        VkFormatProperties format_properties;
+        vkGetPhysicalDeviceFormatProperties(physical_device, VK_FORMAT_R8G8B8_SRGB, &format_properties);
+        if (!(format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+            continue;
+        }
+
         VkPhysicalDeviceFeatures features;
         vkGetPhysicalDeviceFeatures(physical_device, &features);
 
