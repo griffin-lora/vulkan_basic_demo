@@ -59,7 +59,7 @@ void main() {
 	if (cos_trivial_normal_to_vertex_to_light > 0.0) {
 		vec3 reflection_direction = reflect(light_direction, normal);
 		float specular_factor = clamp(dot(reflection_direction, vertex_to_camera_direction), 0.0, 1.0);
-		specular_color = shadow_scalar * pow(specular_factor, specular_intensity) * specular_base_scalar * light_base_color;
+		specular_color = shadow_scalar * pow(specular_factor, specular_intensity) * cos_trivial_normal_to_vertex_to_light * specular_base_scalar * light_base_color;
 	}
 
     color = vec4(ambient_color + diffuse_color + specular_color, 1.0);
