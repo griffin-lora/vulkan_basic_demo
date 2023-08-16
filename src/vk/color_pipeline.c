@@ -291,7 +291,7 @@ const char* draw_color_pipeline(size_t frame_index, size_t image_index, VkComman
     }
 
     VkClearValue clear_values[] = {
-        { .color = { .float32 = { 0.0f, 0.0f, 0.0f, 1.0f } } },
+        { .color = { .float32 = { 0.62f, 0.78f, 1.0f, 1.0f } } },
         { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
     };
 

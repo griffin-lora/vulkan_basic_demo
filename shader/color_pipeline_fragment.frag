@@ -19,10 +19,10 @@ layout(location = 4) in vec4 frag_shadow_clip_position;
 
 layout(location = 0) out vec4 color;
 
-vec3 light_base_color = vec3(1.0);
+vec3 light_base_color = vec3(0.9, 0.95, 1.0);
 float ambient_base_scalar = 0.2;
-float diffuse_base_scalar = 1.2;
-float specular_base_scalar = 0.3;
+float diffuse_base_scalar = 1.6;
+float specular_base_scalar = 0.5;
 
 float specular_intensity = 5.0;
 
