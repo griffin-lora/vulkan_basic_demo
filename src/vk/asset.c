@@ -14,8 +14,8 @@
 
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties) {
     const char* image_paths[] = {
-        "image/test_color.jpg",
-        "image/test_normal.jpg"
+        "image/color.jpg",
+        "image/normal.png"
     };
 
     image_extent_t image_extents[NUM_TEXTURE_IMAGES];
