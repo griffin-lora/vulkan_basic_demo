@@ -22,7 +22,7 @@ layout(location = 2) out vec3 frag_light_direction;
 layout(location = 3) out vec3 frag_position_to_light_direction;
 layout(location = 4) out vec4 frag_shadow_clip_position;
 
-vec3 light_direction = normalize(vec3(-2.0, -1.0, 0.0));
+vec3 light_direction = normalize(vec3(-1.0, -0.5, 1.0));
 vec3 position_to_light_direction = -light_direction;
 
 void main() {

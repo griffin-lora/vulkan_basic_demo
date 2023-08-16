@@ -30,12 +30,12 @@ float get_shadow_factor() {
 		abs(shadow_norm_device_coord.x) > 1.0 ||
 		abs(shadow_norm_device_coord.y) > 1.0 ||
 		abs(shadow_norm_device_coord.z) > 1.0
-	) { return 1.0; }
+	) { return 0.0; }
 	vec2 shadow_tex_coord = (0.5 * shadow_norm_device_coord.xy) + vec2(0.5);
 	if (shadow_norm_device_coord.z > texture(shadow_sampler, shadow_tex_coord.xy).x) {
-		return 1.0;
+		return 0.0;
 	}
-	return 0.0;
+	return 1.0;
 }
 
 void main() {
@@ -45,7 +45,7 @@ void main() {
 	// All of this is done with normal texture (aka inverse normal space) space vectors
 	vec3 normal = normalize(2.0 * (texture(normal_sampler, frag_tex_coord).xyz - vec3(0.5)));
 	float cos_normal_to_position_to_light = clamp(dot(normal, frag_position_to_light_direction), 0.0, 1.0);
-	vec3 diffuse_color = vec3(base_color * diffuse_base_color * cos_normal_to_position_to_light);
+	vec3 diffuse_color = get_shadow_factor() * cos_normal_to_position_to_light * base_color * diffuse_base_color;
 
 	vec3 specular_color = vec3(0);
 	if (cos_normal_to_position_to_light >= 0) {
@@ -54,7 +54,5 @@ void main() {
 		specular_color = specular_base_color * pow(specular_factor, specular_intensity);
 	}
 
-	vec3 shadow_color = vec3(0.6) * base_color * get_shadow_factor();
-
-    color = vec4(ambient_color + diffuse_color + specular_color - shadow_color, 1.0);
+    color = vec4(ambient_color + diffuse_color + specular_color, 1.0);
 }
