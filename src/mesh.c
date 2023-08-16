@@ -61,16 +61,22 @@ result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
     const vec4s* tangent_data = primitive_data->attributes[2].data->buffer_view->buffer->data + primitive_data->attributes[2].data->buffer_view->offset;
     const vec2s* tex_coord_data = primitive_data->attributes[3].data->buffer_view->buffer->data + primitive_data->attributes[3].data->buffer_view->offset;
 
+    // Have to copy tangent_data into this buffer for who knows what reason, reading tangent_data[i] in the loop below causes a general protection fault, but not here somehow
+    vec4s* garbage = memalign(64, num_vertices*sizeof(vec4s));
+    memcpy(garbage, tangent_data, num_vertices*sizeof(vec4s));
+
     for (size_t i = 0; i < num_vertices; i++) {
         vertex_arrays[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX].general_pipeline_vertices[i] = (general_pipeline_vertex_t) {
             .position = position_data[i]
         };
         vertex_arrays[COLOR_PIPELINE_VERTEX_ARRAY_INDEX].color_pipeline_vertices[i] = (color_pipeline_vertex_t) {
             .normal = normal_data[i],
-            .tangent = tangent_data[i],
+            .tangent = garbage[i],
             .tex_coord = tex_coord_data[i]
         };
     }
+
+    free(garbage);
 
     cgltf_size num_indices = primitive_data->indices->count;
     uint16_t* indices = memalign(64, num_indices*sizeof(uint16_t));

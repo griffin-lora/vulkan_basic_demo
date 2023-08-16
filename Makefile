@@ -9,7 +9,7 @@ OBJECTS := $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
 DEPENDS := $(patsubst %.c,%.d,$(patsubst %.cpp,%.d,$(SOURCES)))
 SHADER_OBJECTS := $(patsubst %.vert,%.spv,$(patsubst %.frag,%.spv,$(SHADER_SOURCES)))
 
-CFLAGS = -O2 -Wall -Isrc -Ilib -g
+CFLAGS = -O2 -Wall -Isrc -Ilib
 
 .PHONY: build run clean
 
