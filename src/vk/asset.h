@@ -20,9 +20,14 @@ extern VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
 extern VkImageView texture_image_views[NUM_TEXTURE_IMAGES];
 
 extern VkSampler shadow_texture_image_sampler;
-extern mat4s shadow_model_view_projection;
-extern VkBuffer shadow_model_view_projection_buffer;
-extern VmaAllocation shadow_model_view_projection_buffer_allocation;
+extern mat4s shadow_view_projection;
+extern VkBuffer shadow_view_projection_buffer;
+extern VmaAllocation shadow_view_projection_buffer_allocation;
+
+#define NUM_MODELS 1
+extern mat4s model_matrices[NUM_MODELS];
+extern VkBuffer model_matrix_buffer;
+extern VmaAllocation model_matrix_buffer_allocation;
 
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties);
 void term_vulkan_assets(void);

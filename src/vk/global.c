@@ -58,6 +58,9 @@ VkFormat depth_image_format;
 
 VkSampleCountFlagBits render_multisample_flags;
 
-VkBuffer shadow_model_view_projection_buffer;
-VmaAllocation shadow_model_view_projection_buffer_allocation;
+VkBuffer shadow_view_projection_buffer;
+VmaAllocation shadow_view_projection_buffer_allocation;
 VkSampler shadow_texture_image_sampler;
+
+VkBuffer model_matrix_buffer;
+VmaAllocation model_matrix_buffer_allocation;

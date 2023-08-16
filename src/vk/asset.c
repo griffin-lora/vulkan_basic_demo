@@ -159,21 +159,33 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         }
     }
 
+    mat4s model_matrices[NUM_MODELS];
+    model_matrices[0] = glms_rotate(glms_mat4_identity(), (GLM_PI * 2.0f) / 4.0f, (vec3s) {{ 0.0f, 1.0f, 0.0f }});
+    // model_matrices[0] = glms_mat4_identity();
+
+    if (create_buffer(sizeof(model_matrices), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &model_matrix_buffer, &model_matrix_buffer_allocation) != result_success) {
+        return "Failed to create model buffer\n";
+    }
+
+    if (write_to_buffer(model_matrix_buffer_allocation, sizeof(model_matrices), model_matrices)) {
+        return "Failed to write to model buffer\n";
+    }
+
     //
-    vec3s light_direction = glms_vec3_normalize((vec3s) {{ -1.0f, -0.5f, 1.0f }});
+    vec3s light_direction = glms_vec3_normalize((vec3s) {{ -0.879390f, -0.223216f, 0.420532f }});
     vec3s light_position = glms_vec3_scale(glms_vec3_negate(light_direction), 10.0f);
 
     mat4s projection = glms_ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.01f, 300.0f);
 
     mat4s view = glms_look(light_position, light_direction, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
 
-    mat4s shadow_model_view_projection = glms_mat4_mul(projection, view);
+    mat4s shadow_view_projection = glms_mat4_mul(projection, view);
 
-    if (create_buffer(sizeof(shadow_model_view_projection), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &shadow_model_view_projection_buffer, &shadow_model_view_projection_buffer_allocation) != result_success) {
+    if (create_buffer(sizeof(shadow_view_projection), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &shadow_view_projection_buffer, &shadow_view_projection_buffer_allocation) != result_success) {
         return "Failed to create shadow view projection buffer\n";
     }
 
-    if (write_to_buffer(shadow_model_view_projection_buffer_allocation, sizeof(shadow_model_view_projection), &shadow_model_view_projection)) {
+    if (write_to_buffer(shadow_view_projection_buffer_allocation, sizeof(shadow_view_projection), &shadow_view_projection)) {
         return "Failed to write to shadow view projection buffer\n";
     }
 
@@ -181,7 +193,8 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 }
 
 void term_vulkan_assets(void) {
-    vmaDestroyBuffer(allocator, shadow_model_view_projection_buffer, shadow_model_view_projection_buffer_allocation);
+    vmaDestroyBuffer(allocator, model_matrix_buffer, model_matrix_buffer_allocation);
+    vmaDestroyBuffer(allocator, shadow_view_projection_buffer, shadow_view_projection_buffer_allocation);
 
     vkDestroySampler(device, texture_image_sampler, NULL);
     vkDestroySampler(device, shadow_texture_image_sampler, NULL);

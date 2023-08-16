@@ -179,6 +179,10 @@ const char* init_color_pipeline(void) {
             .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
         },
         {
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
+        },
+        {
             .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
         },
@@ -196,9 +200,17 @@ const char* init_color_pipeline(void) {
         {
             .type = descriptor_info_type_buffer,
             .buffer = {
-                .buffer = shadow_model_view_projection_buffer,
+                .buffer = model_matrix_buffer,
                 .offset = 0,
-                .range = sizeof(shadow_model_view_projection)
+                .range = sizeof(model_matrices)
+            }
+        },
+        {
+            .type = descriptor_info_type_buffer,
+            .buffer = {
+                .buffer = shadow_view_projection_buffer,
+                .offset = 0,
+                .range = sizeof(shadow_view_projection)
             }
         },
         {

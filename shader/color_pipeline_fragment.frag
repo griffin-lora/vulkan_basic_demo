@@ -5,9 +5,9 @@ layout(push_constant, std430) uniform push_constants_t {
     vec3 camera_position;
 };
 
-layout(binding = 1) uniform sampler2D color_sampler;
-layout(binding = 2) uniform sampler2D normal_sampler;
-layout(binding = 3) uniform sampler2DShadow shadow_sampler;
+layout(binding = 2) uniform sampler2D color_sampler;
+layout(binding = 3) uniform sampler2D normal_sampler;
+layout(binding = 4) uniform sampler2DShadow shadow_sampler;
 
 layout(location = 0) in vec2 frag_tex_coord;
 
@@ -27,6 +27,7 @@ float specular_base_scalar = 0.5;
 float specular_intensity = 5.0;
 
 float get_shadow_scalar() {
+	return 1.0f;
 	if (
 		abs(frag_shadow_norm_device_coord.x) > 1.0 ||
 		abs(frag_shadow_norm_device_coord.y) > 1.0 ||

@@ -15,10 +15,10 @@
 #define MOVE_SPEED 0.3f
 #define ROT_SPEED 2.0f
 
-static vec3s cam_pos = {{ 1.0f, 0.5f, -1.0f }};
+static vec3s cam_pos = {{ 37.433365f, 7.104989f, -26.219810f }};
 static vec3s cam_vel = {{ 0.0f, 0.0f, 0.0f }};
 
-static vec2s cam_rot = {{ -4.0f, -0.5f }};
+static vec2s cam_rot = {{ -3.587656f, -0.225112f }};
 static vec2s cam_rot_vel = {{ 0.0f, 0.0f }};
 
 static bool in_rotation_mode = false;
@@ -127,6 +127,8 @@ void handle_input(float delta) {
 
     mat4s view = glms_look(cam_pos, cam_forward, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
     
-    color_pipeline_push_constants.model_view_projection = glms_mat4_mul(projection, view);
+    color_pipeline_push_constants.view_projection = glms_mat4_mul(projection, view);
     color_pipeline_push_constants.camera_position = cam_pos;
+
+    // printf("%ff, %ff, %ff, %ff, %ff, %ff, %ff, %ff\n", cam_pos.x, cam_pos.y, cam_pos.z, cam_forward.x, cam_forward.y, cam_forward.z, cam_rot.x, cam_rot.y);
 }

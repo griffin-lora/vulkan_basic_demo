@@ -95,9 +95,9 @@ const char* init_shadow_pipeline(void) {
         {
             .type = descriptor_info_type_buffer,
             .buffer = {
-                .buffer = shadow_model_view_projection_buffer,
+                .buffer = shadow_view_projection_buffer,
                 .offset = 0,
-                .range = sizeof(shadow_model_view_projection_buffer)
+                .range = sizeof(shadow_view_projection_buffer)
             }
         }
     };

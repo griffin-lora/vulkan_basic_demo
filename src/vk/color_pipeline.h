@@ -16,7 +16,7 @@ extern VkImageView color_image_view;
 extern VkImageView depth_image_view;
 
 typedef struct {
-    mat4s model_view_projection;
+    mat4s view_projection;
     vec3s camera_position;
 } color_pipeline_push_constants_t;
 extern color_pipeline_push_constants_t color_pipeline_push_constants;
