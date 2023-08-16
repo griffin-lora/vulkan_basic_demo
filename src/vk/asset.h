@@ -19,6 +19,7 @@ extern VkImage texture_images[NUM_TEXTURE_IMAGES];
 extern VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
 extern VkImageView texture_image_views[NUM_TEXTURE_IMAGES];
 
+extern VkSampler shadow_texture_image_sampler;
 extern mat4s shadow_model_view_projection;
 extern VkBuffer shadow_model_view_projection_buffer;
 extern VmaAllocation shadow_model_view_projection_buffer_allocation;

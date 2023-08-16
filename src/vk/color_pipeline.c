@@ -222,7 +222,7 @@ const char* init_color_pipeline(void) {
             .image = {
                 .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 .imageView = shadow_image_view,
-                .sampler = texture_image_sampler
+                .sampler = shadow_texture_image_sampler
             }
         }
     };

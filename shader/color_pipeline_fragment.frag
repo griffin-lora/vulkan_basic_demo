@@ -7,7 +7,7 @@ layout(push_constant, std430) uniform push_constants_t {
 
 layout(binding = 1) uniform sampler2D color_sampler;
 layout(binding = 2) uniform sampler2D normal_sampler;
-layout(binding = 3) uniform sampler2D shadow_sampler;
+layout(binding = 3) uniform sampler2DShadow shadow_sampler;
 
 layout(location = 0) in vec2 frag_tex_coord;
 
@@ -15,7 +15,7 @@ layout(location = 0) in vec2 frag_tex_coord;
 layout(location = 1) in vec3 frag_vertex_to_camera_direction;
 layout(location = 2) in vec3 frag_light_direction;
 layout(location = 3) in vec3 frag_vertex_to_light_direction;
-layout(location = 4) in vec4 frag_shadow_clip_position;
+layout(location = 4) in vec3 frag_shadow_norm_device_coord;
 
 layout(location = 0) out vec4 color;
 
@@ -27,17 +27,13 @@ float specular_base_scalar = 0.5;
 float specular_intensity = 5.0;
 
 float get_shadow_scalar() {
-	vec3 shadow_norm_device_coord = frag_shadow_clip_position.xyz / frag_shadow_clip_position.w;
 	if (
-		abs(shadow_norm_device_coord.x) > 1.0 ||
-		abs(shadow_norm_device_coord.y) > 1.0 ||
-		abs(shadow_norm_device_coord.z) > 1.0
+		abs(frag_shadow_norm_device_coord.x) > 1.0 ||
+		abs(frag_shadow_norm_device_coord.y) > 1.0 ||
+		abs(frag_shadow_norm_device_coord.z) > 1.0
 	) { return 0.0; }
-	vec2 shadow_tex_coord = (0.5 * shadow_norm_device_coord.xy) + vec2(0.5);
-	if (shadow_norm_device_coord.z > texture(shadow_sampler, shadow_tex_coord.xy).x) {
-		return 0.0;
-	}
-	return 1.0;
+	vec2 shadow_tex_coord = (0.5 * frag_shadow_norm_device_coord.xy) + vec2(0.5);
+	return texture(shadow_sampler, vec3(shadow_tex_coord.xy, frag_shadow_norm_device_coord.z));
 }
 
 void main() {

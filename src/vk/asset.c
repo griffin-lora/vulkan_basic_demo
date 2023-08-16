@@ -134,6 +134,31 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         }
     }
 
+    {
+        VkSamplerCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .minFilter = VK_FILTER_LINEAR, // undersample
+            .magFilter = VK_FILTER_LINEAR, // oversample
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .anisotropyEnable = VK_TRUE,
+            .maxAnisotropy = physical_device_properties->limits.maxSamplerAnisotropy,
+            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+            .unnormalizedCoordinates = VK_FALSE, // interesting
+            .compareEnable = VK_TRUE,
+            .compareOp = VK_COMPARE_OP_LESS,
+            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .minLod = 0.0f,
+            .maxLod = num_mip_levels_array[0],
+            .mipLodBias = 0.0f
+        };
+
+        if (vkCreateSampler(device, &info, NULL, &shadow_texture_image_sampler) != VK_SUCCESS) {
+            return "Failed to create tetxure image sampler\n";
+        }
+    }
+
     //
     vec3s light_direction = glms_vec3_normalize((vec3s) {{ -1.0f, -0.5f, 1.0f }});
     vec3s light_position = glms_vec3_scale(glms_vec3_negate(light_direction), 10.0f);
@@ -159,6 +184,7 @@ void term_vulkan_assets(void) {
     vmaDestroyBuffer(allocator, shadow_model_view_projection_buffer, shadow_model_view_projection_buffer_allocation);
 
     vkDestroySampler(device, texture_image_sampler, NULL);
+    vkDestroySampler(device, shadow_texture_image_sampler, NULL);
     destroy_images(NUM_TEXTURE_IMAGES, texture_images, texture_image_allocations, texture_image_views);
 
     for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {

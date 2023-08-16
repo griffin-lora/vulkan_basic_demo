@@ -20,7 +20,7 @@ layout(location = 0) out vec2 frag_tex_coord;
 layout(location = 1) out vec3 frag_vertex_to_camera_direction;
 layout(location = 2) out vec3 frag_light_direction;
 layout(location = 3) out vec3 frag_vertex_to_light_direction;
-layout(location = 4) out vec4 frag_shadow_clip_position;
+layout(location = 4) out vec3 frag_shadow_norm_device_coord;
 
 vec3 light_direction = normalize(vec3(-1.0, -0.5, 1.0));
 vec3 vertex_to_light_direction = -light_direction;
@@ -39,5 +39,6 @@ void main() {
 	frag_vertex_to_camera_direction = normal_texture_matrix * normalize(camera_position - position) /* model is identity so we can use position as it is the world position as well */;
 	frag_light_direction = normal_texture_matrix * light_direction;
 	frag_vertex_to_light_direction = normal_texture_matrix * vertex_to_light_direction;
-	frag_shadow_clip_position =shadow_model_view_projection * vec4(position, 1.0);
+	vec4 shadow_clip_position = shadow_model_view_projection * vec4(position, 1.0);
+	frag_shadow_norm_device_coord = shadow_clip_position.xyz / shadow_clip_position.w;
 }
