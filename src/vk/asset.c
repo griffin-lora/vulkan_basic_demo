@@ -173,7 +173,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     //
     vec3s light_direction = glms_vec3_normalize((vec3s) {{ -0.879390f, -0.223216f, 0.420532f }});
-    vec3s light_position = glms_vec3_scale(glms_vec3_negate(light_direction), 10.0f);
+    vec3s light_position = glms_vec3_scale(glms_vec3_negate(light_direction), 30.0f);
 
     mat4s projection = glms_ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.01f, 300.0f);
 

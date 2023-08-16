@@ -200,17 +200,17 @@ const char* init_color_pipeline(void) {
         {
             .type = descriptor_info_type_buffer,
             .buffer = {
-                .buffer = model_matrix_buffer,
+                .buffer = shadow_view_projection_buffer,
                 .offset = 0,
-                .range = sizeof(model_matrices)
+                .range = sizeof(shadow_view_projection)
             }
         },
         {
             .type = descriptor_info_type_buffer,
             .buffer = {
-                .buffer = shadow_view_projection_buffer,
+                .buffer = model_matrix_buffer,
                 .offset = 0,
-                .range = sizeof(shadow_view_projection)
+                .range = sizeof(model_matrices)
             }
         },
         {

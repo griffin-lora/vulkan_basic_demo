@@ -27,7 +27,6 @@ float specular_base_scalar = 0.5;
 float specular_intensity = 5.0;
 
 float get_shadow_scalar() {
-	return 1.0f;
 	if (
 		abs(frag_shadow_norm_device_coord.x) > 1.0 ||
 		abs(frag_shadow_norm_device_coord.y) > 1.0 ||

@@ -5,12 +5,12 @@ layout(push_constant, std430) uniform push_constants_t {
     vec3 camera_position;
 };
 
-layout(binding = 0) uniform model_uniform_constants_t {
-    mat4 model;
+layout(binding = 0) uniform shadow_uniform_constants_t {
+    mat4 shadow_view_projection;
 };
 
-layout(binding = 1) uniform shadow_uniform_constants_t {
-    mat4 shadow_model_view_projection;
+layout(binding = 1) uniform model_uniform_constants_t {
+    mat4 model;
 };
 
 layout(location = 0) in vec3 position;
@@ -42,9 +42,9 @@ void main() {
 	vec3 world_position = (model * vec4(position, 1.0)).xyz;
 
 	frag_tex_coord = tex_coord;
-	frag_vertex_to_camera_direction = normal_texture_matrix * normalize(camera_position - world_position) /* model is identity so we can use position as it is the world position as well */;
+	frag_vertex_to_camera_direction = normal_texture_matrix * normalize(camera_position - world_position);
 	frag_light_direction = normal_texture_matrix * light_direction;
 	frag_vertex_to_light_direction = normal_texture_matrix * vertex_to_light_direction;
-	vec4 shadow_clip_position = shadow_model_view_projection * vec4(position, 1.0);
+	vec4 shadow_clip_position = shadow_view_projection * model * vec4(position, 1.0);
 	frag_shadow_norm_device_coord = shadow_clip_position.xyz / shadow_clip_position.w;
 }

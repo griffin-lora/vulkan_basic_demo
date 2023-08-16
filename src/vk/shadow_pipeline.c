@@ -88,6 +88,10 @@ const char* init_shadow_pipeline(void) {
         {
             .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
+        },
+        {
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
         }
     };
 
@@ -97,7 +101,15 @@ const char* init_shadow_pipeline(void) {
             .buffer = {
                 .buffer = shadow_view_projection_buffer,
                 .offset = 0,
-                .range = sizeof(shadow_view_projection_buffer)
+                .range = sizeof(shadow_view_projection)
+            }
+        },
+        {
+            .type = descriptor_info_type_buffer,
+            .buffer = {
+                .buffer = model_matrix_buffer,
+                .offset = 0,
+                .range = sizeof(model_matrices)
             }
         }
     };
