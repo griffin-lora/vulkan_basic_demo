@@ -19,11 +19,11 @@ layout(location = 0) out vec2 frag_tex_coord;
 // All in normal texture space
 layout(location = 1) out vec3 frag_vertex_to_camera_direction;
 layout(location = 2) out vec3 frag_light_direction;
-layout(location = 3) out vec3 frag_position_to_light_direction;
+layout(location = 3) out vec3 frag_vertex_to_light_direction;
 layout(location = 4) out vec4 frag_shadow_clip_position;
 
 vec3 light_direction = normalize(vec3(-1.0, -0.5, 1.0));
-vec3 position_to_light_direction = -light_direction;
+vec3 vertex_to_light_direction = -light_direction;
 
 void main() {
 	gl_Position = model_view_projection * vec4(position, 1.0);
@@ -38,6 +38,6 @@ void main() {
 	frag_tex_coord = tex_coord;
 	frag_vertex_to_camera_direction = normal_texture_matrix * normalize(camera_position - position) /* model is identity so we can use position as it is the world position as well */;
 	frag_light_direction = normal_texture_matrix * light_direction;
-	frag_position_to_light_direction = normal_texture_matrix * position_to_light_direction;
+	frag_vertex_to_light_direction = normal_texture_matrix * vertex_to_light_direction;
 	frag_shadow_clip_position =shadow_model_view_projection * vec4(position, 1.0);
 }
