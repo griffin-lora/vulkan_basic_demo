@@ -209,7 +209,7 @@ const char* create_graphics_pipeline(
     size_t num_vertex_bindings, const uint32_t num_vertex_bytes_array[],
     size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
     size_t num_push_constants_bytes,
-    VkSampleCountFlagBits multisample_flags,
+    VkSampleCountFlagBits multisample_flags, depth_bias_t depth_bias,
     VkRenderPass render_pass,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
 ) {
@@ -375,7 +375,9 @@ const char* create_graphics_pipeline(
         .lineWidth = 1.0f,
         .cullMode = VK_CULL_MODE_BACK_BIT,
         .frontFace = VK_FRONT_FACE_CLOCKWISE,
-        .depthBiasEnable = VK_FALSE
+        .depthBiasEnable = depth_bias.enable,
+        .depthBiasConstantFactor = depth_bias.constant_factor,
+        .depthBiasSlopeFactor = depth_bias.slope_factor
     };
 
     VkPipelineMultisampleStateCreateInfo multisample_pipeline_state_create_info = {

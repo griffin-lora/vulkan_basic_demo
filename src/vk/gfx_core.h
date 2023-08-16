@@ -2,6 +2,7 @@
 #include "vk.h"
 #include "result.h"
 #include <vk_mem_alloc.h>
+#include <stdbool.h>
 
 // Graphics pipeline exclusive functions
 result_t create_shader_module(const char* path, VkShaderModule* shader_module);
@@ -64,13 +65,19 @@ typedef struct {
     VkShaderModule module;
 } shader_t;
 
+typedef struct {
+    bool enable;
+    float constant_factor;
+    float slope_factor;
+} depth_bias_t;
+
 const char* create_graphics_pipeline(
     size_t num_shaders, const shader_t shaders[],
     size_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
     size_t num_vertex_bindings, const uint32_t num_vertex_bytes_array[],
     size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
     size_t num_push_constants_bytes,
-    VkSampleCountFlagBits multisample_flags,
+    VkSampleCountFlagBits multisample_flags, depth_bias_t depth_bias,
     VkRenderPass render_pass,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
 );

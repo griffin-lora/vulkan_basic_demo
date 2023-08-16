@@ -135,8 +135,12 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     }
 
     //
-    mat4s projection = glms_perspective((GLM_PI*2.0f) / 5.0f, 1, 0.01f, 300.0f);
-    mat4s view = glms_look((vec3s) {{ 5.5f, 4.0f, -6.0f }}, (vec3s) {{ -0.5f, -0.5f, 0.5f }}, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
+    vec3s light_direction = glms_vec3_normalize((vec3s) {{ -1.0f, -0.5f, 1.0f }});
+    vec3s light_position = glms_vec3_scale(glms_vec3_negate(light_direction), 10.0f);
+
+    mat4s projection = glms_ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.01f, 300.0f);
+
+    mat4s view = glms_look(light_position, light_direction, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
 
     mat4s shadow_model_view_projection = glms_mat4_mul(projection, view);
 

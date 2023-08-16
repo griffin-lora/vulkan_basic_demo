@@ -18,7 +18,7 @@ static VkDescriptorSet descriptor_set;
 static VkPipelineLayout pipeline_layout;
 static VkPipeline pipeline;
 
-#define SHADOW_IMAGE_SIZE 512
+#define SHADOW_IMAGE_SIZE 1024
 
 static VkImage shadow_image;
 static VmaAllocation shadow_image_allocation;
@@ -120,7 +120,7 @@ const char* init_shadow_pipeline(void) {
         NUM_ELEMS(num_pass_vertex_bytes_array), num_pass_vertex_bytes_array,
         NUM_ELEMS(attributes), attributes,
         0,
-        VK_SAMPLE_COUNT_1_BIT,
+        VK_SAMPLE_COUNT_1_BIT, (depth_bias_t) { .enable = true, .constant_factor = 4.0f, .slope_factor = 1.5f },
         render_pass,
         &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout, &pipeline
     );

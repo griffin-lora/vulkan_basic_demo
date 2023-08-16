@@ -175,6 +175,10 @@ const char* init_color_pipeline(void) {
 
     descriptor_binding_t bindings[] = {
         {
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
+        },
+        {
             .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
         },
@@ -189,6 +193,14 @@ const char* init_color_pipeline(void) {
     };
 
     descriptor_info_t infos[] = {
+        {
+            .type = descriptor_info_type_buffer,
+            .buffer = {
+                .buffer = shadow_model_view_projection_buffer,
+                .offset = 0,
+                .range = sizeof(shadow_model_view_projection)
+            }
+        },
         {
             .type = descriptor_info_type_image,
             .image = {
@@ -249,7 +261,7 @@ const char* init_color_pipeline(void) {
         NUM_ELEMS(num_pass_vertex_bytes_array), num_pass_vertex_bytes_array,
         NUM_ELEMS(attributes), attributes,
         sizeof(color_pipeline_push_constants),
-        render_multisample_flags,
+        render_multisample_flags, (depth_bias_t) { .enable = false },
         color_pipeline_render_pass,
         &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout, &pipeline
     );
