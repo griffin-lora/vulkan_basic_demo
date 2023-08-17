@@ -47,18 +47,15 @@ void main() {
 	vec3 light_direction = normalize(frag_light_direction);
 	vec3 vertex_to_light_direction = normalize(frag_vertex_to_light_direction);
 
-	// A bit of a hack but using the trivial normal for specular highlight test so that the normals from the texture don't cause specular highlights in the shadow
-	float cos_trivial_normal_to_vertex_to_light = clamp(dot(vec3(0.0, 0.0, 1.0), vertex_to_light_direction), 0.0, 1.0);
-
 	vec3 normal = normalize(2.0 * (texture(normal_sampler, frag_tex_coord).xyz - vec3(0.5)));
 	float cos_normal_to_vertex_to_light = clamp(dot(normal, vertex_to_light_direction), 0.0, 1.0);
 	vec3 diffuse_color = shadow_scalar * cos_normal_to_vertex_to_light * diffuse_base_scalar * light_base_color * base_color;
 
 	vec3 specular_color = vec3(0.0);
-	if (cos_trivial_normal_to_vertex_to_light > 0.0) {
+	if (cos_normal_to_vertex_to_light > 0.0) {
 		vec3 reflection_direction = reflect(light_direction, normal);
 		float specular_factor = clamp(dot(reflection_direction, vertex_to_camera_direction), 0.0, 1.0);
-		specular_color = shadow_scalar * pow(specular_factor, specular_intensity) * cos_trivial_normal_to_vertex_to_light * specular_base_scalar * light_base_color;
+		specular_color = shadow_scalar * pow(specular_factor, specular_intensity) * cos_normal_to_vertex_to_light * specular_base_scalar * light_base_color;
 	}
 
     color = vec4(ambient_color + diffuse_color + specular_color, 1.0);
