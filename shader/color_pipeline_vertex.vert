@@ -26,7 +26,7 @@ layout(location = 2) out vec3 frag_light_direction;
 layout(location = 3) out vec3 frag_vertex_to_light_direction;
 layout(location = 4) out vec3 frag_shadow_norm_device_coord;
 
-vec3 light_direction = normalize(vec3(-0.879390, -0.223216, 0.420532));
+vec3 light_direction = normalize(vec3(-0.8, -0.6, 0.4));
 vec3 vertex_to_light_direction = -light_direction;
 
 void main() {

@@ -18,7 +18,7 @@ static VkDescriptorSet descriptor_set;
 static VkPipelineLayout pipeline_layout;
 static VkPipeline pipeline;
 
-#define SHADOW_IMAGE_SIZE 1024
+#define SHADOW_IMAGE_SIZE 4096
 
 static VkImage shadow_image;
 static VmaAllocation shadow_image_allocation;
