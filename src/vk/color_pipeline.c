@@ -179,10 +179,6 @@ const char* init_color_pipeline(void) {
             .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
         },
         {
-            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
-        },
-        {
             .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
         },
@@ -203,14 +199,6 @@ const char* init_color_pipeline(void) {
                 .buffer = shadow_view_projection_buffer,
                 .offset = 0,
                 .range = sizeof(shadow_view_projection)
-            }
-        },
-        {
-            .type = descriptor_info_type_buffer,
-            .buffer = {
-                .buffer = model_matrix_buffer,
-                .offset = 0,
-                .range = sizeof(model_matrices)
             }
         },
         {
@@ -239,9 +227,15 @@ const char* init_color_pipeline(void) {
         }
     };
     
-    uint32_t num_pass_vertex_bytes_array[] = {
-        num_vertex_bytes_array[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
-        num_vertex_bytes_array[COLOR_PIPELINE_VERTEX_ARRAY_INDEX],
+    vertex_binding_t vertex_bindings[] = {
+        {
+            .num_bytes = num_vertex_bytes_array[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
+            .input_rate = VK_VERTEX_INPUT_RATE_VERTEX
+        },
+        {
+            .num_bytes = num_vertex_bytes_array[COLOR_PIPELINE_VERTEX_ARRAY_INDEX],
+            .input_rate = VK_VERTEX_INPUT_RATE_VERTEX
+        }
     };
 
     vertex_attribute_t attributes[] = {
@@ -270,7 +264,7 @@ const char* init_color_pipeline(void) {
     const char* msg = create_graphics_pipeline(
         NUM_ELEMS(shaders), shaders,
         NUM_ELEMS(bindings), bindings, infos,
-        NUM_ELEMS(num_pass_vertex_bytes_array), num_pass_vertex_bytes_array,
+        NUM_ELEMS(vertex_bindings), vertex_bindings,
         NUM_ELEMS(attributes), attributes,
         sizeof(color_pipeline_push_constants),
         render_multisample_flags, (depth_bias_t) { .enable = false },
@@ -320,7 +314,7 @@ const char* draw_color_pipeline(size_t frame_index, size_t image_index, VkComman
         sizeof(color_pipeline_push_constants), &color_pipeline_push_constants,
         NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
         num_indices, index_buffer,
-        NUM_MODELS
+        NUM_INSTANCES
     );
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {

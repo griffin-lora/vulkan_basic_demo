@@ -62,5 +62,5 @@ VkBuffer shadow_view_projection_buffer;
 VmaAllocation shadow_view_projection_buffer_allocation;
 VkSampler shadow_texture_image_sampler;
 
-VkBuffer model_matrix_buffer;
-VmaAllocation model_matrix_buffer_allocation;
+VkBuffer instance_buffer;
+VmaAllocation instance_buffer_allocation;

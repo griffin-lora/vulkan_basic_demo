@@ -206,7 +206,7 @@ result_t create_image_view(VkImage image, uint32_t num_mip_levels, VkFormat form
 const char* create_graphics_pipeline(
     size_t num_shaders, const shader_t shaders[],
     size_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
-    size_t num_vertex_bindings, const uint32_t num_vertex_bytes_array[],
+    size_t num_vertex_bindings, const vertex_binding_t vertex_bindings[],
     size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
     size_t num_push_constants_bytes,
     VkSampleCountFlagBits multisample_flags, depth_bias_t depth_bias,
@@ -306,10 +306,12 @@ const char* create_graphics_pipeline(
     VkVertexInputBindingDescription* vertex_input_binding_descriptions = ds_push(num_vertex_bindings*sizeof(VkVertexInputBindingDescription));
 
     for (size_t i = 0; i < num_vertex_bindings; i++) {
+        vertex_binding_t binding = vertex_bindings[i];
+
         vertex_input_binding_descriptions[i] = (VkVertexInputBindingDescription) {
             .binding = i,
-            .stride = num_vertex_bytes_array[i],
-            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+            .stride = binding.num_bytes,
+            .inputRate = binding.input_rate
         };
     }
 
@@ -682,4 +684,30 @@ void transfer_indices(VkCommandBuffer command_buffer, size_t num_index_bytes, si
 
 void end_indices(VkBuffer index_staging_buffer, VmaAllocation index_staging_buffer_allocation) {
     vmaDestroyBuffer(allocator, index_staging_buffer, index_staging_buffer_allocation);
+}
+
+result_t begin_instances(size_t num_instance_bytes, size_t num_instances, const void* instances, VkBuffer* instance_staging_buffer, VmaAllocation* instance_staging_buffer_allocation, VkBuffer* instance_buffer, VmaAllocation* instance_buffer_allocation) {
+    size_t num_instance_array_bytes = num_instance_bytes*num_instances;
+
+    if (create_buffer(num_instance_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, instance_buffer, instance_buffer_allocation) != result_success) {
+        return result_failure;
+    }
+
+    if (create_buffer(num_instance_array_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, instance_staging_buffer, instance_staging_buffer_allocation) != result_success) {
+        return result_failure;
+    }
+
+    if (write_to_buffer(*instance_staging_buffer_allocation, num_instance_array_bytes, instances) != result_success) {
+        return result_failure;
+    }
+
+    return result_success;
+}
+
+void transfer_instances(VkCommandBuffer command_buffer, size_t num_instance_bytes, size_t num_instances, VkBuffer instance_staging_buffer, VkBuffer instance_buffer) {
+    transfer_from_staging_buffer_to_buffer(command_buffer, num_instances*num_instance_bytes, instance_staging_buffer, instance_buffer);
+}
+
+void end_instances(VkBuffer instance_staging_buffer, VmaAllocation instance_staging_buffer_allocation) {
+    vmaDestroyBuffer(allocator, instance_staging_buffer, instance_staging_buffer_allocation);
 }

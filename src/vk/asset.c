@@ -59,6 +59,20 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         return "Failed to begin creating index buffer\n";
     }
 
+    mat4s model_matrices[NUM_INSTANCES];
+    size_t i = 0;
+    for (size_t x = 0; x < 4; x++) {
+        for (size_t y = 0; y < 4; y++, i++) {
+            model_matrices[i] = glms_translate(glms_mat4_identity(), (vec3s) {{ x * 4.0f, i, y * 4.0f }});
+        }
+    }
+
+    VkBuffer instance_staging_buffer;
+    VmaAllocation instance_staging_buffer_allocation;
+    if (begin_instances(sizeof(mat4s), NUM_INSTANCES, model_matrices, &instance_staging_buffer, &instance_staging_buffer_allocation, &instance_buffer, &instance_buffer_allocation) != result_success) {
+        return "Failed to begin creating instance buffer\n";
+    }
+
     VkCommandBuffer command_buffer;
     {
         VkCommandBufferAllocateInfo info = {
@@ -86,6 +100,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     transfer_images(command_buffer, NUM_TEXTURE_IMAGES, image_extents, num_mip_levels_array, image_staging_buffers, texture_images);
     transfer_vertex_arrays(command_buffer, num_vertices, NUM_VERTEX_ARRAYS, num_vertex_bytes_array, vertex_staging_buffers, vertex_buffers);
     transfer_indices(command_buffer, sizeof(uint16_t), num_indices, index_staging_buffer, index_buffer);
+    transfer_instances(command_buffer, sizeof(mat4s), NUM_INSTANCES, instance_staging_buffer, instance_buffer);
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
         return "Failed to write to transfer command buffer\n";
@@ -107,6 +122,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     end_images(NUM_TEXTURE_IMAGES, image_staging_buffers, image_staging_allocations);
     end_vertex_arrays(NUM_VERTEX_ARRAYS, vertex_staging_buffers, vertex_staging_buffer_allocations);
     end_indices(index_staging_buffer, index_staging_buffer_allocation);
+    end_instances(instance_staging_buffer, instance_staging_buffer_allocation);
 
     //
 
@@ -164,22 +180,6 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         }
     }
 
-    mat4s model_matrices[NUM_MODELS];
-    size_t i = 0;
-    for (size_t x = 0; x < 4; x++) {
-        for (size_t y = 0; y < 4; y++, i++) {
-            model_matrices[i] = glms_translate(glms_mat4_identity(), (vec3s) {{ x * 10.0f, 0.0f, y * 10.0f }});
-        }
-    }
-
-    if (create_buffer(sizeof(model_matrices), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &model_matrix_buffer, &model_matrix_buffer_allocation) != result_success) {
-        return "Failed to create model buffer\n";
-    }
-
-    if (write_to_buffer(model_matrix_buffer_allocation, sizeof(model_matrices), model_matrices)) {
-        return "Failed to write to model buffer\n";
-    }
-
     //
     vec3s light_direction = glms_vec3_normalize((vec3s) {{ -0.8f, -0.6f, 0.4f }});
     vec3s light_position = glms_vec3_scale(glms_vec3_negate(light_direction), 30.0f);
@@ -202,7 +202,6 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 }
 
 void term_vulkan_assets(void) {
-    vmaDestroyBuffer(allocator, model_matrix_buffer, model_matrix_buffer_allocation);
     vmaDestroyBuffer(allocator, shadow_view_projection_buffer, shadow_view_projection_buffer_allocation);
 
     vkDestroySampler(device, texture_image_sampler, NULL);
@@ -213,4 +212,5 @@ void term_vulkan_assets(void) {
         vmaDestroyBuffer(allocator, vertex_buffers[i], vertex_buffer_allocations[i]);
     }
     vmaDestroyBuffer(allocator, index_buffer, index_buffer_allocation);
+    vmaDestroyBuffer(allocator, instance_buffer, instance_buffer_allocation);
 }

@@ -11,6 +11,10 @@ extern VmaAllocation vertex_buffer_allocations[NUM_VERTEX_ARRAYS];
 extern VkBuffer index_buffer;
 extern VmaAllocation index_buffer_allocation;
 
+#define NUM_INSTANCES 16
+extern VkBuffer instance_buffer;
+extern VmaAllocation instance_buffer_allocation;
+
 extern size_t num_indices;
 
 #define NUM_TEXTURE_IMAGES 2
@@ -23,11 +27,6 @@ extern VkSampler shadow_texture_image_sampler;
 extern mat4s shadow_view_projection;
 extern VkBuffer shadow_view_projection_buffer;
 extern VmaAllocation shadow_view_projection_buffer_allocation;
-
-#define NUM_MODELS 16
-extern mat4s model_matrices[NUM_MODELS];
-extern VkBuffer model_matrix_buffer;
-extern VmaAllocation model_matrix_buffer_allocation;
 
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties);
 void term_vulkan_assets(void);

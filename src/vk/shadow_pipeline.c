@@ -88,10 +88,6 @@ const char* init_shadow_pipeline(void) {
         {
             .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
             .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
-        },
-        {
-            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
         }
     };
 
@@ -103,19 +99,14 @@ const char* init_shadow_pipeline(void) {
                 .offset = 0,
                 .range = sizeof(shadow_view_projection)
             }
-        },
-        {
-            .type = descriptor_info_type_buffer,
-            .buffer = {
-                .buffer = model_matrix_buffer,
-                .offset = 0,
-                .range = sizeof(model_matrices)
-            }
         }
     };
     
-    uint32_t num_pass_vertex_bytes_array[] = {
-        num_vertex_bytes_array[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX]
+    vertex_binding_t vertex_bindings[] = {
+        {
+            .num_bytes = num_vertex_bytes_array[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
+            .input_rate = VK_VERTEX_INPUT_RATE_VERTEX
+        }
     };
 
     vertex_attribute_t attributes[] = {
@@ -129,7 +120,7 @@ const char* init_shadow_pipeline(void) {
     const char* msg = create_graphics_pipeline(
         NUM_ELEMS(shaders), shaders,
         NUM_ELEMS(bindings), bindings, infos,
-        NUM_ELEMS(num_pass_vertex_bytes_array), num_pass_vertex_bytes_array,
+        NUM_ELEMS(vertex_bindings), vertex_bindings,
         NUM_ELEMS(attributes), attributes,
         0,
         VK_SAMPLE_COUNT_1_BIT, (depth_bias_t) { .enable = true, .constant_factor = 4.0f, .slope_factor = 1.5f },
@@ -205,7 +196,7 @@ const char* draw_shadow_pipeline(void) {
         0, 0,
         NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
         num_indices, index_buffer,
-        NUM_MODELS
+        NUM_INSTANCES
     );
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
