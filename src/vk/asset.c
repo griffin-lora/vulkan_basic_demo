@@ -3,6 +3,7 @@
 #include "mesh.h"
 #include "core.h"
 #include "gfx_core.h"
+#include "color_pipeline.h"
 #include <malloc.h>
 #include <string.h>
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE

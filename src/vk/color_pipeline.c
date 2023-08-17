@@ -229,6 +229,10 @@ const char* init_color_pipeline(void) {
     
     vertex_binding_t vertex_bindings[] = {
         {
+            .num_bytes = sizeof(mat4s),
+            .input_rate = VK_VERTEX_INPUT_RATE_INSTANCE
+        },
+        {
             .num_bytes = num_vertex_bytes_array[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
             .input_rate = VK_VERTEX_INPUT_RATE_VERTEX
         },
@@ -241,21 +245,42 @@ const char* init_color_pipeline(void) {
     vertex_attribute_t attributes[] = {
         {
             .binding = 0,
+            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+            .offset = 0*sizeof(vec4s)
+        },
+        {
+            .binding = 0,
+            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+            .offset = 1*sizeof(vec4s)
+        },
+        {
+            .binding = 0,
+            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+            .offset = 2*sizeof(vec4s)
+        },
+        {
+            .binding = 0,
+            .format = VK_FORMAT_R32G32B32A32_SFLOAT,
+            .offset = 3*sizeof(vec4s)
+        },
+        //
+        {
+            .binding = 1,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
             .offset = offsetof(general_pipeline_vertex_t, position)
         },
         {
-            .binding = 1,
+            .binding = 2,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
             .offset = offsetof(color_pipeline_vertex_t, normal)
         },
         {
-            .binding = 1,
+            .binding = 2,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
             .offset = offsetof(color_pipeline_vertex_t, tangent)
         },
         {
-            .binding = 1,
+            .binding = 2,
             .format = VK_FORMAT_R32G32_SFLOAT,
             .offset = offsetof(color_pipeline_vertex_t, tex_coord)
         }
@@ -302,6 +327,7 @@ const char* draw_color_pipeline(size_t frame_index, size_t image_index, VkComman
     };
 
     VkBuffer pass_vertex_buffers[] = {
+        instance_buffer,
         vertex_buffers[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
         vertex_buffers[COLOR_PIPELINE_VERTEX_ARRAY_INDEX]
     };

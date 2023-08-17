@@ -9,10 +9,11 @@ layout(binding = 0) uniform shadow_uniform_constants_t {
     mat4 shadow_view_projection;
 };
 
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec3 normal;
-layout(location = 2) in vec4 tangent;
-layout(location = 3) in vec2 tex_coord;
+layout(location = 0) in mat4 model;
+layout(location = 4) in vec3 position;
+layout(location = 5) in vec3 normal;
+layout(location = 6) in vec4 tangent;
+layout(location = 7) in vec2 tex_coord;
 
 layout(location = 0) out vec2 frag_tex_coord;
 
@@ -26,9 +27,6 @@ vec3 light_direction = normalize(vec3(-0.8, -0.6, 0.4));
 vec3 vertex_to_light_direction = -light_direction;
 
 void main() {
-	// mat4 model = models[gl_InstanceIndex];
-	mat4 model = mat4(1.0);
-	
 	gl_Position = view_projection * model * vec4(position, 1.0);
 
 	vec3 unit_normal = normalize(normal);
