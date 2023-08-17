@@ -326,22 +326,24 @@ const char* draw_color_pipeline(size_t frame_index, size_t image_index, VkComman
         { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
     };
 
-    VkBuffer pass_vertex_buffers[] = {
-        instance_buffer,
-        vertex_buffers[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
-        vertex_buffers[COLOR_PIPELINE_VERTEX_ARRAY_INDEX]
-    };
+    for (size_t i = 0; i < NUM_MODELS; i++) {
+        VkBuffer pass_vertex_buffers[] = {
+            instance_buffers[i],
+            vertex_buffer_arrays[i][GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
+            vertex_buffer_arrays[i][COLOR_PIPELINE_VERTEX_ARRAY_INDEX]
+        };
 
-    draw_scene(
-        command_buffer,
-        swapchain_framebuffers[image_index], swap_image_extent,
-        NUM_ELEMS(clear_values), clear_values,
-        color_pipeline_render_pass, descriptor_set, pipeline_layout, pipeline,
-        sizeof(color_pipeline_push_constants), &color_pipeline_push_constants,
-        NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
-        num_indices, index_buffer,
-        NUM_INSTANCES
-    );
+        draw_instanced_model(
+            command_buffer,
+            swapchain_framebuffers[image_index], swap_image_extent,
+            NUM_ELEMS(clear_values), clear_values,
+            color_pipeline_render_pass, descriptor_set, pipeline_layout, pipeline,
+            sizeof(color_pipeline_push_constants), &color_pipeline_push_constants,
+            NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
+            num_indices_array[i], index_buffers[i],
+            num_instances_array[i]
+        );
+    }
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
         return "Failed to end command buffer\n";

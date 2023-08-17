@@ -33,34 +33,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         return "Failed to begin creating images\n";
     }
 
-    uint32_t num_vertices;
-    uint16_t* indices;
-    vertex_array_t vertex_arrays[NUM_VERTEX_ARRAYS];
-    {
-        mesh_t mesh;
-        if (load_gltf_mesh("mesh/test.gltf", &mesh) != result_success) {
-            return "Failed to load mesh\n";
-        }
-
-        num_vertices = mesh.num_vertices;
-        num_indices = mesh.num_indices;
-        memcpy(vertex_arrays, mesh.vertex_arrays, sizeof(mesh.vertex_arrays));
-        indices = mesh.indices;
-    }
-
-    VkBuffer vertex_staging_buffers[NUM_VERTEX_ARRAYS];
-    VmaAllocation vertex_staging_buffer_allocations[NUM_VERTEX_ARRAYS];
-    if (begin_vertex_arrays(num_vertices, NUM_VERTEX_ARRAYS, &vertex_arrays[0].data, num_vertex_bytes_array, vertex_staging_buffers, vertex_staging_buffer_allocations, vertex_buffers, vertex_buffer_allocations) != result_success) {
-        return "Failed to begin creating vertex buffers\n";
-    }
-
-    VkBuffer index_staging_buffer;
-    VmaAllocation index_staging_buffer_allocation;
-    if (begin_indices(sizeof(uint16_t), num_indices, indices, &index_staging_buffer, &index_staging_buffer_allocation, &index_buffer, &index_buffer_allocation) != result_success) {
-        return "Failed to begin creating index buffer\n";
-    }
-
-    mat4s model_matrices[NUM_INSTANCES];
+    mat4s model_matrices[16];
     size_t i = 0;
     for (size_t x = 0; x < 4; x++) {
         for (size_t y = 0; y < 4; y++, i++) {
@@ -68,10 +41,42 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         }
     }
 
-    VkBuffer instance_staging_buffer;
-    VmaAllocation instance_staging_buffer_allocation;
-    if (begin_instances(sizeof(mat4s), NUM_INSTANCES, model_matrices, &instance_staging_buffer, &instance_staging_buffer_allocation, &instance_buffer, &instance_buffer_allocation) != result_success) {
-        return "Failed to begin creating instance buffer\n";
+    num_instances_array[0] = NUM_ELEMS(model_matrices);
+    const mat4s* model_matrix_arrays[] = {
+        model_matrices
+    };
+
+    uint32_t num_vertices_array[NUM_MODELS];
+
+    VkBuffer vertex_staging_buffer_arrays[NUM_MODELS][NUM_VERTEX_ARRAYS];
+    VmaAllocation vertex_staging_buffer_allocation_arrays[NUM_MODELS][NUM_VERTEX_ARRAYS];
+
+    VkBuffer index_staging_buffers[NUM_MODELS];
+    VmaAllocation index_staging_buffer_allocations[NUM_MODELS];
+
+    VkBuffer instance_staging_buffers[NUM_MODELS];
+    VmaAllocation instance_staging_buffer_allocations[NUM_MODELS];
+
+    for (size_t i = 0; i < NUM_MODELS; i++) {
+        mesh_t mesh;
+        if (load_gltf_mesh("mesh/test.gltf", &mesh) != result_success) {
+            return "Failed to load mesh\n";
+        }
+
+        num_vertices_array[i] = mesh.num_vertices;
+        num_indices_array[i] = mesh.num_indices;
+
+        if (begin_vertex_arrays(mesh.num_vertices, NUM_VERTEX_ARRAYS, &mesh.vertex_arrays[0].data, num_vertex_bytes_array, vertex_staging_buffer_arrays[i], vertex_staging_buffer_allocation_arrays[i], vertex_buffer_arrays[i], vertex_buffer_allocation_arrays[i]) != result_success) {
+            return "Failed to begin creating vertex buffers\n";
+        }
+
+        if (begin_indices(sizeof(uint16_t), mesh.num_indices, mesh.indices, &index_staging_buffers[i], &index_staging_buffer_allocations[i], &index_buffers[i], &index_buffer_allocations[i]) != result_success) {
+            return "Failed to begin creating index buffer\n";
+        }
+
+        if (begin_instances(sizeof(mat4s), num_instances_array[i], model_matrix_arrays[i], &instance_staging_buffers[i], &instance_staging_buffer_allocations[i], &instance_buffers[i], &instance_buffer_allocations[i]) != result_success) {
+            return "Failed to begin creating instance buffer\n";
+        }
     }
 
     VkCommandBuffer command_buffer;
@@ -99,9 +104,12 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     }
 
     transfer_images(command_buffer, NUM_TEXTURE_IMAGES, image_extents, num_mip_levels_array, image_staging_buffers, texture_images);
-    transfer_vertex_arrays(command_buffer, num_vertices, NUM_VERTEX_ARRAYS, num_vertex_bytes_array, vertex_staging_buffers, vertex_buffers);
-    transfer_indices(command_buffer, sizeof(uint16_t), num_indices, index_staging_buffer, index_buffer);
-    transfer_instances(command_buffer, sizeof(mat4s), NUM_INSTANCES, instance_staging_buffer, instance_buffer);
+
+    for (size_t i = 0; i < NUM_MODELS; i++) {
+        transfer_vertex_arrays(command_buffer, num_vertices_array[i], NUM_VERTEX_ARRAYS, num_vertex_bytes_array, vertex_staging_buffer_arrays[i], vertex_buffer_arrays[i]);
+        transfer_indices(command_buffer, sizeof(uint16_t), num_indices_array[i], index_staging_buffers[i], index_buffers[i]);
+        transfer_instances(command_buffer, sizeof(mat4s), num_instances_array[i], instance_staging_buffers[i], instance_buffers[i]);
+    }
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
         return "Failed to write to transfer command buffer\n";
@@ -121,9 +129,12 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 
     end_images(NUM_TEXTURE_IMAGES, image_staging_buffers, image_staging_allocations);
-    end_vertex_arrays(NUM_VERTEX_ARRAYS, vertex_staging_buffers, vertex_staging_buffer_allocations);
-    end_indices(index_staging_buffer, index_staging_buffer_allocation);
-    end_instances(instance_staging_buffer, instance_staging_buffer_allocation);
+
+    for (size_t i = 0; i < NUM_MODELS; i++) {
+        end_vertex_arrays(NUM_VERTEX_ARRAYS, vertex_staging_buffer_arrays[i], vertex_staging_buffer_allocation_arrays[i]);
+        end_indices(index_staging_buffers[i], index_staging_buffer_allocations[i]);
+        end_instances(instance_staging_buffers[i], instance_staging_buffer_allocations[i]);
+    }
 
     //
 
@@ -209,9 +220,11 @@ void term_vulkan_assets(void) {
     vkDestroySampler(device, shadow_texture_image_sampler, NULL);
     destroy_images(NUM_TEXTURE_IMAGES, texture_images, texture_image_allocations, texture_image_views);
 
-    for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
-        vmaDestroyBuffer(allocator, vertex_buffers[i], vertex_buffer_allocations[i]);
+    for (size_t i = 0; i < NUM_MODELS; i++) {
+        for (size_t j = 0; j < NUM_VERTEX_ARRAYS; j++) {
+            vmaDestroyBuffer(allocator, vertex_buffer_arrays[i][j], vertex_buffer_allocation_arrays[i][j]);
+        }
+        vmaDestroyBuffer(allocator, index_buffers[i], index_buffer_allocations[i]);
+        vmaDestroyBuffer(allocator, instance_buffers[i], instance_buffer_allocations[i]);
     }
-    vmaDestroyBuffer(allocator, index_buffer, index_buffer_allocation);
-    vmaDestroyBuffer(allocator, instance_buffer, instance_buffer_allocation);
 }

@@ -560,7 +560,7 @@ void destroy_images(size_t num_images, const VkImage images[], const VmaAllocati
     }
 }
 
-void draw_scene(
+void draw_instanced_model(
     VkCommandBuffer command_buffer,
     VkFramebuffer image_framebuffer, VkExtent2D image_extent,
     uint32_t num_clear_values, const VkClearValue clear_values[],

@@ -96,7 +96,7 @@ result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_
 result_t create_image_view(VkImage image, uint32_t num_mip_levels, VkFormat format, VkImageAspectFlags aspect_flags, VkImageView* image_view);
 void destroy_images(size_t num_images, const VkImage images[], const VmaAllocation image_allocations[], const VkImageView image_views[]);
 
-void draw_scene(
+void draw_instanced_model(
     VkCommandBuffer command_buffer,
     VkFramebuffer image_framebuffer, VkExtent2D image_extent,
     uint32_t num_clear_values, const VkClearValue clear_values[],

@@ -208,21 +208,23 @@ const char* draw_shadow_pipeline(void) {
         { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
     };
 
-    VkBuffer pass_vertex_buffers[] = {
-        instance_buffer,
-        vertex_buffers[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX]
-    };
+    for (size_t i = 0; i < NUM_MODELS; i++) {
+        VkBuffer pass_vertex_buffers[] = {
+            instance_buffers[i],
+            vertex_buffer_arrays[i][GENERAL_PIPELINE_VERTEX_ARRAY_INDEX]
+        };
 
-    draw_scene(
-        command_buffer,
-        framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
-        NUM_ELEMS(clear_values), clear_values,
-        render_pass, descriptor_set, pipeline_layout, pipeline,
-        0, 0,
-        NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
-        num_indices, index_buffer,
-        NUM_INSTANCES
-    );
+        draw_instanced_model(
+            command_buffer,
+            framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
+            NUM_ELEMS(clear_values), clear_values,
+            render_pass, descriptor_set, pipeline_layout, pipeline,
+            0, 0,
+            NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
+            num_indices_array[i], index_buffers[i],
+            num_instances_array[i]
+        );
+    }
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
         return "Failed to write to transfer command buffer\n";

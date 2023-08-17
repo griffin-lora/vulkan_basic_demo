@@ -5,17 +5,18 @@
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/mat4.h>
 
-extern VkBuffer vertex_buffers[NUM_VERTEX_ARRAYS];
-extern VmaAllocation vertex_buffer_allocations[NUM_VERTEX_ARRAYS];
+#define NUM_MODELS 1
+extern VkBuffer vertex_buffer_arrays[NUM_MODELS][NUM_VERTEX_ARRAYS];
+extern VmaAllocation vertex_buffer_allocation_arrays[NUM_MODELS][NUM_VERTEX_ARRAYS];
 
-extern VkBuffer index_buffer;
-extern VmaAllocation index_buffer_allocation;
+extern VkBuffer index_buffers[NUM_MODELS];
+extern VmaAllocation index_buffer_allocations[NUM_MODELS];
 
-#define NUM_INSTANCES 16
-extern VkBuffer instance_buffer;
-extern VmaAllocation instance_buffer_allocation;
+extern VkBuffer instance_buffers[NUM_MODELS];
+extern VmaAllocation instance_buffer_allocations[NUM_MODELS];
 
-extern uint32_t num_indices;
+extern uint32_t num_indices_array[NUM_MODELS];
+extern uint32_t num_instances_array[NUM_MODELS];
 
 #define NUM_TEXTURE_IMAGES 2
 extern VkSampler texture_image_sampler;
