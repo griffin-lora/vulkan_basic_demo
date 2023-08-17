@@ -33,17 +33,29 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         return "Failed to begin creating images\n";
     }
 
-    mat4s model_matrices[16];
-    size_t i = 0;
-    for (size_t x = 0; x < 4; x++) {
-        for (size_t y = 0; y < 4; y++, i++) {
-            model_matrices[i] = glms_translate(glms_mat4_identity(), (vec3s) {{ x * 4.0f, i, y * 4.0f }});
+    const char* mesh_paths[] = {
+        "mesh/cube.gltf",
+        "mesh/plane.gltf"
+    };
+
+    mat4s cube_model_matrices[81];
+    {
+        size_t i = 0;
+        for (float x = -4.0f; x <= 4.0f; x++) {
+            for (float y = -4.0f; y <= 4.0f; y++, i++) {
+                cube_model_matrices[i] = glms_translate(glms_mat4_identity(), (vec3s) {{ x * 8.0f, 2.0f, y * 8.0f }});
+            }
         }
     }
 
-    num_instances_array[0] = NUM_ELEMS(model_matrices);
+    mat4s plane_model_matrix = glms_scale(glms_mat4_identity(), (vec3s) {{ 40.0f, 40.0f, 40.0f }});
+    // mat4s plane_model_matrix = glms_mat4_identity();
+
+    num_instances_array[0] = NUM_ELEMS(cube_model_matrices);
+    num_instances_array[1] = 1;
     const mat4s* model_matrix_arrays[] = {
-        model_matrices
+        cube_model_matrices,
+        &plane_model_matrix
     };
 
     uint32_t num_vertices_array[NUM_MODELS];
@@ -59,7 +71,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     for (size_t i = 0; i < NUM_MODELS; i++) {
         mesh_t mesh;
-        if (load_gltf_mesh("mesh/test.gltf", &mesh) != result_success) {
+        if (load_gltf_mesh(mesh_paths[i], &mesh) != result_success) {
             return "Failed to load mesh\n";
         }
 

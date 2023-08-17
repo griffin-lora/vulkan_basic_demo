@@ -560,15 +560,12 @@ void destroy_images(size_t num_images, const VkImage images[], const VmaAllocati
     }
 }
 
-void draw_instanced_model(
+void begin_pipeline(
     VkCommandBuffer command_buffer,
     VkFramebuffer image_framebuffer, VkExtent2D image_extent,
     uint32_t num_clear_values, const VkClearValue clear_values[],
     VkRenderPass render_pass, VkDescriptorSet descriptor_set, VkPipelineLayout pipeline_layout, VkPipeline pipeline,
-    uint32_t num_push_constants_bytes, const void* push_constants,
-    uint32_t num_vertex_buffers, const VkBuffer vertex_buffers[],
-    uint32_t num_indices, VkBuffer index_buffer,
-    uint32_t num_instances
+    uint32_t num_push_constants_bytes, const void* push_constants
 ) {
     {
         VkRenderPassBeginInfo info = {
@@ -585,12 +582,6 @@ void draw_instanced_model(
     }
 
     vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-    VkDeviceSize* offsets = ds_promise(num_vertex_buffers*sizeof(VkDeviceSize));
-    memset(offsets, 0, num_vertex_buffers*sizeof(VkDeviceSize));
-    vkCmdBindVertexBuffers(command_buffer, 0, num_vertex_buffers, vertex_buffers, offsets);
-
-    vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
     
     if (descriptor_set != NULL) {
         vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 0, NULL);
@@ -614,9 +605,23 @@ void draw_instanced_model(
         .extent = image_extent
     };
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+}
 
+void draw_instanced_model(
+    VkCommandBuffer command_buffer,
+    uint32_t num_vertex_buffers, const VkBuffer vertex_buffers[],
+    uint32_t num_indices, VkBuffer index_buffer,
+    uint32_t num_instances
+) {
+    VkDeviceSize* offsets = ds_promise(num_vertex_buffers*sizeof(VkDeviceSize));
+    memset(offsets, 0, num_vertex_buffers*sizeof(VkDeviceSize));
+    vkCmdBindVertexBuffers(command_buffer, 0, num_vertex_buffers, vertex_buffers, offsets);
+
+    vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
     vkCmdDrawIndexed(command_buffer, num_indices, num_instances, 0, 0, 0);
+}
 
+void end_pipeline(VkCommandBuffer command_buffer) {
     vkCmdEndRenderPass(command_buffer);
 }
 
