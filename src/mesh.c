@@ -4,7 +4,7 @@
 #include <malloc.h>
 #include <string.h>
 
-size_t num_vertex_bytes_array[NUM_VERTEX_ARRAYS] = {
+VkDeviceSize num_vertex_bytes_array[NUM_VERTEX_ARRAYS] = {
     [GENERAL_PIPELINE_VERTEX_ARRAY_INDEX] = sizeof(general_pipeline_vertex_t),
     [COLOR_PIPELINE_VERTEX_ARRAY_INDEX] sizeof(color_pipeline_vertex_t)
 };

@@ -132,7 +132,7 @@ result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_
     return result_success;
 }
 
-void transfer_from_staging_buffer_to_buffer(VkCommandBuffer command_buffer, size_t num_bytes, VkBuffer staging_buffer, VkBuffer buffer) {
+void transfer_from_staging_buffer_to_buffer(VkCommandBuffer command_buffer, VkDeviceSize num_bytes, VkBuffer staging_buffer, VkBuffer buffer) {
     VkBufferCopy region = {
         .srcOffset = 0,
         .dstOffset = 0,
@@ -204,11 +204,11 @@ result_t create_image_view(VkImage image, uint32_t num_mip_levels, VkFormat form
 }
 
 const char* create_graphics_pipeline(
-    size_t num_shaders, const shader_t shaders[],
-    size_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
-    size_t num_vertex_bindings, const vertex_binding_t vertex_bindings[],
-    size_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
-    size_t num_push_constants_bytes,
+    uint32_t num_shaders, const shader_t shaders[],
+    uint32_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
+    uint32_t num_vertex_bindings, const vertex_binding_t vertex_bindings[],
+    uint32_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
+    uint32_t num_push_constants_bytes,
     VkSampleCountFlagBits multisample_flags, depth_bias_t depth_bias,
     VkRenderPass render_pass,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
@@ -469,7 +469,7 @@ result_t begin_images(size_t num_images, const char* image_paths[], const VkForm
         if (pixels == NULL) {
             return result_failure;
         }
-        size_t num_image_bytes = image_extent.width*image_extent.height*4;
+        VkDeviceSize num_image_bytes = image_extent.width*image_extent.height*4;
 
         image_extents[i] = image_extent;
         uint32_t num_mip_levels = ((uint32_t)floorf(log2f(max_uint32(image_extent.width, image_extent.height)))) + 1;
@@ -563,12 +563,12 @@ void destroy_images(size_t num_images, const VkImage images[], const VmaAllocati
 void draw_scene(
     VkCommandBuffer command_buffer,
     VkFramebuffer image_framebuffer, VkExtent2D image_extent,
-    size_t num_clear_values, const VkClearValue clear_values[],
+    uint32_t num_clear_values, const VkClearValue clear_values[],
     VkRenderPass render_pass, VkDescriptorSet descriptor_set, VkPipelineLayout pipeline_layout, VkPipeline pipeline,
-    size_t num_push_constants_bytes, const void* push_constants,
-    size_t num_vertex_buffers, const VkBuffer vertex_buffers[],
-    size_t num_indices, VkBuffer index_buffer,
-    size_t num_instances
+    uint32_t num_push_constants_bytes, const void* push_constants,
+    uint32_t num_vertex_buffers, const VkBuffer vertex_buffers[],
+    uint32_t num_indices, VkBuffer index_buffer,
+    uint32_t num_instances
 ) {
     {
         VkRenderPassBeginInfo info = {
@@ -621,12 +621,12 @@ void draw_scene(
 }
 
 result_t begin_vertex_arrays(
-    size_t num_vertices,
-    size_t num_vertex_arrays, void* const vertex_arrays[], const size_t num_vertex_bytes_array[], VkBuffer vertex_staging_buffers[], VmaAllocation vertex_staging_buffer_allocations[], VkBuffer vertex_buffers[], VmaAllocation vertex_buffer_allocations[]
+    VkDeviceSize num_vertices,
+    size_t num_vertex_arrays, void* const vertex_arrays[], const VkDeviceSize num_vertex_bytes_array[], VkBuffer vertex_staging_buffers[], VmaAllocation vertex_staging_buffer_allocations[], VkBuffer vertex_buffers[], VmaAllocation vertex_buffer_allocations[]
 ) {
     for (size_t i = 0; i < num_vertex_arrays; i++) {
         void* vertex_array = vertex_arrays[i];
-        size_t num_vertex_array_bytes = num_vertices*num_vertex_bytes_array[i];
+        VkDeviceSize num_vertex_array_bytes = num_vertices*num_vertex_bytes_array[i];
 
         if (create_buffer(num_vertex_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffers[i], &vertex_buffer_allocations[i]) != result_success) {
             return result_failure;
@@ -646,7 +646,7 @@ result_t begin_vertex_arrays(
     return result_success;
 }
 
-void transfer_vertex_arrays(VkCommandBuffer command_buffer, size_t num_vertices, size_t num_vertex_arrays, const size_t num_vertex_bytes_array[], const VkBuffer vertex_staging_buffers[], const VkBuffer vertex_buffers[]) {
+void transfer_vertex_arrays(VkCommandBuffer command_buffer, VkDeviceSize num_vertices, size_t num_vertex_arrays, const VkDeviceSize num_vertex_bytes_array[], const VkBuffer vertex_staging_buffers[], const VkBuffer vertex_buffers[]) {
     for (size_t i = 0; i < num_vertex_arrays; i++) {
         transfer_from_staging_buffer_to_buffer(command_buffer, num_vertices*num_vertex_bytes_array[i], vertex_staging_buffers[i], vertex_buffers[i]);
     }
@@ -658,8 +658,8 @@ void end_vertex_arrays(size_t num_vertex_arrays, const VkBuffer vertex_staging_b
     }
 }
 
-result_t begin_indices(size_t num_index_bytes, size_t num_indices, void* indices, VkBuffer* index_staging_buffer, VmaAllocation* index_staging_buffer_allocation, VkBuffer* index_buffer, VmaAllocation* index_buffer_allocation) {
-    size_t num_index_array_bytes = num_indices*num_index_bytes;
+result_t begin_indices(VkDeviceSize num_index_bytes, VkDeviceSize num_indices, void* indices, VkBuffer* index_staging_buffer, VmaAllocation* index_staging_buffer_allocation, VkBuffer* index_buffer, VmaAllocation* index_buffer_allocation) {
+    VkDeviceSize num_index_array_bytes = num_indices*num_index_bytes;
 
     if (create_buffer(num_index_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, index_buffer, index_buffer_allocation) != result_success) {
         return result_failure;
@@ -678,7 +678,7 @@ result_t begin_indices(size_t num_index_bytes, size_t num_indices, void* indices
     return result_success;
 }
 
-void transfer_indices(VkCommandBuffer command_buffer, size_t num_index_bytes, size_t num_indices, VkBuffer index_staging_buffer, VkBuffer index_buffer) {
+void transfer_indices(VkCommandBuffer command_buffer, VkDeviceSize num_index_bytes, VkDeviceSize num_indices, VkBuffer index_staging_buffer, VkBuffer index_buffer) {
     transfer_from_staging_buffer_to_buffer(command_buffer, num_indices*num_index_bytes, index_staging_buffer, index_buffer);
 }
 
@@ -686,8 +686,8 @@ void end_indices(VkBuffer index_staging_buffer, VmaAllocation index_staging_buff
     vmaDestroyBuffer(allocator, index_staging_buffer, index_staging_buffer_allocation);
 }
 
-result_t begin_instances(size_t num_instance_bytes, size_t num_instances, const void* instances, VkBuffer* instance_staging_buffer, VmaAllocation* instance_staging_buffer_allocation, VkBuffer* instance_buffer, VmaAllocation* instance_buffer_allocation) {
-    size_t num_instance_array_bytes = num_instance_bytes*num_instances;
+result_t begin_instances(VkDeviceSize num_instance_bytes, VkDeviceSize num_instances, const void* instances, VkBuffer* instance_staging_buffer, VmaAllocation* instance_staging_buffer_allocation, VkBuffer* instance_buffer, VmaAllocation* instance_buffer_allocation) {
+    VkDeviceSize num_instance_array_bytes = num_instance_bytes*num_instances;
 
     if (create_buffer(num_instance_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, instance_buffer, instance_buffer_allocation) != result_success) {
         return result_failure;
@@ -704,7 +704,7 @@ result_t begin_instances(size_t num_instance_bytes, size_t num_instances, const 
     return result_success;
 }
 
-void transfer_instances(VkCommandBuffer command_buffer, size_t num_instance_bytes, size_t num_instances, VkBuffer instance_staging_buffer, VkBuffer instance_buffer) {
+void transfer_instances(VkCommandBuffer command_buffer, VkDeviceSize num_instance_bytes, VkDeviceSize num_instances, VkBuffer instance_staging_buffer, VkBuffer instance_buffer) {
     transfer_from_staging_buffer_to_buffer(command_buffer, num_instances*num_instance_bytes, instance_staging_buffer, instance_buffer);
 }
 

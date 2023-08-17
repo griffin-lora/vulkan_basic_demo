@@ -33,7 +33,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         return "Failed to begin creating images\n";
     }
 
-    size_t num_vertices;
+    uint32_t num_vertices;
     uint16_t* indices;
     vertex_array_t vertex_arrays[NUM_VERTEX_ARRAYS];
     {

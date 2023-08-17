@@ -52,7 +52,7 @@ VkImage texture_images[NUM_TEXTURE_IMAGES];
 VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
 VkImageView texture_image_views[NUM_TEXTURE_IMAGES];
 
-size_t num_indices;
+uint32_t num_indices;
 
 VkFormat depth_image_format;
 

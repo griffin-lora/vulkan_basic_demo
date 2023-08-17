@@ -1,5 +1,6 @@
 #pragma once
 #include "result.h"
+#include "vk.h"
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/vec2.h>
 #include <cglm/struct/vec3.h>
@@ -25,11 +26,11 @@ typedef union {
 #define GENERAL_PIPELINE_VERTEX_ARRAY_INDEX 0
 #define COLOR_PIPELINE_VERTEX_ARRAY_INDEX 1
 
-extern size_t num_vertex_bytes_array[NUM_VERTEX_ARRAYS];
+extern VkDeviceSize num_vertex_bytes_array[NUM_VERTEX_ARRAYS];
 
 typedef struct {
-    size_t num_vertices;
-    size_t num_indices;
+    uint32_t num_vertices;
+    uint32_t num_indices;
     vertex_array_t vertex_arrays[NUM_VERTEX_ARRAYS];
     uint16_t* indices;
 } mesh_t;

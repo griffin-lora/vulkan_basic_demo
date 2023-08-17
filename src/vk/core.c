@@ -70,7 +70,7 @@ static result_t check_extensions(VkPhysicalDevice physical_device) {
     return result_success;
 }
 
-static uint32_t get_graphics_queue_family_index(size_t num_queue_families, const VkQueueFamilyProperties queue_families[]) {
+static uint32_t get_graphics_queue_family_index(uint32_t num_queue_families, const VkQueueFamilyProperties queue_families[]) {
     for (size_t i = 0; i < num_queue_families; i++) {
         if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             return i;
@@ -79,7 +79,7 @@ static uint32_t get_graphics_queue_family_index(size_t num_queue_families, const
     return NULL_UINT32;
 }
 
-static uint32_t get_presentation_queue_family_index(VkPhysicalDevice physical_device, size_t num_queue_families, const VkQueueFamilyProperties queue_families[]) {
+static uint32_t get_presentation_queue_family_index(VkPhysicalDevice physical_device, uint32_t num_queue_families, const VkQueueFamilyProperties queue_families[]) {
     for (size_t i = 0; i < num_queue_families; i++) {
         if (!(queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
             continue;
@@ -94,7 +94,7 @@ static uint32_t get_presentation_queue_family_index(VkPhysicalDevice physical_de
     return NULL_UINT32;
 }
 
-static result_t get_physical_device(size_t num_physical_devices, const VkPhysicalDevice physical_devices[], VkPhysicalDevice* out_physical_device, uint32_t* out_num_surface_formats, uint32_t* out_num_present_modes, queue_family_indices_t* out_queue_family_indices) {
+static result_t get_physical_device(uint32_t num_physical_devices, const VkPhysicalDevice physical_devices[], VkPhysicalDevice* out_physical_device, uint32_t* out_num_surface_formats, uint32_t* out_num_present_modes, queue_family_indices_t* out_queue_family_indices) {
     for (size_t i = 0; i < num_physical_devices; i++) {
         VkPhysicalDevice physical_device = physical_devices[i];
 
@@ -161,7 +161,7 @@ static result_t get_physical_device(size_t num_physical_devices, const VkPhysica
     return result_failure;
 }
 
-static VkSurfaceFormatKHR get_surface_format(size_t num_surface_formats, const VkSurfaceFormatKHR surface_formats[]) {
+static VkSurfaceFormatKHR get_surface_format(uint32_t num_surface_formats, const VkSurfaceFormatKHR surface_formats[]) {
     for (size_t i = 0; i < num_surface_formats; i++) {
         VkSurfaceFormatKHR surface_format = surface_formats[i];
         if (surface_format.format == VK_FORMAT_B8G8R8A8_SRGB && surface_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
@@ -172,7 +172,7 @@ static VkSurfaceFormatKHR get_surface_format(size_t num_surface_formats, const V
     return surface_formats[0];
 }
 
-static VkPresentModeKHR get_present_mode(size_t num_present_modes, const VkPresentModeKHR present_modes[]) {
+static VkPresentModeKHR get_present_mode(uint32_t num_present_modes, const VkPresentModeKHR present_modes[]) {
     for (size_t i = 0; i < num_present_modes; i++) {
         VkPresentModeKHR present_mode = present_modes[i];
         if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
