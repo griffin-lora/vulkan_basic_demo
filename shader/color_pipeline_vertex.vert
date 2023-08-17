@@ -35,7 +35,6 @@ void main() {
 	vec3 unit_normal = normalize(normal);
 	vec3 unit_tangent = normalize(tangent.xyz);
 
-	// Model is identity so this is not needed: normalize(inverse(mat3(model)))
 	vec3 bitangent = cross(unit_normal, unit_tangent) * -tangent.w;
 	mat3 normal_texture_matrix = transpose(mat3(unit_tangent, bitangent, unit_normal)) * transpose(mat3(model)); // Transpose is inverse here since it is orthogonal
 
