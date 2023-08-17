@@ -19,13 +19,13 @@ typedef struct {
     int height;
 } image_extent_t;
 
-result_t begin_images(size_t num_images, const char* image_paths[], image_extent_t image_extents[], uint32_t num_mip_levels_array[], VkBuffer image_staging_buffers[], VmaAllocation image_staging_allocations[], VkImage images[], VmaAllocation image_allocations[]);
+result_t begin_images(size_t num_images, const char* image_paths[], const VkFormat formats[], image_extent_t image_extents[], uint32_t num_mip_levels_array[], VkBuffer image_staging_buffers[], VmaAllocation image_staging_allocations[], VkImage images[], VmaAllocation image_allocations[]);
 void transfer_images(
     VkCommandBuffer command_buffer,
     size_t num_images, const image_extent_t image_extents[], const uint32_t num_mip_levels_array[], const VkBuffer image_staging_buffers[], const VkImage images[]
 );
 void end_images(size_t num_images, const VkBuffer image_staging_buffers[], const VmaAllocation image_staging_buffer_allocations[]);
-result_t create_image_views(size_t num_images, const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]);
+result_t create_image_views(size_t num_images, const VkFormat formats[], const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]);
 
 result_t begin_vertex_arrays(
     size_t num_vertices,

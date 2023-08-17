@@ -17,13 +17,18 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         "image/color.jpg",
         "image/normal.png"
     };
+    
+    VkFormat image_formats[] = {
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_FORMAT_R8G8B8A8_UNORM // USE UNORM FOR ANY NON COLOR TEXTURE, SRGB WILL FUCK UP YOUR NORMAL TEXTURE SO BAD
+    };
 
     image_extent_t image_extents[NUM_TEXTURE_IMAGES];
     uint32_t num_mip_levels_array[NUM_TEXTURE_IMAGES];
     VkBuffer image_staging_buffers[NUM_TEXTURE_IMAGES];
     VmaAllocation image_staging_allocations[NUM_TEXTURE_IMAGES];
 
-    if (begin_images(NUM_TEXTURE_IMAGES, image_paths, image_extents, num_mip_levels_array, image_staging_buffers, image_staging_allocations, texture_images, texture_image_allocations) != result_success) {
+    if (begin_images(NUM_TEXTURE_IMAGES, image_paths, image_formats, image_extents, num_mip_levels_array, image_staging_buffers, image_staging_allocations, texture_images, texture_image_allocations) != result_success) {
         return "Failed to begin creating images\n";
     }
 
@@ -105,7 +110,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     //
 
-    if (create_image_views(NUM_TEXTURE_IMAGES, num_mip_levels_array, texture_images, texture_image_views) != result_success) {
+    if (create_image_views(NUM_TEXTURE_IMAGES, image_formats, num_mip_levels_array, texture_images, texture_image_views) != result_success) {
         return "Failed to create texture image view\n";
     }
 

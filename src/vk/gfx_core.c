@@ -458,7 +458,7 @@ const char* create_graphics_pipeline(
     return NULL;
 }
 
-result_t begin_images(size_t num_images, const char* image_paths[], image_extent_t image_extents[], uint32_t num_mip_levels_array[], VkBuffer image_staging_buffers[], VmaAllocation image_staging_allocations[], VkImage images[], VmaAllocation image_allocations[]) {
+result_t begin_images(size_t num_images, const char* image_paths[], const VkFormat formats[], image_extent_t image_extents[], uint32_t num_mip_levels_array[], VkBuffer image_staging_buffers[], VmaAllocation image_staging_allocations[], VkImage images[], VmaAllocation image_allocations[]) {
     int image_channels;
 
     for (size_t i = 0; i < num_images; i++) {
@@ -483,7 +483,7 @@ result_t begin_images(size_t num_images, const char* image_paths[], image_extent
 
         stbi_image_free(pixels);
 
-        if (create_image(image_extent.width, image_extent.height, num_mip_levels, VK_FORMAT_R8G8B8A8_SRGB, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &images[i], &image_allocations[i]) != result_success) {
+        if (create_image(image_extent.width, image_extent.height, num_mip_levels, formats[i], VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &images[i], &image_allocations[i]) != result_success) {
             return result_failure;
         }
     }
@@ -540,9 +540,9 @@ void end_images(size_t num_images, const VkBuffer image_staging_buffers[], const
     }
 }
 
-result_t create_image_views(size_t num_images, const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]) {
+result_t create_image_views(size_t num_images, const VkFormat formats[], const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]) {
     for (size_t i = 0; i < num_images; i++) {
-        if (create_image_view(images[i], num_mip_levels_array[i], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, &image_views[i]) != result_success) {
+        if (create_image_view(images[i], num_mip_levels_array[i], formats[i], VK_IMAGE_ASPECT_COLOR_BIT, &image_views[i]) != result_success) {
             return result_failure;
         }
     }
