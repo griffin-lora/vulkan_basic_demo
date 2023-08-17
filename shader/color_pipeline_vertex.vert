@@ -10,7 +10,7 @@ layout(binding = 0) uniform shadow_uniform_constants_t {
 };
 
 layout(binding = 1) uniform model_uniform_constants_t {
-    mat4 model;
+    mat4 models[16];
 };
 
 layout(location = 0) in vec3 position;
@@ -30,6 +30,8 @@ vec3 light_direction = normalize(vec3(-0.8, -0.6, 0.4));
 vec3 vertex_to_light_direction = -light_direction;
 
 void main() {
+	mat4 model = models[gl_InstanceIndex];
+	
 	gl_Position = view_projection * model * vec4(position, 1.0);
 
 	vec3 unit_normal = normalize(normal);

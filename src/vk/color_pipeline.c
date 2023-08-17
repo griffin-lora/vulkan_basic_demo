@@ -319,7 +319,8 @@ const char* draw_color_pipeline(size_t frame_index, size_t image_index, VkComman
         color_pipeline_render_pass, descriptor_set, pipeline_layout, pipeline,
         sizeof(color_pipeline_push_constants), &color_pipeline_push_constants,
         NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
-        num_indices, index_buffer
+        num_indices, index_buffer,
+        NUM_MODELS
     );
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {

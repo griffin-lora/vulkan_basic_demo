@@ -165,8 +165,12 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     }
 
     mat4s model_matrices[NUM_MODELS];
-    model_matrices[0] = glms_rotate(glms_mat4_identity(), (GLM_PI * 2.0f) / 4.0f, (vec3s) {{ 0.0f, 1.0f, 0.0f }});
-    // model_matrices[0] = glms_mat4_identity();
+    size_t i = 0;
+    for (size_t x = 0; x < 4; x++) {
+        for (size_t y = 0; y < 4; y++, i++) {
+            model_matrices[i] = glms_translate(glms_mat4_identity(), (vec3s) {{ x * 10.0f, 0.0f, y * 10.0f }});
+        }
+    }
 
     if (create_buffer(sizeof(model_matrices), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &model_matrix_buffer, &model_matrix_buffer_allocation) != result_success) {
         return "Failed to create model buffer\n";

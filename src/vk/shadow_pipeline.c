@@ -204,7 +204,8 @@ const char* draw_shadow_pipeline(void) {
         render_pass, descriptor_set, pipeline_layout, pipeline,
         0, 0,
         NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
-        num_indices, index_buffer
+        num_indices, index_buffer,
+        NUM_MODELS
     );
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {

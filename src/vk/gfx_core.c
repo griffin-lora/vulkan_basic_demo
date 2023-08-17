@@ -565,7 +565,8 @@ void draw_scene(
     VkRenderPass render_pass, VkDescriptorSet descriptor_set, VkPipelineLayout pipeline_layout, VkPipeline pipeline,
     size_t num_push_constants_bytes, const void* push_constants,
     size_t num_vertex_buffers, const VkBuffer vertex_buffers[],
-    size_t num_indices, VkBuffer index_buffer
+    size_t num_indices, VkBuffer index_buffer,
+    size_t num_instances
 ) {
     {
         VkRenderPassBeginInfo info = {
@@ -612,7 +613,7 @@ void draw_scene(
     };
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-    vkCmdDrawIndexed(command_buffer, num_indices, 1, 0, 0, 0);
+    vkCmdDrawIndexed(command_buffer, num_indices, num_instances, 0, 0, 0);
 
     vkCmdEndRenderPass(command_buffer);
 }
