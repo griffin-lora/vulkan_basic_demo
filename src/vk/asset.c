@@ -16,13 +16,16 @@
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties) {
     const char* image_paths[][NUM_TEXTURE_LAYERS] = {
         {
-            "image/color.jpg"
+            "image/plane_color.jpg",
+            "image/cube_color.tga"
         },
         {
-            "image/normal.png"
+            "image/plane_normal.png",
+            "image/cube_normal.tga"
         },
         {
-            "image/specular.png"
+            "image/plane_specular.png",
+            "image/cube_specular.tga"
         }
     };
     

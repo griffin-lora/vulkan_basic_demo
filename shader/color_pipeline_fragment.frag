@@ -1,10 +1,5 @@
 #version 450
 
-layout(push_constant, std430) uniform push_constants_t {
-    mat4 model_view_projection;
-    vec3 camera_position;
-};
-
 layout(binding = 1) uniform sampler2DArray color_sampler;
 layout(binding = 2) uniform sampler2DArray normal_sampler;
 layout(binding = 3) uniform sampler2DArray specular_sampler;
