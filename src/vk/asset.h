@@ -18,7 +18,7 @@ extern VmaAllocation instance_buffer_allocations[NUM_MODELS];
 extern uint32_t num_indices_array[NUM_MODELS];
 extern uint32_t num_instances_array[NUM_MODELS];
 
-#define NUM_TEXTURE_IMAGES 2
+#define NUM_TEXTURE_IMAGES 3
 extern VkSampler texture_image_sampler;
 extern VkImage texture_images[NUM_TEXTURE_IMAGES];
 extern VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];

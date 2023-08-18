@@ -16,12 +16,14 @@
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties) {
     const char* image_paths[] = {
         "image/color.jpg",
-        "image/normal.png"
+        "image/normal.png",
+        "image/specular.png"
     };
     
     VkFormat image_formats[] = {
         VK_FORMAT_R8G8B8A8_SRGB,
-        VK_FORMAT_R8G8B8A8_UNORM // USE UNORM FOR ANY NON COLOR TEXTURE, SRGB WILL FUCK UP YOUR NORMAL TEXTURE SO BAD
+        VK_FORMAT_R8G8B8A8_UNORM, // USE UNORM FOR ANY NON COLOR TEXTURE, SRGB WILL FUCK UP YOUR NORMAL TEXTURE SO BAD
+        VK_FORMAT_R8G8B8A8_UNORM
     };
 
     image_extent_t image_extents[NUM_TEXTURE_IMAGES];
@@ -206,7 +208,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     //
     vec3s light_direction = glms_vec3_normalize((vec3s) {{ -0.8f, -0.6f, 0.4f }});
-    vec3s light_position = glms_vec3_scale(glms_vec3_negate(light_direction), 30.0f);
+    vec3s light_position = glms_vec3_scale(glms_vec3_negate(light_direction), 40.0f);
 
     mat4s projection = glms_ortho(-60.0f, 60.0f, -60.0f, 60.0f, 0.01f, 300.0f);
 

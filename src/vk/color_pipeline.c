@@ -189,6 +189,10 @@ const char* init_color_pipeline(void) {
         {
             .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
             .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
+        },
+        {
+            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
         }
     };
 
@@ -214,6 +218,14 @@ const char* init_color_pipeline(void) {
             .image = {
                 .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 .imageView = texture_image_views[1],
+                .sampler = texture_image_sampler
+            }
+        },
+        {
+            .type = descriptor_info_type_image,
+            .image = {
+                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                .imageView = texture_image_views[2],
                 .sampler = texture_image_sampler
             }
         },
