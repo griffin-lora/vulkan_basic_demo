@@ -14,10 +14,16 @@
 #include <cglm/struct/affine.h>
 
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties) {
-    const char* image_paths[] = {
-        "image/color.jpg",
-        "image/normal.png",
-        "image/specular.png"
+    const char* image_paths[][NUM_TEXTURE_LAYERS] = {
+        {
+            "image/color.jpg"
+        },
+        {
+            "image/normal.png"
+        },
+        {
+            "image/specular.png"
+        }
     };
     
     VkFormat image_formats[] = {
@@ -31,7 +37,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     VkBuffer image_staging_buffers[NUM_TEXTURE_IMAGES];
     VmaAllocation image_staging_allocations[NUM_TEXTURE_IMAGES];
 
-    if (begin_images(NUM_TEXTURE_IMAGES, image_paths, image_formats, image_extents, num_mip_levels_array, image_staging_buffers, image_staging_allocations, texture_images, texture_image_allocations) != result_success) {
+    if (begin_images(NUM_TEXTURE_IMAGES, NUM_TEXTURE_LAYERS, image_paths, image_formats, image_extents, num_mip_levels_array, image_staging_buffers, image_staging_allocations, texture_images, texture_image_allocations) != result_success) {
         return "Failed to begin creating images\n";
     }
 
@@ -117,7 +123,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         }
     }
 
-    transfer_images(command_buffer, NUM_TEXTURE_IMAGES, image_extents, num_mip_levels_array, image_staging_buffers, texture_images);
+    transfer_images(command_buffer, NUM_TEXTURE_IMAGES, NUM_TEXTURE_LAYERS, image_extents, num_mip_levels_array, image_staging_buffers, texture_images);
 
     for (size_t i = 0; i < NUM_MODELS; i++) {
         transfer_vertex_arrays(command_buffer, num_vertices_array[i], NUM_VERTEX_ARRAYS, num_vertex_bytes_array, vertex_staging_buffer_arrays[i], vertex_buffer_arrays[i]);
@@ -152,7 +158,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     //
 
-    if (create_image_views(NUM_TEXTURE_IMAGES, image_formats, num_mip_levels_array, texture_images, texture_image_views) != result_success) {
+    if (create_image_views(NUM_TEXTURE_IMAGES, NUM_TEXTURE_LAYERS, image_formats, num_mip_levels_array, texture_images, texture_image_views) != result_success) {
         return "Failed to create texture image view\n";
     }
 

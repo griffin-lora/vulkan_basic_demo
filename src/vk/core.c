@@ -246,7 +246,7 @@ static result_t init_swapchain_framebuffers(void) {
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, swapchain_images);
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
-        if (create_image_view(swapchain_images[i], 1, surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &swapchain_image_views[i]) != result_success) {
+        if (create_image_view(swapchain_images[i], 1, 1, surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &swapchain_image_views[i]) != result_success) {
             return result_failure;
         }
     }

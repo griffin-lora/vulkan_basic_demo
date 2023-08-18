@@ -15,7 +15,7 @@ layout(location = 5) in vec3 normal;
 layout(location = 6) in vec4 tangent;
 layout(location = 7) in vec2 tex_coord;
 
-layout(location = 0) out vec2 frag_tex_coord;
+layout(location = 0) out vec3 frag_tex_coord;
 
 // All in normal texture space
 layout(location = 1) out vec3 frag_vertex_to_camera_direction;
@@ -37,7 +37,7 @@ void main() {
 
 	vec3 world_position = (model * vec4(position, 1.0)).xyz;
 
-	frag_tex_coord = tex_coord;
+	frag_tex_coord = vec3(tex_coord, 0.0);
 	frag_vertex_to_camera_direction = normal_texture_matrix * normalize(camera_position - world_position);
 	frag_light_direction = normal_texture_matrix * light_direction;
 	frag_vertex_to_light_direction = normal_texture_matrix * vertex_to_light_direction;

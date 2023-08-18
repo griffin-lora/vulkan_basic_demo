@@ -5,12 +5,12 @@ layout(push_constant, std430) uniform push_constants_t {
     vec3 camera_position;
 };
 
-layout(binding = 1) uniform sampler2D color_sampler;
-layout(binding = 2) uniform sampler2D normal_sampler;
-layout(binding = 3) uniform sampler2D specular_sampler;
+layout(binding = 1) uniform sampler2DArray color_sampler;
+layout(binding = 2) uniform sampler2DArray normal_sampler;
+layout(binding = 3) uniform sampler2DArray specular_sampler;
 layout(binding = 4) uniform sampler2DShadow shadow_sampler;
 
-layout(location = 0) in vec2 frag_tex_coord;
+layout(location = 0) in vec3 frag_tex_coord;
 
 // All in normal texture space
 layout(location = 1) in vec3 frag_vertex_to_camera_direction;

@@ -102,7 +102,20 @@ result_t write_to_buffer(VmaAllocation buffer_allocation, size_t num_bytes, cons
     return result_success;
 }
 
-result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, VkFormat format, VkSampleCountFlagBits multisample_flags, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VmaAllocation* image_allocation) {
+result_t writes_to_buffer(VmaAllocation buffer_allocation, size_t num_write_bytes, size_t num_writes, const void* const data_array[]) {
+    void* mapped_data;
+    if (vmaMapMemory(allocator, buffer_allocation, &mapped_data) != VK_SUCCESS) {
+        return result_failure;
+    }
+    for (size_t i = 0; i < num_writes; i++) {
+        memcpy(mapped_data + (i*num_write_bytes), data_array[i], num_write_bytes);
+    }
+    vmaUnmapMemory(allocator, buffer_allocation);
+
+    return result_success;
+}
+
+result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, uint32_t num_layers, VkFormat format, VkSampleCountFlagBits multisample_flags, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VmaAllocation* image_allocation) {
     VkImageCreateInfo image_info = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .imageType = VK_IMAGE_TYPE_2D,
@@ -110,7 +123,7 @@ result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_
         .extent.height = image_height,
         .extent.depth = 1,
         .mipLevels = num_mip_levels,
-        .arrayLayers = 1,
+        .arrayLayers = num_layers,
         .format = format,
         .tiling = tiling,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -126,7 +139,7 @@ result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_
     };
 
     if (vmaCreateImage(allocator, &image_info, &allocation_info, image, image_allocation, NULL) != VK_SUCCESS) {
-
+        return result_failure;
     }
 
     return result_success;
@@ -141,7 +154,7 @@ void transfer_from_staging_buffer_to_buffer(VkCommandBuffer command_buffer, VkDe
     vkCmdCopyBuffer(command_buffer, staging_buffer, buffer, 1, &region);
 }
 
-void transfer_from_staging_buffer_to_image(VkCommandBuffer command_buffer, uint32_t image_width, uint32_t image_height, VkBuffer staging_buffer, VkImage image) {
+void transfer_from_staging_buffer_to_image(VkCommandBuffer command_buffer, uint32_t image_width, uint32_t image_height, uint32_t num_layers, VkBuffer staging_buffer, VkImage image) {
     VkBufferImageCopy region = {
         .bufferOffset = 0,
         .bufferRowLength = 0,
@@ -149,7 +162,7 @@ void transfer_from_staging_buffer_to_image(VkCommandBuffer command_buffer, uint3
         .imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .imageSubresource.mipLevel = 0,
         .imageSubresource.baseArrayLayer = 0,
-        .imageSubresource.layerCount = 1,
+        .imageSubresource.layerCount = num_layers,
         .imageOffset = { 0, 0, 0 },
         .imageExtent.width = image_width,
         .imageExtent.height = image_height,
@@ -159,7 +172,7 @@ void transfer_from_staging_buffer_to_image(VkCommandBuffer command_buffer, uint3
     vkCmdCopyBufferToImage(command_buffer, staging_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
-void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint32_t num_mip_levels, uint32_t mip_level_index, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access_flags, VkAccessFlags dest_access_flags, VkPipelineStageFlags src_stage_flags, VkPipelineStageFlags dest_stage_flags) {
+void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint32_t num_mip_levels, uint32_t mip_level_index, uint32_t num_layers, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access_flags, VkAccessFlags dest_access_flags, VkPipelineStageFlags src_stage_flags, VkPipelineStageFlags dest_stage_flags) {
     VkImageMemoryBarrier barrier = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .oldLayout = old_layout,
@@ -171,7 +184,7 @@ void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint
         .subresourceRange.baseMipLevel = mip_level_index,
         .subresourceRange.levelCount = num_mip_levels,
         .subresourceRange.baseArrayLayer = 0,
-        .subresourceRange.layerCount = 1,
+        .subresourceRange.layerCount = num_layers,
         .srcAccessMask = src_access_flags,
         .dstAccessMask = dest_access_flags
     };
@@ -179,11 +192,11 @@ void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint
     vkCmdPipelineBarrier(command_buffer, src_stage_flags, dest_stage_flags, 0, 0, NULL, 0, NULL, 1, &barrier);
 }
 
-result_t create_image_view(VkImage image, uint32_t num_mip_levels, VkFormat format, VkImageAspectFlags aspect_flags, VkImageView* image_view) {
+result_t create_image_view(VkImage image, uint32_t num_mip_levels, uint32_t num_layers, VkFormat format, VkImageAspectFlags aspect_flags, VkImageView* image_view) {
     VkImageViewCreateInfo info = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .image = image,
-        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .viewType = num_layers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
         .format = format,
         .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
         .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -193,7 +206,7 @@ result_t create_image_view(VkImage image, uint32_t num_mip_levels, VkFormat form
         .subresourceRange.baseMipLevel = 0,
         .subresourceRange.levelCount = num_mip_levels,
         .subresourceRange.baseArrayLayer = 0,
-        .subresourceRange.layerCount = 1
+        .subresourceRange.layerCount = num_layers
     };
 
     if (vkCreateImageView(device, &info, NULL, image_view) != VK_SUCCESS) {
@@ -460,16 +473,29 @@ const char* create_graphics_pipeline(
     return NULL;
 }
 
-result_t begin_images(size_t num_images, const char* image_paths[], const VkFormat formats[], image_extent_t image_extents[], uint32_t num_mip_levels_array[], VkBuffer image_staging_buffers[], VmaAllocation image_staging_allocations[], VkImage images[], VmaAllocation image_allocations[]) {
+result_t begin_images(size_t num_images, uint32_t num_layers, const char* image_paths[][num_layers], const VkFormat formats[], image_extent_t image_extents[], uint32_t num_mip_levels_array[], VkBuffer image_staging_buffers[], VmaAllocation image_staging_allocations[], VkImage images[], VmaAllocation image_allocations[]) {
     int image_channels;
 
     for (size_t i = 0; i < num_images; i++) {
         image_extent_t image_extent;
-        stbi_uc* pixels = stbi_load(image_paths[i], &image_extent.width, &image_extent.height, &image_channels, STBI_rgb_alpha);
-        if (pixels == NULL) {
-            return result_failure;
+
+        const char** layer_paths = image_paths[i];
+
+        stbi_uc** pixel_arrays = ds_promise(num_layers*sizeof(stbi_uc*));
+        for (size_t j = 0; j < num_layers; j++) {
+            image_extent_t new_image_extent;
+            pixel_arrays[j] = stbi_load(layer_paths[j], &new_image_extent.width, &new_image_extent.height, &image_channels, STBI_rgb_alpha);
+            if (pixel_arrays[j] == NULL) {
+                return result_failure;
+            }
+            if (j > 0 && (new_image_extent.width != image_extent.width || new_image_extent.height != image_extent.height)) {
+                return result_failure;
+            }
+            image_extent = new_image_extent;
         }
-        VkDeviceSize num_image_bytes = image_extent.width*image_extent.height*4;
+        
+        VkDeviceSize num_layer_bytes = image_extent.width*image_extent.height*4;
+        VkDeviceSize num_image_bytes = num_layers*num_layer_bytes;
 
         image_extents[i] = image_extent;
         uint32_t num_mip_levels = ((uint32_t)floorf(log2f(max_uint32(image_extent.width, image_extent.height)))) + 1;
@@ -479,13 +505,16 @@ result_t begin_images(size_t num_images, const char* image_paths[], const VkForm
             return result_failure;
         }
 
-        if (write_to_buffer(image_staging_allocations[i], num_image_bytes, pixels) != result_success) {
+        const void* const* pixel_arrays_cast = (const void* const*)pixel_arrays;
+        if (writes_to_buffer(image_staging_allocations[i], num_layer_bytes, num_layers, pixel_arrays_cast) != result_success) {
             return result_failure;
         }
 
-        stbi_image_free(pixels);
+        for (size_t i = 0; i < num_layers; i++) {
+            stbi_image_free(pixel_arrays[i]);
+        }
 
-        if (create_image(image_extent.width, image_extent.height, num_mip_levels, formats[i], VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &images[i], &image_allocations[i]) != result_success) {
+        if (create_image(image_extent.width, image_extent.height, num_mip_levels, num_layers, formats[i], VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &images[i], &image_allocations[i]) != result_success) {
             return result_failure;
         }
     }
@@ -493,21 +522,21 @@ result_t begin_images(size_t num_images, const char* image_paths[], const VkForm
     return result_success;
 }
 
-void transfer_images(VkCommandBuffer command_buffer, size_t num_images, const image_extent_t image_extents[], const uint32_t num_mip_levels_array[], const VkBuffer image_staging_buffers[], const VkImage images[]) {
+void transfer_images(VkCommandBuffer command_buffer, size_t num_images, uint32_t num_layers, const image_extent_t image_extents[], const uint32_t num_mip_levels_array[], const VkBuffer image_staging_buffers[], const VkImage images[]) {
     for (size_t i = 0; i < num_images; i++) {
         image_extent_t image_extent = image_extents[i];
         uint32_t num_mip_levels = num_mip_levels_array[i];
         VkBuffer image_staging_buffer = image_staging_buffers[i];
         VkImage image = images[i];
 
-        transition_image_layout(command_buffer, image, num_mip_levels, 0, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-        transfer_from_staging_buffer_to_image(command_buffer, image_extent.width, image_extent.height, image_staging_buffer, image);
+        transition_image_layout(command_buffer, image, num_mip_levels, 0, num_layers, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+        transfer_from_staging_buffer_to_image(command_buffer, image_extent.width, image_extent.height, num_layers, image_staging_buffer, image);
 
         uint32_t mip_width = image_extent.width;
         uint32_t mip_height = image_extent.height;
 
         for (size_t i = 1; i < num_mip_levels; i++) {
-            transition_image_layout(command_buffer, image, 1, i - 1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+            transition_image_layout(command_buffer, image, 1, i - 1, num_layers, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
             VkImageBlit blit = {
                 .srcOffsets[0] = { 0, 0, 0 },
@@ -515,24 +544,24 @@ void transfer_images(VkCommandBuffer command_buffer, size_t num_images, const im
                 .srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                 .srcSubresource.mipLevel = i - 1,
                 .srcSubresource.baseArrayLayer = 0,
-                .srcSubresource.layerCount = 1,
+                .srcSubresource.layerCount = num_layers,
                 .dstOffsets[0] = { 0, 0, 0 },
                 .dstOffsets[1] = { mip_width > 1 ? mip_width / 2 : 1, mip_height > 1 ? mip_height / 2 : 1, 1 },
                 .dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                 .dstSubresource.mipLevel = i,
                 .dstSubresource.baseArrayLayer = 0,
-                .dstSubresource.layerCount = 1
+                .dstSubresource.layerCount = num_layers
             };
 
             vkCmdBlitImage(command_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
 
-            transition_image_layout(command_buffer, image, 1, i - 1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+            transition_image_layout(command_buffer, image, 1, i - 1, num_layers, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
             if (mip_width > 1) { mip_width /= 2; }
             if (mip_height > 1) { mip_height /= 2; }
         }
 
-        transition_image_layout(command_buffer, image, 1, num_mip_levels - 1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        transition_image_layout(command_buffer, image, 1, num_mip_levels - 1, num_layers, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     }
 }
 
@@ -542,9 +571,9 @@ void end_images(size_t num_images, const VkBuffer image_staging_buffers[], const
     }
 }
 
-result_t create_image_views(size_t num_images, const VkFormat formats[], const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]) {
+result_t create_image_views(size_t num_images, uint32_t num_layers, const VkFormat formats[], const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]) {
     for (size_t i = 0; i < num_images; i++) {
-        if (create_image_view(images[i], num_mip_levels_array[i], formats[i], VK_IMAGE_ASPECT_COLOR_BIT, &image_views[i]) != result_success) {
+        if (create_image_view(images[i], num_mip_levels_array[i], num_layers, formats[i], VK_IMAGE_ASPECT_COLOR_BIT, &image_views[i]) != result_success) {
             return result_failure;
         }
     }
