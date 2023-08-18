@@ -3,6 +3,7 @@
 layout(push_constant, std430) uniform push_constants_t {
     mat4 view_projection;
     vec3 camera_position;
+	float layer_index;
 };
 
 layout(binding = 0) uniform shadow_uniform_constants_t {
@@ -37,7 +38,7 @@ void main() {
 
 	vec3 world_position = (model * vec4(position, 1.0)).xyz;
 
-	frag_tex_coord = vec3(tex_coord, 0.0);
+	frag_tex_coord = vec3(tex_coord, layer_index);
 	frag_vertex_to_camera_direction = normal_texture_matrix * normalize(camera_position - world_position);
 	frag_light_direction = normal_texture_matrix * light_direction;
 	frag_vertex_to_light_direction = normal_texture_matrix * vertex_to_light_direction;

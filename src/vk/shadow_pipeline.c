@@ -212,8 +212,7 @@ const char* draw_shadow_pipeline(void) {
         command_buffer,
         framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
         NUM_ELEMS(clear_values), clear_values,
-        render_pass, descriptor_set, pipeline_layout, pipeline,
-        0, 0
+        render_pass, descriptor_set, pipeline_layout, pipeline
     );
 
     for (size_t i = 0; i < NUM_MODELS; i++) {

@@ -593,8 +593,7 @@ void begin_pipeline(
     VkCommandBuffer command_buffer,
     VkFramebuffer image_framebuffer, VkExtent2D image_extent,
     uint32_t num_clear_values, const VkClearValue clear_values[],
-    VkRenderPass render_pass, VkDescriptorSet descriptor_set, VkPipelineLayout pipeline_layout, VkPipeline pipeline,
-    uint32_t num_push_constants_bytes, const void* push_constants
+    VkRenderPass render_pass, VkDescriptorSet descriptor_set, VkPipelineLayout pipeline_layout, VkPipeline pipeline
 ) {
     {
         VkRenderPassBeginInfo info = {
@@ -614,9 +613,6 @@ void begin_pipeline(
     
     if (descriptor_set != NULL) {
         vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descriptor_set, 0, NULL);
-    }
-    if (num_push_constants_bytes > 0) {
-        vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, num_push_constants_bytes, push_constants);
     }
 
     VkViewport viewport = {

@@ -18,6 +18,7 @@ extern VkImageView depth_image_view;
 typedef struct {
     mat4s view_projection;
     vec3s camera_position;
+    float layer_index;
 } color_pipeline_push_constants_t;
 extern color_pipeline_push_constants_t color_pipeline_push_constants;
 static_assert(sizeof(color_pipeline_push_constants_t) <= 256, "Push constants must be less than or equal to 256 bytes");
