@@ -89,6 +89,12 @@ const char* create_graphics_pipeline(
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
 );
 
+result_t create_graphics_pipeline_layout(
+    uint32_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
+    uint32_t num_push_constants_bytes,
+    VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout
+);
+
 // Used by core as well
 result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, uint32_t num_layers, VkFormat format, VkSampleCountFlagBits multisample_flags, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VmaAllocation* image_allocation);
 result_t create_image_view(VkImage image, uint32_t num_mip_levels, uint32_t num_layers, VkFormat format, VkImageAspectFlags aspect_flags, VkImageView* image_view);

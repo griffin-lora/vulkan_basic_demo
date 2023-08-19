@@ -216,6 +216,119 @@ result_t create_image_view(VkImage image, uint32_t num_mip_levels, uint32_t num_
     return result_success;
 }
 
+result_t create_graphics_pipeline_layout(
+    uint32_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
+    uint32_t num_push_constants_bytes,
+    VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout
+) {
+    {
+        VkDescriptorSetLayoutBinding* bindings = ds_promise(num_descriptor_bindings*sizeof(VkDescriptorSetLayoutBinding));
+        for (size_t i = 0; i < num_descriptor_bindings; i++) {
+            descriptor_binding_t binding = descriptor_bindings[i];
+            bindings[i] = (VkDescriptorSetLayoutBinding) {
+                .binding = i,
+                .descriptorType = binding.type,
+                .descriptorCount = 1,
+                .stageFlags = binding.stage_flags,
+                .pImmutableSamplers = NULL
+            };
+        }
+
+        VkDescriptorSetLayoutCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = num_descriptor_bindings,
+            .pBindings = bindings
+        };
+
+        if (vkCreateDescriptorSetLayout(device, &info, NULL, descriptor_set_layout) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    {
+        VkDescriptorPoolSize* sizes = ds_promise(num_descriptor_bindings*sizeof(VkDescriptorPoolSize));
+        for (size_t i = 0; i < num_descriptor_bindings; i++) {
+            sizes[i] = (VkDescriptorPoolSize) {
+                .type = descriptor_bindings[i].type,
+                // .descriptorCount = NUM_FRAMES_IN_FLIGHT
+                .descriptorCount = 1
+            };
+        }
+
+        VkDescriptorPoolCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .poolSizeCount = num_descriptor_bindings,
+            .pPoolSizes = sizes,
+            .maxSets = 1
+        };
+
+        if (vkCreateDescriptorPool(device, &info, NULL, descriptor_pool) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    {
+        VkDescriptorSetAllocateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .descriptorPool = *descriptor_pool,
+            .descriptorSetCount = 1,
+            .pSetLayouts = descriptor_set_layout
+        };
+
+        if (vkAllocateDescriptorSets(device, &info, descriptor_set) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    {
+        VkWriteDescriptorSet* writes = ds_promise(num_descriptor_bindings*sizeof(VkWriteDescriptorSet));
+        for (size_t i = 0; i < num_descriptor_bindings; i++) {
+            VkWriteDescriptorSet write = {
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = *descriptor_set,
+                .dstBinding = i,
+                .dstArrayElement = 0,
+                .descriptorType = descriptor_bindings[i].type,
+                .descriptorCount = 1
+            };
+            const descriptor_info_t* info = &descriptor_infos[i];
+
+            // TODO: This is bad
+            if (info->type == descriptor_info_type_buffer) {
+                write.pBufferInfo = &info->buffer;
+            } else if (info->type == descriptor_info_type_image) {
+                write.pImageInfo = &info->image;
+            }
+
+            writes[i] = write;
+        }
+
+        vkUpdateDescriptorSets(device, num_descriptor_bindings, writes, 0, NULL);
+    }
+
+    {
+        VkPushConstantRange range = {
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            .offset = 0,
+            .size = num_push_constants_bytes
+        };
+
+        VkPipelineLayoutCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .setLayoutCount = num_descriptor_bindings != 0 ? 1 : 0,  // TODO: Also a hack
+            .pSetLayouts = descriptor_set_layout,
+            .pushConstantRangeCount = num_push_constants_bytes == 0 ? 0 : 1,
+            .pPushConstantRanges = &range
+        };
+
+        if (vkCreatePipelineLayout(device, &info, NULL, pipeline_layout) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    return result_success;
+}
+
 const char* create_graphics_pipeline(
     uint32_t num_shaders, const shader_t shaders[],
     uint32_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
@@ -226,95 +339,9 @@ const char* create_graphics_pipeline(
     VkRenderPass render_pass,
     VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
 ) {
-    // TODO: This is a hack, later just separate this out into it's own function
-    if (num_descriptor_bindings > 0) {
-        {
-            VkDescriptorSetLayoutBinding* bindings = ds_promise(num_descriptor_bindings*sizeof(VkDescriptorSetLayoutBinding));
-            for (size_t i = 0; i < num_descriptor_bindings; i++) {
-                descriptor_binding_t binding = descriptor_bindings[i];
-                bindings[i] = (VkDescriptorSetLayoutBinding) {
-                    .binding = i,
-                    .descriptorType = binding.type,
-                    .descriptorCount = 1,
-                    .stageFlags = binding.stage_flags,
-                    .pImmutableSamplers = NULL
-                };
-            }
-
-            VkDescriptorSetLayoutCreateInfo info = {
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                .bindingCount = num_descriptor_bindings,
-                .pBindings = bindings
-            };
-
-            if (vkCreateDescriptorSetLayout(device, &info, NULL, descriptor_set_layout) != VK_SUCCESS) {
-                return "Failed to create descriptor set layout\n";
-            }
-        }
-
-        {
-            VkDescriptorPoolSize* sizes = ds_promise(num_descriptor_bindings*sizeof(VkDescriptorPoolSize));
-            for (size_t i = 0; i < num_descriptor_bindings; i++) {
-                sizes[i] = (VkDescriptorPoolSize) {
-                    .type = descriptor_bindings[i].type,
-                    // .descriptorCount = NUM_FRAMES_IN_FLIGHT
-                    .descriptorCount = 1
-                };
-            }
-
-            VkDescriptorPoolCreateInfo info = {
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                .poolSizeCount = num_descriptor_bindings,
-                .pPoolSizes = sizes,
-                .maxSets = 1
-            };
-
-            if (vkCreateDescriptorPool(device, &info, NULL, descriptor_pool) != VK_SUCCESS) {
-                return "Failed to create descriptor pool\n";
-            }
-        }
-
-        {
-            VkDescriptorSetAllocateInfo info = {
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                .descriptorPool = *descriptor_pool,
-                .descriptorSetCount = 1,
-                .pSetLayouts = descriptor_set_layout
-            };
-
-            if (vkAllocateDescriptorSets(device, &info, descriptor_set) != VK_SUCCESS) {
-                return "Failed to allocate descriptor set\n";
-            }
-        }
-
-        {
-            VkWriteDescriptorSet* writes = ds_promise(num_descriptor_bindings*sizeof(VkWriteDescriptorSet));
-            for (size_t i = 0; i < num_descriptor_bindings; i++) {
-                VkWriteDescriptorSet write = {
-                    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    .dstSet = *descriptor_set,
-                    .dstBinding = i,
-                    .dstArrayElement = 0,
-                    .descriptorType = descriptor_bindings[i].type,
-                    .descriptorCount = 1
-                };
-                const descriptor_info_t* info = &descriptor_infos[i];
-
-                // TODO: This is bad
-                if (info->type == descriptor_info_type_buffer) {
-                    write.pBufferInfo = &info->buffer;
-                } else if (info->type == descriptor_info_type_image) {
-                    write.pImageInfo = &info->image;
-                }
-
-                writes[i] = write;
-            }
-
-            vkUpdateDescriptorSets(device, num_descriptor_bindings, writes, 0, NULL);
-        }
+    if (create_graphics_pipeline_layout(num_descriptor_bindings, descriptor_bindings, descriptor_infos, num_push_constants_bytes, descriptor_set_layout, descriptor_pool, descriptor_set, pipeline_layout) != result_success) {
+        return "Failed to create pipeline layout\n";
     }
-
-    //
 
     VkVertexInputBindingDescription* vertex_input_binding_descriptions = ds_push(num_vertex_bindings*sizeof(VkVertexInputBindingDescription));
 
@@ -349,26 +376,6 @@ const char* create_graphics_pipeline(
     };
 
     //
-
-    {
-        VkPushConstantRange range = {
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-            .offset = 0,
-            .size = num_push_constants_bytes
-        };
-
-        VkPipelineLayoutCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .setLayoutCount = num_descriptor_bindings != 0 ? 1 : 0,  // TODO: Also a hack
-            .pSetLayouts = descriptor_set_layout,
-            .pushConstantRangeCount = num_push_constants_bytes == 0 ? 0 : 1,
-            .pPushConstantRanges = &range
-        };
-
-        if (vkCreatePipelineLayout(device, &info, NULL, pipeline_layout) != VK_SUCCESS) {
-            return "Failed to create pipeline layout\n";
-        }
-    }
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly_pipeline_state_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,

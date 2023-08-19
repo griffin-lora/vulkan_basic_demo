@@ -61,14 +61,16 @@ const char* init_color_pipeline(void) {
         return "Failed to create color pipeline images\n";
     }
 
-    VkCommandBufferAllocateInfo command_buffer_allocate_info = {
-        DEFAULT_VK_COMMAND_BUFFER,
-        .commandPool = command_pool,
-        .commandBufferCount = NUM_FRAMES_IN_FLIGHT
-    };
+    {
+        VkCommandBufferAllocateInfo info = {
+            DEFAULT_VK_COMMAND_BUFFER,
+            .commandPool = command_pool,
+            .commandBufferCount = NUM_FRAMES_IN_FLIGHT
+        };
 
-    if (vkAllocateCommandBuffers(device, &command_buffer_allocate_info, color_command_buffers) != VK_SUCCESS) {
-        return "Failed to allocate command buffers\n";
+        if (vkAllocateCommandBuffers(device, &info, color_command_buffers) != VK_SUCCESS) {
+            return "Failed to allocate command buffers\n";
+        }
     }
 
     VkAttachmentReference color_attachment_reference = {
@@ -105,43 +107,36 @@ const char* init_color_pipeline(void) {
 
     VkAttachmentDescription attachments[] = {
         {
+            DEFAULT_VK_ATTACHMENT,
             .format = surface_format.format,
             .samples = render_multisample_flags,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
             .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
         },
         {
+            DEFAULT_VK_ATTACHMENT,
             .format = depth_image_format,
             .samples = render_multisample_flags,
             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
             .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
             .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
         },
         {
+            DEFAULT_VK_ATTACHMENT,
             .format = surface_format.format,
             .samples = VK_SAMPLE_COUNT_1_BIT,
             .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
             .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
         }
     };
 
     {
         VkRenderPassCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            DEFAULT_VK_RENDER_PASS,
             .attachmentCount = NUM_ELEMS(attachments),
             .pAttachments = attachments,
-            .subpassCount = 1,
             .pSubpasses = &subpass,
             .dependencyCount = 1,
             .pDependencies = &subpass_dependency
@@ -151,27 +146,6 @@ const char* init_color_pipeline(void) {
             return "Failed to create render pass\n";
         }
     }
-
-    VkShaderModule vertex_shader_module;
-    if (create_shader_module("shader/color_pipeline_vertex.spv", &vertex_shader_module) != result_success) {
-        return "Failed to create vertex shader module\n";
-    }
-
-    VkShaderModule fragment_shader_module;
-    if (create_shader_module("shader/color_pipeline_fragment.spv", &fragment_shader_module) != result_success) {
-        return "Failed to create fragment shader module\n";
-    }
-
-    shader_t shaders[] = {
-        {
-            .stage_flags = VK_SHADER_STAGE_VERTEX_BIT,
-            .module = vertex_shader_module
-        },
-        {
-            .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT,
-            .module = fragment_shader_module
-        }
-    };
 
     descriptor_binding_t bindings[] = {
         {
@@ -238,78 +212,138 @@ const char* init_color_pipeline(void) {
             }
         }
     };
+
+    if (create_graphics_pipeline_layout(
+        NUM_ELEMS(bindings), bindings, infos,
+        sizeof(color_pipeline_push_constants),
+        &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout
+    ) != result_success) {
+        return "Failed to create pipeline layout\n";
+    }
+
+    //
+
+    VkShaderModule vertex_shader_module;
+    if (create_shader_module("shader/color_pipeline_vertex.spv", &vertex_shader_module) != result_success) {
+        return "Failed to create vertex shader module\n";
+    }
+
+    VkShaderModule fragment_shader_module;
+    if (create_shader_module("shader/color_pipeline_fragment.spv", &fragment_shader_module) != result_success) {
+        return "Failed to create fragment shader module\n";
+    }
+
+    VkPipelineShaderStageCreateInfo shader_infos[] = {
+        {
+            DEFAULT_VK_SHADER_STAGE,
+            .stage = VK_SHADER_STAGE_VERTEX_BIT,
+            .module = vertex_shader_module
+        },
+        {
+            DEFAULT_VK_SHADER_STAGE,
+            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .module = fragment_shader_module
+        }
+    };
     
-    vertex_binding_t vertex_bindings[] = {
+    VkVertexInputBindingDescription vertex_bindings[] = {
         {
-            .num_bytes = sizeof(mat4s),
-            .input_rate = VK_VERTEX_INPUT_RATE_INSTANCE
+            .binding = 0,
+            .stride = sizeof(mat4s),
+            .inputRate = VK_VERTEX_INPUT_RATE_INSTANCE
         },
         {
-            .num_bytes = num_vertex_bytes_array[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
-            .input_rate = VK_VERTEX_INPUT_RATE_VERTEX
+            .binding = 1,
+            .stride = num_vertex_bytes_array[GENERAL_PIPELINE_VERTEX_ARRAY_INDEX],
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
         },
         {
-            .num_bytes = num_vertex_bytes_array[COLOR_PIPELINE_VERTEX_ARRAY_INDEX],
-            .input_rate = VK_VERTEX_INPUT_RATE_VERTEX
+            .binding = 2,
+            .stride = num_vertex_bytes_array[COLOR_PIPELINE_VERTEX_ARRAY_INDEX],
+            .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
         }
     };
 
-    vertex_attribute_t attributes[] = {
+    VkVertexInputAttributeDescription vertex_attributes[] = {
         {
             .binding = 0,
+            .location = 0,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
             .offset = 0*sizeof(vec4s)
         },
         {
             .binding = 0,
+            .location = 1,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
             .offset = 1*sizeof(vec4s)
         },
         {
             .binding = 0,
+            .location = 2,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
             .offset = 2*sizeof(vec4s)
         },
         {
             .binding = 0,
+            .location = 3,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
             .offset = 3*sizeof(vec4s)
         },
         //
         {
             .binding = 1,
+            .location = 4,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
             .offset = offsetof(general_pipeline_vertex_t, position)
         },
         {
             .binding = 2,
+            .location = 5,
             .format = VK_FORMAT_R32G32B32_SFLOAT,
             .offset = offsetof(color_pipeline_vertex_t, normal)
         },
         {
             .binding = 2,
+            .location = 6,
             .format = VK_FORMAT_R32G32B32A32_SFLOAT,
             .offset = offsetof(color_pipeline_vertex_t, tangent)
         },
         {
             .binding = 2,
+            .location = 7,
             .format = VK_FORMAT_R32G32_SFLOAT,
             .offset = offsetof(color_pipeline_vertex_t, tex_coord)
         }
     };
 
-    const char* msg = create_graphics_pipeline(
-        NUM_ELEMS(shaders), shaders,
-        NUM_ELEMS(bindings), bindings, infos,
-        NUM_ELEMS(vertex_bindings), vertex_bindings,
-        NUM_ELEMS(attributes), attributes,
-        sizeof(color_pipeline_push_constants),
-        render_multisample_flags, (depth_bias_t) { .enable = false },
-        color_pipeline_render_pass,
-        &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout, &pipeline
-    );
-    if (msg != NULL) {
-        return msg;
+    VkPipelineVertexInputStateCreateInfo vertex_input_info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .vertexBindingDescriptionCount = NUM_ELEMS(vertex_bindings),
+        .pVertexBindingDescriptions = vertex_bindings,
+        .vertexAttributeDescriptionCount = NUM_ELEMS(vertex_attributes),
+        .pVertexAttributeDescriptions = vertex_attributes
+    };
+
+    VkPipelineRasterizationStateCreateInfo rasterization_info = { DEFAULT_VK_RASTERIZATION };
+
+    VkPipelineMultisampleStateCreateInfo multisample_info = {
+        DEFAULT_VK_MULTISAMPLE,
+        .rasterizationSamples = render_multisample_flags
+    };
+    
+    VkGraphicsPipelineCreateInfo info = {
+        DEFAULT_VK_GRAPHICS_PIPELINE,
+        .stageCount = NUM_ELEMS(shader_infos),
+        .pStages = shader_infos,
+        .pVertexInputState = &vertex_input_info,
+        .pRasterizationState = &rasterization_info,
+        .pMultisampleState = &multisample_info,
+        .layout = pipeline_layout,
+        .renderPass = color_pipeline_render_pass
+    };
+
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, NULL, &pipeline) != VK_SUCCESS) {
+        return "Failed to create graphics pipeline\n";
     }
 
     vkDestroyShaderModule(device, vertex_shader_module, NULL);
