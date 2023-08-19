@@ -65,11 +65,6 @@ void begin_pipeline(
     VkRenderPass render_pass, VkDescriptorSet descriptor_set, VkPipelineLayout pipeline_layout, VkPipeline pipeline
 );
 
-void draw_instanced_model(
-    VkCommandBuffer command_buffer,
-    uint32_t num_vertex_buffers, const VkBuffer vertex_buffers[],
-    uint32_t num_indices, VkBuffer index_buffer,
-    uint32_t num_instances
-);
+void bind_vertex_buffers(VkCommandBuffer command_buffer, uint32_t num_vertex_buffers, const VkBuffer vertex_buffers[]);
 
 void end_pipeline(VkCommandBuffer command_buffer);

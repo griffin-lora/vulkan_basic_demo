@@ -445,18 +445,10 @@ void begin_pipeline(
     vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 }
 
-void draw_instanced_model(
-    VkCommandBuffer command_buffer,
-    uint32_t num_vertex_buffers, const VkBuffer vertex_buffers[],
-    uint32_t num_indices, VkBuffer index_buffer,
-    uint32_t num_instances
-) {
+void bind_vertex_buffers(VkCommandBuffer command_buffer, uint32_t num_vertex_buffers, const VkBuffer vertex_buffers[]) {
     VkDeviceSize* offsets = ds_promise(num_vertex_buffers*sizeof(VkDeviceSize));
     memset(offsets, 0, num_vertex_buffers*sizeof(VkDeviceSize));
     vkCmdBindVertexBuffers(command_buffer, 0, num_vertex_buffers, vertex_buffers, offsets);
-
-    vkCmdBindIndexBuffer(command_buffer, index_buffer, 0, VK_INDEX_TYPE_UINT16);
-    vkCmdDrawIndexed(command_buffer, num_indices, num_instances, 0, 0, 0);
 }
 
 void end_pipeline(VkCommandBuffer command_buffer) {

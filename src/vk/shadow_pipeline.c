@@ -266,12 +266,9 @@ const char* draw_shadow_pipeline(void) {
             vertex_buffer_arrays[i][GENERAL_PIPELINE_VERTEX_ARRAY_INDEX]
         };
 
-        draw_instanced_model(
-            command_buffer,
-            NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
-            num_indices_array[i], index_buffers[i],
-            num_instances_array[i]
-        );
+        bind_vertex_buffers(command_buffer, NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers);
+        vkCmdBindIndexBuffer(command_buffer, index_buffers[i], 0, VK_INDEX_TYPE_UINT16);
+        vkCmdDrawIndexed(command_buffer, num_indices_array[i], num_instances_array[i], 0, 0, 0);
     }
 
     end_pipeline(command_buffer);

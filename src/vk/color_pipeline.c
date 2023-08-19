@@ -235,7 +235,7 @@ const char* init_color_pipeline(void) {
 
     {
         VkPushConstantRange range = {
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
             .size = sizeof(color_pipeline_push_constants)
         };
 
@@ -418,14 +418,11 @@ const char* draw_color_pipeline(size_t frame_index, size_t image_index, VkComman
 
         color_pipeline_push_constants.layer_index = i;
 
-        vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(color_pipeline_push_constants), &color_pipeline_push_constants);
+        vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(color_pipeline_push_constants), &color_pipeline_push_constants);
 
-        draw_instanced_model(
-            command_buffer,
-            NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers,
-            num_indices_array[i], index_buffers[i],
-            num_instances_array[i]
-        );
+        bind_vertex_buffers(command_buffer, NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers);
+        vkCmdBindIndexBuffer(command_buffer, index_buffers[i], 0, VK_INDEX_TYPE_UINT16);
+        vkCmdDrawIndexed(command_buffer, num_indices_array[i], num_instances_array[i], 0, 0, 0);
     }
 
     end_pipeline(command_buffer);
