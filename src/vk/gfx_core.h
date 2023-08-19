@@ -41,11 +41,6 @@ void transfer_instances(VkCommandBuffer command_buffer, VkDeviceSize num_instanc
 void end_instances(VkBuffer instance_staging_buffer, VmaAllocation instance_staging_buffer_allocation);
 
 typedef struct {
-    VkDescriptorType type;
-    VkShaderStageFlags stage_flags;
-} descriptor_binding_t;
-
-typedef struct {
     enum {
         descriptor_info_type_buffer,
         descriptor_info_type_image
@@ -56,46 +51,7 @@ typedef struct {
     };
 } descriptor_info_t;
 
-typedef struct {
-    uint32_t num_bytes;
-    VkVertexInputRate input_rate;
-} vertex_binding_t;
-
-typedef struct {
-    uint32_t binding;
-    VkFormat format;
-    uint32_t offset;
-} vertex_attribute_t;
-
-typedef struct {
-    VkShaderStageFlagBits stage_flags;
-    VkShaderModule module;
-} shader_t;
-
-typedef struct {
-    bool enable;
-    float constant_factor;
-    float slope_factor;
-} depth_bias_t;
-
-const char* create_graphics_pipeline(
-    uint32_t num_shaders, const shader_t shaders[],
-    uint32_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
-    uint32_t num_vertex_bindings, const vertex_binding_t vertex_bindings[],
-    uint32_t num_vertex_attributes, const vertex_attribute_t vertex_attributes[],
-    uint32_t num_push_constants_bytes,
-    VkSampleCountFlagBits multisample_flags, depth_bias_t depth_bias,
-    VkRenderPass render_pass,
-    VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout, VkPipeline* pipeline
-);
-
 result_t create_descriptor_set(VkDescriptorSetLayoutCreateInfo info, descriptor_info_t infos[], VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set);
-
-result_t create_graphics_pipeline_layout(
-    uint32_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
-    uint32_t num_push_constants_bytes,
-    VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set, VkPipelineLayout* pipeline_layout
-);
 
 // Used by core as well
 result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, uint32_t num_layers, VkFormat format, VkSampleCountFlagBits multisample_flags, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VmaAllocation* image_allocation);

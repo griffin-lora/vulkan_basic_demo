@@ -13,6 +13,7 @@ extern const VkPipelineDynamicStateCreateInfo default_dynamic_create_info;
     .commandBufferCount = 1
 
 #define DEFAULT_VK_ATTACHMENT\
+    .samples = VK_SAMPLE_COUNT_1_BIT,\
     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,\
     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,\
     .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
