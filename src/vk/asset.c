@@ -4,6 +4,7 @@
 #include "core.h"
 #include "gfx_core.h"
 #include "color_pipeline.h"
+#include "defaults.h"
 #include <malloc.h>
 #include <string.h>
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -54,7 +55,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         size_t i = 0;
         for (float x = -4.0f; x <= 4.0f; x++) {
             for (float y = -4.0f; y <= 4.0f; y++, i++) {
-                cube_model_matrices[i] = glms_translate(glms_mat4_identity(), (vec3s) {{ x * 8.0f, 2.0f, y * 8.0f }});
+                cube_model_matrices[i] = glms_translate(glms_mat4_identity(), (vec3s) {{ x * 8.0f, 1.0f, y * 8.0f }});
             }
         }
     }
@@ -167,22 +168,8 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     {
         VkSamplerCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .minFilter = VK_FILTER_LINEAR, // undersample
-            .magFilter = VK_FILTER_LINEAR, // oversample
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .anisotropyEnable = VK_TRUE,
-            .maxAnisotropy = physical_device_properties->limits.maxSamplerAnisotropy,
-            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-            .unnormalizedCoordinates = VK_FALSE, // interesting
-            .compareEnable = VK_FALSE,
-            .compareOp = VK_COMPARE_OP_ALWAYS,
-            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .minLod = 0.0f,
-            .maxLod = num_mip_levels_array[0],
-            .mipLodBias = 0.0f
+            DEFAULT_VK_SAMPLER,
+            .maxLod = num_mip_levels_array[0]
         };
 
         if (vkCreateSampler(device, &info, NULL, &texture_image_sampler) != VK_SUCCESS) {
@@ -192,22 +179,9 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     {
         VkSamplerCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .minFilter = VK_FILTER_LINEAR, // undersample
-            .magFilter = VK_FILTER_LINEAR, // oversample
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .anisotropyEnable = VK_TRUE,
-            .maxAnisotropy = physical_device_properties->limits.maxSamplerAnisotropy,
-            .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-            .unnormalizedCoordinates = VK_FALSE, // interesting
+            DEFAULT_VK_SAMPLER,
             .compareEnable = VK_TRUE,
-            .compareOp = VK_COMPARE_OP_LESS,
-            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .minLod = 0.0f,
-            .maxLod = num_mip_levels_array[0],
-            .mipLodBias = 0.0f
+            .compareOp = VK_COMPARE_OP_LESS
         };
 
         if (vkCreateSampler(device, &info, NULL, &shadow_texture_image_sampler) != VK_SUCCESS) {
