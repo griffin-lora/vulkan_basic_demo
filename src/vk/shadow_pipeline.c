@@ -193,6 +193,7 @@ const char* init_shadow_pipeline(void) {
         .pVertexInputState = &vertex_input_info,
         .pRasterizationState = &rasterization_info,
         .pMultisampleState = &multisample_info,
+        .pColorBlendState = NULL,
         .layout = pipeline_layout,
         .renderPass = render_pass
     };
