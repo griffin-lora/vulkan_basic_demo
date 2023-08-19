@@ -216,6 +216,76 @@ result_t create_image_view(VkImage image, uint32_t num_mip_levels, uint32_t num_
     return result_success;
 }
 
+result_t create_descriptor_set(VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info, descriptor_info_t descriptor_infos[], VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set) {
+    if (vkCreateDescriptorSetLayout(device, &descriptor_set_layout_create_info, NULL, descriptor_set_layout) != VK_SUCCESS) {
+        return result_failure;
+    }
+
+    size_t num_bindings = descriptor_set_layout_create_info.bindingCount;
+    const VkDescriptorSetLayoutBinding* bindings = descriptor_set_layout_create_info.pBindings;
+
+    {
+        VkDescriptorPoolSize* sizes = ds_promise(num_bindings*sizeof(VkDescriptorPoolSize));
+        for (size_t i = 0; i < num_bindings; i++) {
+            sizes[i] = (VkDescriptorPoolSize) {
+                .type = bindings[i].descriptorType,
+                .descriptorCount = 1
+            };
+        }
+
+        VkDescriptorPoolCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .poolSizeCount = num_bindings,
+            .pPoolSizes = sizes,
+            .maxSets = 1
+        };
+
+        if (vkCreateDescriptorPool(device, &info, NULL, descriptor_pool) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    {
+        VkDescriptorSetAllocateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .descriptorPool = *descriptor_pool,
+            .descriptorSetCount = 1,
+            .pSetLayouts = descriptor_set_layout
+        };
+
+        if (vkAllocateDescriptorSets(device, &info, descriptor_set) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+
+    {
+        VkWriteDescriptorSet* writes = ds_promise(num_bindings*sizeof(VkWriteDescriptorSet));
+        for (size_t i = 0; i < num_bindings; i++) {
+            VkWriteDescriptorSet write = {
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .dstSet = *descriptor_set,
+                .dstBinding = bindings[i].binding,
+                .dstArrayElement = 0,
+                .descriptorType = bindings[i].descriptorType,
+                .descriptorCount = 1
+            };
+            const descriptor_info_t* info = &descriptor_infos[i];
+
+            if (info->type == descriptor_info_type_buffer) {
+                write.pBufferInfo = &info->buffer;
+            } else if (info->type == descriptor_info_type_image) {
+                write.pImageInfo = &info->image;
+            }
+
+            writes[i] = write;
+        }
+
+        vkUpdateDescriptorSets(device, num_bindings, writes, 0, NULL);
+    }
+
+    return result_success;
+}
+
 result_t create_graphics_pipeline_layout(
     uint32_t num_descriptor_bindings, const descriptor_binding_t descriptor_bindings[], const descriptor_info_t descriptor_infos[],
     uint32_t num_push_constants_bytes,

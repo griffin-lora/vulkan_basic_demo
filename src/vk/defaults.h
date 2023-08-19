@@ -21,6 +21,13 @@ extern const VkPipelineDynamicStateCreateInfo default_dynamic_create_info;
     .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,\
     .subpassCount = 1
 
+#define DEFAULT_VK_DESCRIPTOR_BINDING\
+    .descriptorCount = 1
+
+#define DEFAULT_VK_PIPELINE_LAYOUT\
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,\
+    .setLayoutCount = 1
+
 #define DEFAULT_VK_SHADER_STAGE\
     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,\
     .pName = "main"

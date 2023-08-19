@@ -147,30 +147,40 @@ const char* init_color_pipeline(void) {
         }
     }
 
-    descriptor_binding_t bindings[] = {
+    VkDescriptorSetLayoutBinding descriptor_bindings[] = {
         {
-            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            .stage_flags = VK_SHADER_STAGE_VERTEX_BIT
+            DEFAULT_VK_DESCRIPTOR_BINDING,
+            .binding = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
         },
         {
-            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
+            DEFAULT_VK_DESCRIPTOR_BINDING,
+            .binding = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
         },
         {
-            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
+            DEFAULT_VK_DESCRIPTOR_BINDING,
+            .binding = 2,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
         },
         {
-            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
+            DEFAULT_VK_DESCRIPTOR_BINDING,
+            .binding = 3,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
         },
         {
-            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .stage_flags = VK_SHADER_STAGE_FRAGMENT_BIT
+            DEFAULT_VK_DESCRIPTOR_BINDING,
+            .binding = 4,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
         }
     };
 
-    descriptor_info_t infos[] = {
+    descriptor_info_t descriptor_infos[] = {
         {
             .type = descriptor_info_type_buffer,
             .buffer = {
@@ -213,12 +223,33 @@ const char* init_color_pipeline(void) {
         }
     };
 
-    if (create_graphics_pipeline_layout(
-        NUM_ELEMS(bindings), bindings, infos,
-        sizeof(color_pipeline_push_constants),
-        &descriptor_set_layout, &descriptor_pool, &descriptor_set, &pipeline_layout
+    if (create_descriptor_set(
+        (VkDescriptorSetLayoutCreateInfo) {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = NUM_ELEMS(descriptor_bindings),
+            .pBindings = descriptor_bindings
+        }, descriptor_infos,
+        &descriptor_set_layout, &descriptor_pool, &descriptor_set
     ) != result_success) {
-        return "Failed to create pipeline layout\n";
+        return "Failed to create descriptor set\n";
+    }
+
+    {
+        VkPushConstantRange range = {
+            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+            .size = sizeof(color_pipeline_push_constants)
+        };
+
+        VkPipelineLayoutCreateInfo info = {
+            DEFAULT_VK_PIPELINE_LAYOUT,
+            .pSetLayouts = &descriptor_set_layout,
+            .pushConstantRangeCount = 1,
+            .pPushConstantRanges = &range
+        };
+
+        if (vkCreatePipelineLayout(device, &info, NULL, &pipeline_layout) != VK_SUCCESS) {
+            return "Failed to create pipeline layout\n";
+        }
     }
 
     //
