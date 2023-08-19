@@ -4,6 +4,7 @@
 #include "asset.h"
 #include "util.h"
 #include "mesh.h"
+#include "defaults.h"
 #include <vk_mem_alloc.h>
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/mat4.h>
@@ -164,10 +165,8 @@ const char* draw_shadow_pipeline(void) {
     VkCommandBuffer command_buffer;
     {
         VkCommandBufferAllocateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandPool = command_pool, // TODO: Use separate command pool
-            .commandBufferCount = 1
+            DEFAULT_VK_COMMAND_BUFFER,
+            .commandPool = command_pool // TODO: Use separate command pool
         };
 
         if (vkAllocateCommandBuffers(device, &info, &command_buffer) != VK_SUCCESS) {

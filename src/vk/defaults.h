@@ -1,5 +1,10 @@
 #pragma once
 
+#define DEFAULT_VK_COMMAND_BUFFER\
+    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,\
+    .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,\
+    .commandBufferCount = 1
+
 #define DEFAULT_VK_SAMPLER\
     .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,\
     .minFilter = VK_FILTER_LINEAR,\

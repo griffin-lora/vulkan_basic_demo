@@ -5,6 +5,7 @@
 #include "asset.h"
 #include "util.h"
 #include "mesh.h"
+#include "defaults.h"
 #include <vk_mem_alloc.h>
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/mat4.h>
@@ -61,9 +62,8 @@ const char* init_color_pipeline(void) {
     }
 
     VkCommandBufferAllocateInfo command_buffer_allocate_info = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        DEFAULT_VK_COMMAND_BUFFER,
         .commandPool = command_pool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
         .commandBufferCount = NUM_FRAMES_IN_FLIGHT
     };
 
