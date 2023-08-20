@@ -70,36 +70,6 @@ result_t writes_to_buffer(VmaAllocation buffer_allocation, size_t num_write_byte
     return result_success;
 }
 
-result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_mip_levels, uint32_t num_layers, VkFormat format, VkSampleCountFlagBits multisample_flags, VkImageTiling tiling, VkImageUsageFlags usage_flags, VkMemoryPropertyFlags property_flags, VkImage* image, VmaAllocation* image_allocation) {
-    VkImageCreateInfo image_info = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .extent.width = image_width,
-        .extent.height = image_height,
-        .extent.depth = 1,
-        .mipLevels = num_mip_levels,
-        .arrayLayers = num_layers,
-        .format = format,
-        .tiling = tiling,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .usage = usage_flags,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .samples = multisample_flags
-    };
-
-    VmaAllocationCreateInfo allocation_info = {
-        .usage = VMA_MEMORY_USAGE_AUTO,
-        .flags = /*allocation_flags*/0,
-        .requiredFlags = property_flags
-    };
-
-    if (vmaCreateImage(allocator, &image_info, &allocation_info, image, image_allocation, NULL) != VK_SUCCESS) {
-        return result_failure;
-    }
-
-    return result_success;
-}
-
 void transfer_from_staging_buffer_to_image(VkCommandBuffer command_buffer, uint32_t image_width, uint32_t image_height, uint32_t num_layers, VkBuffer staging_buffer, VkImage image) {
     VkBufferImageCopy region = {
         .bufferOffset = 0,
@@ -280,8 +250,20 @@ result_t begin_images(size_t num_images, uint32_t num_layers, const char* image_
             stbi_image_free(pixel_arrays[i]);
         }
 
-        if (create_image(image_extent.width, image_extent.height, num_mip_levels, num_layers, formats[i], VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT |VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &images[i], &image_allocations[i]) != result_success) {
-            return result_failure;
+        {
+            VkImageCreateInfo info = {
+                DEFAULT_VK_IMAGE,
+                .extent.width = image_extent.width,
+                .extent.height = image_extent.height,
+                .mipLevels = num_mip_levels,
+                .arrayLayers = num_layers,
+                .format = formats[i],
+                .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+            };
+
+            if (vmaCreateImage(allocator, &info, &default_device_allocation_create_info, &images[i], &image_allocations[i], NULL) != VK_SUCCESS) {
+                return result_failure;
+            }
         }
     }
     

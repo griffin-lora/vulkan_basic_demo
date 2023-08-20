@@ -26,12 +26,29 @@ static VmaAllocation shadow_image_allocation;
 VkImageView shadow_image_view;
 
 const char* init_shadow_pipeline(void) {
-    if (create_image(SHADOW_IMAGE_SIZE, SHADOW_IMAGE_SIZE, 1, 1, depth_image_format, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &shadow_image, &shadow_image_allocation) != result_success) {
-        return "Failed to create shadow image\n";
-    }
+    {
+        VkImageCreateInfo image_create_info = {
+            DEFAULT_VK_IMAGE,
+            .extent.width = SHADOW_IMAGE_SIZE,
+            .extent.height = SHADOW_IMAGE_SIZE,
+            .format = depth_image_format,
+            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+        };
 
-    if (create_image_view(shadow_image, 1, 1, depth_image_format, depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT, &shadow_image_view) != result_success) {
-        return "Failed to create shadow image view\n";
+        if (vmaCreateImage(allocator, &image_create_info, &default_device_allocation_create_info, &shadow_image, &shadow_image_allocation, NULL) != VK_SUCCESS) {
+            return "Failed to create shadow image\n";
+        }
+
+        VkImageViewCreateInfo image_view_create_info = {
+            DEFAULT_VK_IMAGE_VIEW,
+            .image = shadow_image,
+            .format = depth_image_format,
+            .subresourceRange.aspectMask = (depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT) ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT
+        };
+
+        if (vkCreateImageView(device, &image_view_create_info, NULL, &shadow_image_view) != VK_SUCCESS) {
+            return "Failed to create shadow image view\n";
+        }
     }
 
     VkAttachmentReference depth_attachment_reference = {
