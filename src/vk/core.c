@@ -7,6 +7,7 @@
 #include "color_pipeline.h"
 #include "asset.h"
 #include "gfx_core.h"
+#include "defaults.h"
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
@@ -246,7 +247,14 @@ static result_t init_swapchain_framebuffers(void) {
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, swapchain_images);
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
-        if (create_image_view(swapchain_images[i], 1, 1, surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, &swapchain_image_views[i]) != result_success) {
+        VkImageViewCreateInfo info = {
+            DEFAULT_VK_IMAGE_VIEW,
+            .image = swapchain_images[i],
+            .format = surface_format.format,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
+        };
+
+        if (vkCreateImageView(device, &info, NULL, &swapchain_image_views[i]) != VK_SUCCESS) {
             return result_failure;
         }
     }

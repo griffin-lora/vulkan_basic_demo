@@ -108,30 +108,6 @@ void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint
     vkCmdPipelineBarrier(command_buffer, src_stage_flags, dest_stage_flags, 0, 0, NULL, 0, NULL, 1, &barrier);
 }
 
-result_t create_image_view(VkImage image, uint32_t num_mip_levels, uint32_t num_layers, VkFormat format, VkImageAspectFlags aspect_flags, VkImageView* image_view) {
-    VkImageViewCreateInfo info = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .image = image,
-        .viewType = num_layers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-        .format = format,
-        .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-        .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-        .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-        .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-        .subresourceRange.aspectMask = aspect_flags,
-        .subresourceRange.baseMipLevel = 0,
-        .subresourceRange.levelCount = num_mip_levels,
-        .subresourceRange.baseArrayLayer = 0,
-        .subresourceRange.layerCount = num_layers
-    };
-
-    if (vkCreateImageView(device, &info, NULL, image_view) != VK_SUCCESS) {
-        return result_failure;
-    }
-
-    return result_success;
-}
-
 result_t create_descriptor_set(VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info, descriptor_info_t descriptor_infos[], VkDescriptorSetLayout* descriptor_set_layout, VkDescriptorPool* descriptor_pool, VkDescriptorSet* descriptor_set) {
     if (vkCreateDescriptorSetLayout(device, &descriptor_set_layout_create_info, NULL, descriptor_set_layout) != VK_SUCCESS) {
         return result_failure;
@@ -321,7 +297,17 @@ void end_images(size_t num_images, const VkBuffer image_staging_buffers[], const
 
 result_t create_image_views(size_t num_images, uint32_t num_layers, const VkFormat formats[], const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]) {
     for (size_t i = 0; i < num_images; i++) {
-        if (create_image_view(images[i], num_mip_levels_array[i], num_layers, formats[i], VK_IMAGE_ASPECT_COLOR_BIT, &image_views[i]) != result_success) {
+        VkImageViewCreateInfo info = {
+            DEFAULT_VK_IMAGE_VIEW,
+            .image = images[i],
+            .viewType = num_layers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+            .format = formats[i],
+            .subresourceRange.levelCount = num_mip_levels_array[i],
+            .subresourceRange.layerCount = num_layers,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
+        };
+        
+        if (vkCreateImageView(device, &info, NULL, &image_views[i]) != VK_SUCCESS) {
             return result_failure;
         }
     }
