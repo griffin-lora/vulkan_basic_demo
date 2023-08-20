@@ -41,3 +41,14 @@ const VkPipelineDynamicStateCreateInfo default_dynamic_create_info = {
     .dynamicStateCount = NUM_ELEMS(dynamic_states),
     .pDynamicStates = dynamic_states
 };
+
+const VmaAllocationCreateInfo default_staging_allocation_create_info = {
+    DEFAULT_VMA_ALLOCATION,
+    .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+    .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+};
+
+const VmaAllocationCreateInfo default_device_allocation_create_info = {
+    DEFAULT_VMA_ALLOCATION,
+    .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+};

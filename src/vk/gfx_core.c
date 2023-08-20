@@ -2,6 +2,7 @@
 #include "core.h"
 #include "util.h"
 #include "ds.h"
+#include "defaults.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,27 +43,6 @@ result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
     if (vkCreateShaderModule(device, &info, NULL, shader_module) != VK_SUCCESS) {
         return result_failure;
     }
-    return result_success;
-}
-
-result_t create_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage_flags, VmaAllocationCreateFlags allocation_flags, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VmaAllocation* buffer_allocation) {
-    VkBufferCreateInfo buffer_info = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size = num_buffer_bytes,
-        .usage = usage_flags,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE
-    };
-
-    VmaAllocationCreateInfo allocation_info = {
-        .usage = VMA_MEMORY_USAGE_AUTO,
-        .flags = allocation_flags,
-        .requiredFlags = property_flags
-    };
-
-    if (vmaCreateBuffer(allocator, &buffer_info, &allocation_info, buffer, buffer_allocation, NULL) != VK_SUCCESS) {
-        return result_failure;
-    }
-
     return result_success;
 }
 
@@ -314,8 +294,15 @@ result_t begin_images(size_t num_images, uint32_t num_layers, const char* image_
         uint32_t num_mip_levels = ((uint32_t)floorf(log2f(max_uint32(image_extent.width, image_extent.height)))) + 1;
         num_mip_levels_array[i] = num_mip_levels;
 
-        if (create_buffer(num_image_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &image_staging_buffers[i], &image_staging_allocations[i]) != result_success) {
-            return result_failure;
+        {
+            VkBufferCreateInfo info = {
+                DEFAULT_VK_STAGING_BUFFER,
+                .size = num_image_bytes
+            };
+
+            if (vmaCreateBuffer(allocator, &info, &default_staging_allocation_create_info, &image_staging_buffers[i], &image_staging_allocations[i], NULL) != VK_SUCCESS) {
+                return result_failure;
+            }
         }
 
         const void* const* pixel_arrays_cast = (const void* const*)pixel_arrays;
@@ -463,12 +450,26 @@ result_t begin_vertex_arrays(
         void* vertex_array = vertex_arrays[i];
         VkDeviceSize num_vertex_array_bytes = num_vertices*num_vertex_bytes_array[i];
 
-        if (create_buffer(num_vertex_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffers[i], &vertex_buffer_allocations[i]) != result_success) {
-            return result_failure;
-        }
+        {
+            VkBufferCreateInfo info = {
+                DEFAULT_VK_STAGING_BUFFER,
+                .size = num_vertex_array_bytes
+            };
 
-        if (create_buffer(num_vertex_array_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_staging_buffers[i], &vertex_staging_buffer_allocations[i]) != result_success) {
-            return result_failure;
+            if (vmaCreateBuffer(allocator, &info, &default_staging_allocation_create_info, &vertex_staging_buffers[i], &vertex_staging_buffer_allocations[i], NULL) != VK_SUCCESS) {
+                return result_failure;
+            }
+        }
+        
+        {
+            VkBufferCreateInfo info = {
+                DEFAULT_VK_VERTEX_BUFFER,
+                .size = num_vertex_array_bytes
+            };
+
+            if (vmaCreateBuffer(allocator, &info, &default_device_allocation_create_info, &vertex_buffers[i], &vertex_buffer_allocations[i], NULL) != VK_SUCCESS) {
+                return result_failure;
+            }
         }
 
         if (write_to_buffer(vertex_staging_buffer_allocations[i], num_vertex_array_bytes, vertex_array) != result_success) {
@@ -496,12 +497,26 @@ void end_vertex_arrays(size_t num_vertex_arrays, const VkBuffer vertex_staging_b
 result_t begin_indices(VkDeviceSize num_index_bytes, VkDeviceSize num_indices, void* indices, VkBuffer* index_staging_buffer, VmaAllocation* index_staging_buffer_allocation, VkBuffer* index_buffer, VmaAllocation* index_buffer_allocation) {
     VkDeviceSize num_index_array_bytes = num_indices*num_index_bytes;
 
-    if (create_buffer(num_index_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, index_buffer, index_buffer_allocation) != result_success) {
-        return result_failure;
-    }
+    {
+        VkBufferCreateInfo info = {
+            DEFAULT_VK_STAGING_BUFFER,
+            .size = num_index_array_bytes
+        };
 
-    if (create_buffer(num_index_array_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, index_staging_buffer, index_staging_buffer_allocation) != result_success) {
-        return result_failure;
+        if (vmaCreateBuffer(allocator, &info, &default_staging_allocation_create_info, index_staging_buffer, index_staging_buffer_allocation, NULL) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+    
+    {
+        VkBufferCreateInfo info = {
+            DEFAULT_VK_INDEX_BUFFER,
+            .size = num_index_array_bytes
+        };
+
+        if (vmaCreateBuffer(allocator, &info, &default_device_allocation_create_info, index_buffer, index_buffer_allocation, NULL) != VK_SUCCESS) {
+            return result_failure;
+        }
     }
 
     if (write_to_buffer(*index_staging_buffer_allocation, num_index_array_bytes, indices) != result_success) {
@@ -524,12 +539,26 @@ void end_indices(VkBuffer index_staging_buffer, VmaAllocation index_staging_buff
 result_t begin_instances(VkDeviceSize num_instance_bytes, VkDeviceSize num_instances, const void* instances, VkBuffer* instance_staging_buffer, VmaAllocation* instance_staging_buffer_allocation, VkBuffer* instance_buffer, VmaAllocation* instance_buffer_allocation) {
     VkDeviceSize num_instance_array_bytes = num_instance_bytes*num_instances;
 
-    if (create_buffer(num_instance_array_bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, instance_buffer, instance_buffer_allocation) != result_success) {
-        return result_failure;
-    }
+    {
+        VkBufferCreateInfo info = {
+            DEFAULT_VK_STAGING_BUFFER,
+            .size = num_instance_array_bytes
+        };
 
-    if (create_buffer(num_instance_array_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, instance_staging_buffer, instance_staging_buffer_allocation) != result_success) {
-        return result_failure;
+        if (vmaCreateBuffer(allocator, &info, &default_staging_allocation_create_info, instance_staging_buffer, instance_staging_buffer_allocation, NULL) != VK_SUCCESS) {
+            return result_failure;
+        }
+    }
+    
+    {
+        VkBufferCreateInfo info = {
+            DEFAULT_VK_VERTEX_BUFFER,
+            .size = num_instance_array_bytes
+        };
+
+        if (vmaCreateBuffer(allocator, &info, &default_device_allocation_create_info, instance_buffer, instance_buffer_allocation, NULL) != VK_SUCCESS) {
+            return result_failure;
+        }
     }
 
     if (write_to_buffer(*instance_staging_buffer_allocation, num_instance_array_bytes, instances) != result_success) {

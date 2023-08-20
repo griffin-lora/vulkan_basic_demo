@@ -1,11 +1,15 @@
 #pragma once
 #include "vk.h"
+#include <vk_mem_alloc.h>
 
 extern const VkPipelineInputAssemblyStateCreateInfo default_input_assembly_create_info;
 extern const VkPipelineViewportStateCreateInfo default_viewport_create_info;
 extern const VkPipelineDepthStencilStateCreateInfo default_depth_stencil_create_info;
 extern const VkPipelineColorBlendStateCreateInfo default_color_blend_create_info;
 extern const VkPipelineDynamicStateCreateInfo default_dynamic_create_info;
+
+extern const VmaAllocationCreateInfo default_staging_allocation_create_info;
+extern const VmaAllocationCreateInfo default_device_allocation_create_info;
 
 #define DEFAULT_VK_COMMAND_BUFFER\
     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,\
@@ -59,6 +63,29 @@ extern const VkPipelineDynamicStateCreateInfo default_dynamic_create_info;
     .basePipelineHandle = VK_NULL_HANDLE,\
     .basePipelineIndex = -1
 
+#define DEFAULT_VK_BUFFER\
+    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,\
+    .sharingMode = VK_SHARING_MODE_EXCLUSIVE
+
+#define DEFAULT_VK_STAGING_BUFFER\
+    DEFAULT_VK_BUFFER,\
+    .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+
+#define DEFAULT_VK_VERTEX_BUFFER\
+    DEFAULT_VK_BUFFER,\
+    .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+
+#define DEFAULT_VK_INDEX_BUFFER\
+    DEFAULT_VK_BUFFER,\
+    .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+
+#define DEFAULT_VK_UNIFORM_BUFFER\
+    DEFAULT_VK_BUFFER,\
+    .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+
+#define DEFAULT_VMA_ALLOCATION\
+    .usage = VMA_MEMORY_USAGE_AUTO
+
 #define DEFAULT_VK_SAMPLER\
     .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,\
     .minFilter = VK_FILTER_LINEAR,\
@@ -76,6 +103,4 @@ extern const VkPipelineDynamicStateCreateInfo default_dynamic_create_info;
     .minLod = 0.0f,\
     .maxLod = 0.0f,\
     .mipLodBias = 0.0f
-
-
 

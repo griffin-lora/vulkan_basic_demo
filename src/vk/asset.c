@@ -197,8 +197,22 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     mat4s shadow_view_projection = glms_mat4_mul(projection, view);
 
-    if (create_buffer(sizeof(shadow_view_projection), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &shadow_view_projection_buffer, &shadow_view_projection_buffer_allocation) != result_success) {
-        return "Failed to create shadow view projection buffer\n";
+    {
+        VkBufferCreateInfo buffer_info = {
+            DEFAULT_VK_BUFFER,
+            .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            .size = sizeof(shadow_view_projection)
+        };
+
+        VmaAllocationCreateInfo allocation_info = {
+            DEFAULT_VMA_ALLOCATION,
+            .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+            .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+        };
+
+        if (vmaCreateBuffer(allocator, &buffer_info, &allocation_info, &shadow_view_projection_buffer, &shadow_view_projection_buffer_allocation, NULL) != VK_SUCCESS) {
+            return "Failed to create shadow view projection buffer\n";
+        }
     }
 
     if (write_to_buffer(shadow_view_projection_buffer_allocation, sizeof(shadow_view_projection), &shadow_view_projection)) {
