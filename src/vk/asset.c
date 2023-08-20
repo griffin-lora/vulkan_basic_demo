@@ -102,6 +102,11 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         if (begin_buffers(num_instances_array[i], &default_vertex_buffer_create_info, 1, &model_matrix_arrays[i].matrices_raw, &num_instance_bytes, &instance_stagings[i], &instance_buffers[i], &instance_buffer_allocations[i]) != result_success) {
             return "Failed to begin creating instance buffer\n";
         }
+
+        for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
+            free(mesh.vertex_arrays[i].data);
+        }
+        free(mesh.indices_raw);
     }
 
     VkCommandBuffer command_buffer;
