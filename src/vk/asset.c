@@ -7,6 +7,7 @@
 #include "defaults.h"
 #include <malloc.h>
 #include <string.h>
+#include <stb_image.h>
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/cam.h>
 #include <cglm/struct/vec2.h>
@@ -29,19 +30,70 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
             "image/plane_specular.png"
         }
     };
-    
-    VkFormat image_formats[] = {
-        VK_FORMAT_R8G8B8A8_SRGB,
-        VK_FORMAT_R8G8B8A8_UNORM, // USE UNORM FOR ANY NON COLOR TEXTURE, SRGB WILL FUCK UP YOUR NORMAL TEXTURE SO BAD
-        VK_FORMAT_R8G8B8A8_UNORM
+
+    void* pixel_arrays[NUM_TEXTURE_IMAGES][NUM_TEXTURE_LAYERS];
+
+    image_create_info_t image_create_infos[NUM_TEXTURE_IMAGES] = {
+        {
+            .num_pixel_bytes = 4,
+            .info = {
+                DEFAULT_VK_SAMPLED_IMAGE,
+                .format = VK_FORMAT_R8G8B8A8_SRGB,
+                .arrayLayers = NUM_TEXTURE_LAYERS
+            }
+        },
+        {
+            .num_pixel_bytes = 4,
+            .info = {
+                DEFAULT_VK_SAMPLED_IMAGE,
+                .format = VK_FORMAT_R8G8B8A8_UNORM, // USE UNORM FOR ANY NON COLOR TEXTURE, SRGB WILL FUCK UP YOUR NORMAL TEXTURE SO BAD
+                .arrayLayers = NUM_TEXTURE_LAYERS
+            }
+        },
+        {
+            .num_pixel_bytes = 4,
+            .info = {
+                DEFAULT_VK_SAMPLED_IMAGE,
+                .format = VK_FORMAT_R8G8B8A8_UNORM,
+                .arrayLayers = NUM_TEXTURE_LAYERS
+            }
+        },
     };
 
-    image_extent_t image_extents[NUM_TEXTURE_IMAGES];
-    uint32_t num_mip_levels_array[NUM_TEXTURE_IMAGES];
-    VkBuffer image_staging_buffers[NUM_TEXTURE_IMAGES];
-    VmaAllocation image_staging_allocations[NUM_TEXTURE_IMAGES];
+    int image_channels;
 
-    if (begin_images(NUM_TEXTURE_IMAGES, NUM_TEXTURE_LAYERS, image_paths, image_formats, image_extents, num_mip_levels_array, image_staging_buffers, image_staging_allocations, texture_images, texture_image_allocations) != result_success) {
+    for (size_t i = 0; i < NUM_TEXTURE_IMAGES; i++) {
+        int width;
+        int height;
+
+        image_create_info_t* info = &image_create_infos[i];
+        info->pixel_arrays = (void**)&pixel_arrays[i];
+        
+        for (size_t j = 0; j < info->info.arrayLayers; j++) {
+            int new_width;
+            int new_height;
+            info->pixel_arrays[j] = stbi_load(image_paths[i][j], &new_width, &new_height, &image_channels, STBI_rgb_alpha);
+
+            if (info->pixel_arrays[j] == NULL) {
+                return "Failed to load image pixels\n";
+            }
+
+            if (j > 0 && (new_width != width || new_width != height)) {
+                return "Pixels \n";
+            }
+
+            width = new_width;
+            height = new_height;
+
+            info->info.extent.width = width;
+            info->info.extent.height = height;
+            info->info.mipLevels = ((uint32_t)floorf(log2f(max_uint32(width, height)))) + 1;
+        }
+    }
+
+    staging_t image_stagings[NUM_TEXTURE_IMAGES];
+
+    if (begin_images(NUM_TEXTURE_IMAGES, image_create_infos, image_stagings, texture_images, texture_image_allocations) != result_success) {
         return "Failed to begin creating images\n";
     }
 
@@ -152,7 +204,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         }
     }
 
-    transfer_images(command_buffer, NUM_TEXTURE_IMAGES, NUM_TEXTURE_LAYERS, image_extents, num_mip_levels_array, image_staging_buffers, texture_images);
+    transfer_images(command_buffer, NUM_TEXTURE_IMAGES, image_create_infos, image_stagings, texture_images);
 
     for (size_t i = 0; i < NUM_MODELS; i++) {
         transfer_buffers(command_buffer, num_vertices_array[i], NUM_VERTEX_ARRAYS, num_vertex_bytes_array, vertex_staging_arrays[i], vertex_buffer_arrays[i]);
@@ -178,7 +230,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 
-    end_images(NUM_TEXTURE_IMAGES, image_staging_buffers, image_staging_allocations);
+    end_images(NUM_TEXTURE_IMAGES, image_stagings);
 
     for (size_t i = 0; i < NUM_MODELS; i++) {
         end_buffers(NUM_VERTEX_ARRAYS, vertex_staging_arrays[i]);
@@ -189,14 +241,14 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     //
 
-    if (create_image_views(NUM_TEXTURE_IMAGES, NUM_TEXTURE_LAYERS, image_formats, num_mip_levels_array, texture_images, texture_image_views) != result_success) {
+    if (create_image_views(NUM_TEXTURE_IMAGES, image_create_infos, texture_images, texture_image_views) != result_success) {
         return "Failed to create texture image view\n";
     }
 
     {
         VkSamplerCreateInfo info = {
             DEFAULT_VK_SAMPLER,
-            .maxLod = num_mip_levels_array[0]
+            .maxLod = image_create_infos[0].info.mipLevels
         };
 
         if (vkCreateSampler(device, &info, NULL, &texture_image_sampler) != VK_SUCCESS) {

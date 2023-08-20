@@ -88,6 +88,10 @@ extern const VmaAllocationCreateInfo device_allocation_create_info;
     .sharingMode = VK_SHARING_MODE_EXCLUSIVE,\
     .samples = VK_SAMPLE_COUNT_1_BIT
 
+#define DEFAULT_VK_SAMPLED_IMAGE\
+    DEFAULT_VK_IMAGE,\
+    .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+
 #define DEFAULT_VK_BUFFER_IMAGE_COPY\
     .bufferOffset = 0,\
     .bufferRowLength = 0,\

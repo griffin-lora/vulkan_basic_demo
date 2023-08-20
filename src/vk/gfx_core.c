@@ -8,7 +8,6 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stb_image.h>
 #include <math.h>
 
 result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
@@ -140,7 +139,7 @@ result_t create_descriptor_set(VkDescriptorSetLayoutCreateInfo descriptor_set_la
     return result_success;
 }
 
-result_t begin_images2(size_t num_images, const image_create_info_t infos[], staging_t stagings[], VkImage images[], VmaAllocation allocations[]) {
+result_t begin_images(size_t num_images, const image_create_info_t infos[], staging_t stagings[], VkImage images[], VmaAllocation allocations[]) {
     for (size_t i = 0; i < num_images; i++) {
         const image_create_info_t* info = &infos[i];
         
@@ -174,79 +173,15 @@ result_t begin_images2(size_t num_images, const image_create_info_t infos[], sta
     return result_success;
 }
 
-result_t begin_images(size_t num_images, uint32_t num_layers, const char* image_paths[][num_layers], const VkFormat formats[], image_extent_t image_extents[], uint32_t num_mip_levels_array[], VkBuffer image_staging_buffers[], VmaAllocation image_staging_allocations[], VkImage images[], VmaAllocation image_allocations[]) {
-    int image_channels;
-
+void transfer_images(VkCommandBuffer command_buffer, size_t num_images, const image_create_info_t infos[], const staging_t stagings[], const VkImage images[]) {
     for (size_t i = 0; i < num_images; i++) {
-        image_extent_t image_extent;
+        const image_create_info_t* info = &infos[i];
 
-        const char** layer_paths = image_paths[i];
+        uint32_t width = info->info.extent.width;
+        uint32_t height = info->info.extent.height;
+        uint32_t num_mip_levels = info->info.mipLevels;
+        uint32_t num_layers = info->info.arrayLayers;
 
-        stbi_uc** pixel_arrays = ds_promise(num_layers*sizeof(stbi_uc*));
-        for (size_t j = 0; j < num_layers; j++) {
-            image_extent_t new_image_extent;
-            pixel_arrays[j] = stbi_load(layer_paths[j], &new_image_extent.width, &new_image_extent.height, &image_channels, STBI_rgb_alpha);
-            if (pixel_arrays[j] == NULL) {
-                return result_failure;
-            }
-            if (j > 0 && (new_image_extent.width != image_extent.width || new_image_extent.height != image_extent.height)) {
-                return result_failure;
-            }
-            image_extent = new_image_extent;
-        }
-        
-        VkDeviceSize num_layer_bytes = image_extent.width*image_extent.height*4;
-        VkDeviceSize num_image_bytes = num_layers*num_layer_bytes;
-
-        image_extents[i] = image_extent;
-        uint32_t num_mip_levels = ((uint32_t)floorf(log2f(max_uint32(image_extent.width, image_extent.height)))) + 1;
-        num_mip_levels_array[i] = num_mip_levels;
-
-        {
-            VkBufferCreateInfo info = {
-                DEFAULT_VK_STAGING_BUFFER,
-                .size = num_image_bytes
-            };
-
-            if (vmaCreateBuffer(allocator, &info, &staging_allocation_create_info, &image_staging_buffers[i], &image_staging_allocations[i], NULL) != VK_SUCCESS) {
-                return result_failure;
-            }
-        }
-
-        const void* const* pixel_arrays_cast = (const void* const*)pixel_arrays;
-        if (writes_to_buffer(image_staging_allocations[i], num_layer_bytes, num_layers, pixel_arrays_cast) != result_success) {
-            return result_failure;
-        }
-
-        for (size_t i = 0; i < num_layers; i++) {
-            stbi_image_free(pixel_arrays[i]);
-        }
-
-        {
-            VkImageCreateInfo info = {
-                DEFAULT_VK_IMAGE,
-                .extent.width = image_extent.width,
-                .extent.height = image_extent.height,
-                .mipLevels = num_mip_levels,
-                .arrayLayers = num_layers,
-                .format = formats[i],
-                .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
-            };
-
-            if (vmaCreateImage(allocator, &info, &device_allocation_create_info, &images[i], &image_allocations[i], NULL) != VK_SUCCESS) {
-                return result_failure;
-            }
-        }
-    }
-    
-    return result_success;
-}
-
-void transfer_images(VkCommandBuffer command_buffer, size_t num_images, uint32_t num_layers, const image_extent_t image_extents[], const uint32_t num_mip_levels_array[], const VkBuffer image_staging_buffers[], const VkImage images[]) {
-    for (size_t i = 0; i < num_images; i++) {
-        image_extent_t image_extent = image_extents[i];
-        uint32_t num_mip_levels = num_mip_levels_array[i];
-        VkBuffer image_staging_buffer = image_staging_buffers[i];
         VkImage image = images[i];
 
         {
@@ -266,15 +201,15 @@ void transfer_images(VkCommandBuffer command_buffer, size_t num_images, uint32_t
             VkBufferImageCopy region = {
                 DEFAULT_VK_BUFFER_IMAGE_COPY,
                 .imageSubresource.layerCount = num_layers,
-                .imageExtent.width = image_extent.width,
-                .imageExtent.height = image_extent.height
+                .imageExtent.width = width,
+                .imageExtent.height = height
             };
 
-            vkCmdCopyBufferToImage(command_buffer, image_staging_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+            vkCmdCopyBufferToImage(command_buffer, stagings[i].buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
         }
 
-        uint32_t mip_width = image_extent.width;
-        uint32_t mip_height = image_extent.height;
+        uint32_t mip_width = width;
+        uint32_t mip_height = height;
 
         for (size_t i = 1; i < num_mip_levels; i++) {
             {
@@ -339,21 +274,21 @@ void transfer_images(VkCommandBuffer command_buffer, size_t num_images, uint32_t
     }
 }
 
-void end_images(size_t num_images, const VkBuffer image_staging_buffers[], const VmaAllocation image_staging_buffer_allocations[]) {
-    for (size_t i = 0; i < num_images; i++) {
-        vmaDestroyBuffer(allocator, image_staging_buffers[i], image_staging_buffer_allocations[i]);
-    }
+void end_images(size_t num_images, const staging_t stagings[]) {
+    end_buffers(num_images, stagings);
 }
 
-result_t create_image_views(size_t num_images, uint32_t num_layers, const VkFormat formats[], const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]) {
+result_t create_image_views(size_t num_images, const image_create_info_t infos[], const VkImage images[], VkImageView image_views[]) {
     for (size_t i = 0; i < num_images; i++) {
+        const VkImageCreateInfo* image_create_info = &infos[i].info;
+
         VkImageViewCreateInfo info = {
             DEFAULT_VK_IMAGE_VIEW,
             .image = images[i],
-            .viewType = num_layers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-            .format = formats[i],
-            .subresourceRange.levelCount = num_mip_levels_array[i],
-            .subresourceRange.layerCount = num_layers,
+            .viewType = image_create_info->arrayLayers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+            .format = image_create_info->format,
+            .subresourceRange.levelCount = image_create_info->mipLevels,
+            .subresourceRange.layerCount = image_create_info->arrayLayers,
             .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
         };
         
