@@ -408,145 +408,56 @@ void end_pipeline(VkCommandBuffer command_buffer) {
     vkCmdEndRenderPass(command_buffer);
 }
 
-result_t begin_vertex_arrays(
-    VkDeviceSize num_vertices,
-    size_t num_vertex_arrays, void* const vertex_arrays[], const VkDeviceSize num_vertex_bytes_array[], VkBuffer vertex_staging_buffers[], VmaAllocation vertex_staging_buffer_allocations[], VkBuffer vertex_buffers[], VmaAllocation vertex_buffer_allocations[]
+result_t begin_buffers(
+    VkDeviceSize num_elements, const VkBufferCreateInfo* base_device_buffer_create_info,
+    size_t num_buffers, void* const arrays[], const VkDeviceSize num_element_bytes_array[], staging_t stagings[], VkBuffer buffers[], VmaAllocation allocations[]
 ) {
-    for (size_t i = 0; i < num_vertex_arrays; i++) {
-        void* vertex_array = vertex_arrays[i];
-        VkDeviceSize num_vertex_array_bytes = num_vertices*num_vertex_bytes_array[i];
+    for (size_t i = 0; i < num_buffers; i++) {
+        void* array = arrays[i];
+        VkDeviceSize num_array_bytes = num_elements*num_element_bytes_array[i];
 
         {
             VkBufferCreateInfo info = {
                 DEFAULT_VK_STAGING_BUFFER,
-                .size = num_vertex_array_bytes
+                .size = num_array_bytes
             };
 
-            if (vmaCreateBuffer(allocator, &info, &default_staging_allocation_create_info, &vertex_staging_buffers[i], &vertex_staging_buffer_allocations[i], NULL) != VK_SUCCESS) {
+            if (vmaCreateBuffer(allocator, &info, &default_staging_allocation_create_info, &stagings[i].buffer, &stagings[i].allocation, NULL) != VK_SUCCESS) {
                 return result_failure;
             }
         }
         
         {
-            VkBufferCreateInfo info = {
-                DEFAULT_VK_VERTEX_BUFFER,
-                .size = num_vertex_array_bytes
-            };
+            VkBufferCreateInfo info = *base_device_buffer_create_info;
+            info.size = num_array_bytes;
 
-            if (vmaCreateBuffer(allocator, &info, &default_device_allocation_create_info, &vertex_buffers[i], &vertex_buffer_allocations[i], NULL) != VK_SUCCESS) {
+            if (vmaCreateBuffer(allocator, &info, &default_device_allocation_create_info, &buffers[i], &allocations[i], NULL) != VK_SUCCESS) {
                 return result_failure;
             }
         }
 
-        if (write_to_buffer(vertex_staging_buffer_allocations[i], num_vertex_array_bytes, vertex_array) != result_success) {
+        if (write_to_buffer(stagings[i].allocation, num_array_bytes, array) != result_success) {
             return result_failure;
         }
-
-        free(vertex_array);
     }
-
+    
     return result_success;
 }
 
-void transfer_vertex_arrays(VkCommandBuffer command_buffer, VkDeviceSize num_vertices, size_t num_vertex_arrays, const VkDeviceSize num_vertex_bytes_array[], const VkBuffer vertex_staging_buffers[], const VkBuffer vertex_buffers[]) {
-    for (size_t i = 0; i < num_vertex_arrays; i++) {
+void transfer_buffers(
+    VkCommandBuffer command_buffer, VkDeviceSize num_elements,
+    size_t num_buffers, const VkDeviceSize num_element_bytes_array[], const staging_t stagings[], const VkBuffer buffers[]
+) {
+    for (size_t i = 0; i < num_buffers; i++) {
         VkBufferCopy region = {
-            .size = num_vertices*num_vertex_bytes_array[i]
+            .size = num_elements*num_element_bytes_array[i]
         };
-        vkCmdCopyBuffer(command_buffer, vertex_staging_buffers[i], vertex_buffers[i], 1, &region);
+        vkCmdCopyBuffer(command_buffer, stagings[i].buffer, buffers[i], 1, &region);
     }
 }
 
-void end_vertex_arrays(size_t num_vertex_arrays, const VkBuffer vertex_staging_buffers[], const VmaAllocation vertex_staging_buffer_allocations[]) {
-    for (size_t i = 0; i < num_vertex_arrays; i++) {
-        vmaDestroyBuffer(allocator, vertex_staging_buffers[i], vertex_staging_buffer_allocations[i]);
+void end_buffers(size_t num_buffers, const staging_t stagings[]) {
+    for (size_t i = 0; i < num_buffers; i++) {
+        vmaDestroyBuffer(allocator, stagings[i].buffer, stagings[i].allocation);
     }
-}
-
-result_t begin_indices(VkDeviceSize num_index_bytes, VkDeviceSize num_indices, void* indices, VkBuffer* index_staging_buffer, VmaAllocation* index_staging_buffer_allocation, VkBuffer* index_buffer, VmaAllocation* index_buffer_allocation) {
-    VkDeviceSize num_index_array_bytes = num_indices*num_index_bytes;
-
-    {
-        VkBufferCreateInfo info = {
-            DEFAULT_VK_STAGING_BUFFER,
-            .size = num_index_array_bytes
-        };
-
-        if (vmaCreateBuffer(allocator, &info, &default_staging_allocation_create_info, index_staging_buffer, index_staging_buffer_allocation, NULL) != VK_SUCCESS) {
-            return result_failure;
-        }
-    }
-    
-    {
-        VkBufferCreateInfo info = {
-            DEFAULT_VK_INDEX_BUFFER,
-            .size = num_index_array_bytes
-        };
-
-        if (vmaCreateBuffer(allocator, &info, &default_device_allocation_create_info, index_buffer, index_buffer_allocation, NULL) != VK_SUCCESS) {
-            return result_failure;
-        }
-    }
-
-    if (write_to_buffer(*index_staging_buffer_allocation, num_index_array_bytes, indices) != result_success) {
-        return result_failure;
-    }
-
-    free(indices);
-
-    return result_success;
-}
-
-void transfer_indices(VkCommandBuffer command_buffer, VkDeviceSize num_index_bytes, VkDeviceSize num_indices, VkBuffer index_staging_buffer, VkBuffer index_buffer) {
-    VkBufferCopy region = {
-        .size = num_indices*num_index_bytes
-    };
-    vkCmdCopyBuffer(command_buffer, index_staging_buffer, index_buffer, 1, &region);
-}
-
-void end_indices(VkBuffer index_staging_buffer, VmaAllocation index_staging_buffer_allocation) {
-    vmaDestroyBuffer(allocator, index_staging_buffer, index_staging_buffer_allocation);
-}
-
-result_t begin_instances(VkDeviceSize num_instance_bytes, VkDeviceSize num_instances, const void* instances, VkBuffer* instance_staging_buffer, VmaAllocation* instance_staging_buffer_allocation, VkBuffer* instance_buffer, VmaAllocation* instance_buffer_allocation) {
-    VkDeviceSize num_instance_array_bytes = num_instance_bytes*num_instances;
-
-    {
-        VkBufferCreateInfo info = {
-            DEFAULT_VK_STAGING_BUFFER,
-            .size = num_instance_array_bytes
-        };
-
-        if (vmaCreateBuffer(allocator, &info, &default_staging_allocation_create_info, instance_staging_buffer, instance_staging_buffer_allocation, NULL) != VK_SUCCESS) {
-            return result_failure;
-        }
-    }
-    
-    {
-        VkBufferCreateInfo info = {
-            DEFAULT_VK_VERTEX_BUFFER,
-            .size = num_instance_array_bytes
-        };
-
-        if (vmaCreateBuffer(allocator, &info, &default_device_allocation_create_info, instance_buffer, instance_buffer_allocation, NULL) != VK_SUCCESS) {
-            return result_failure;
-        }
-    }
-
-    if (write_to_buffer(*instance_staging_buffer_allocation, num_instance_array_bytes, instances) != result_success) {
-        return result_failure;
-    }
-
-    return result_success;
-}
-
-void transfer_instances(VkCommandBuffer command_buffer, VkDeviceSize num_instance_bytes, VkDeviceSize num_instances, VkBuffer instance_staging_buffer, VkBuffer instance_buffer) {
-    VkBufferCopy region = {
-        .size = num_instances*num_instance_bytes
-    };
-    vkCmdCopyBuffer(command_buffer, instance_staging_buffer, instance_buffer, 1, &region);
-}
-
-void end_instances(VkBuffer instance_staging_buffer, VmaAllocation instance_staging_buffer_allocation) {
-    vmaDestroyBuffer(allocator, instance_staging_buffer, instance_staging_buffer_allocation);
 }

@@ -32,7 +32,10 @@ typedef struct {
     uint32_t num_vertices;
     uint32_t num_indices;
     vertex_array_t vertex_arrays[NUM_VERTEX_ARRAYS];
-    uint16_t* indices;
+    union {
+        uint16_t* indices;
+        void* indices_raw;
+    };
 } mesh_t;
 
 result_t load_gltf_mesh(const char* path, mesh_t* mesh);

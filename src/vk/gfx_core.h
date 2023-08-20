@@ -23,20 +23,20 @@ void transfer_images(VkCommandBuffer command_buffer, size_t num_images, uint32_t
 void end_images(size_t num_images, const VkBuffer image_staging_buffers[], const VmaAllocation image_staging_buffer_allocations[]);
 result_t create_image_views(size_t num_images, uint32_t num_layers, const VkFormat formats[], const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]);
 
-result_t begin_vertex_arrays(
-    VkDeviceSize num_vertices,
-    size_t num_vertex_arrays, void* const vertex_arrays[], const VkDeviceSize num_vertex_bytes_array[], VkBuffer vertex_staging_buffers[], VmaAllocation vertex_staging_buffer_allocations[], VkBuffer vertex_buffers[], VmaAllocation vertex_buffer_allocations[]
+typedef struct {
+    VkBuffer buffer;
+    VmaAllocation allocation;
+} staging_t;
+
+result_t begin_buffers(
+    VkDeviceSize num_elements, const VkBufferCreateInfo* base_device_buffer_create_info,
+    size_t num_buffers, void* const arrays[], const VkDeviceSize num_element_bytes_array[], staging_t stagings[], VkBuffer buffers[], VmaAllocation allocations[]
 );
-void transfer_vertex_arrays(VkCommandBuffer command_buffer, VkDeviceSize num_vertices, size_t num_vertex_arrays, const VkDeviceSize num_vertex_bytes_array[], const VkBuffer vertex_staging_buffers[], const VkBuffer vertex_buffers[]);
-void end_vertex_arrays(size_t num_vertex_arrays, const VkBuffer vertex_staging_buffers[], const VmaAllocation vertex_staging_buffer_allocations[]);
-
-result_t begin_indices(VkDeviceSize num_index_bytes, VkDeviceSize num_indices, void* indices, VkBuffer* index_staging_buffer, VmaAllocation* index_staging_buffer_allocation, VkBuffer* index_buffer, VmaAllocation* index_buffer_allocation);
-void transfer_indices(VkCommandBuffer command_buffer, VkDeviceSize num_index_bytes, VkDeviceSize num_indices, VkBuffer index_staging_buffer, VkBuffer index_buffer);
-void end_indices(VkBuffer index_staging_buffer, VmaAllocation index_staging_buffer_allocation);
-
-result_t begin_instances(VkDeviceSize num_instance_bytes, VkDeviceSize num_instances, const void* instances, VkBuffer* instance_staging_buffer, VmaAllocation* instance_staging_buffer_allocation, VkBuffer* instance_buffer, VmaAllocation* instance_buffer_allocation);
-void transfer_instances(VkCommandBuffer command_buffer, VkDeviceSize num_instance_bytes, VkDeviceSize num_instances, VkBuffer instance_staging_buffer, VkBuffer instance_buffer);
-void end_instances(VkBuffer instance_staging_buffer, VmaAllocation instance_staging_buffer_allocation);
+void transfer_buffers(
+    VkCommandBuffer command_buffer, VkDeviceSize num_elements,
+    size_t num_buffers, const VkDeviceSize num_element_bytes_array[], const staging_t stagings[], const VkBuffer buffers[]
+);
+void end_buffers(size_t num_buffers, const staging_t stagings[]);
 
 typedef struct {
     enum {

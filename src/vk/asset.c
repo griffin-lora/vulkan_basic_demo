@@ -65,21 +65,22 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     num_instances_array[0] = NUM_ELEMS(cube_model_matrices);
     num_instances_array[1] = 1;
-    const mat4s* model_matrix_arrays[] = {
-        cube_model_matrices,
-        &plane_model_matrix
+    union {
+        mat4s* matrices;
+        void* matrices_raw;
+    } model_matrix_arrays[] = {
+        { cube_model_matrices },
+        { &plane_model_matrix }
     };
 
     uint32_t num_vertices_array[NUM_MODELS];
 
-    VkBuffer vertex_staging_buffer_arrays[NUM_MODELS][NUM_VERTEX_ARRAYS];
-    VmaAllocation vertex_staging_buffer_allocation_arrays[NUM_MODELS][NUM_VERTEX_ARRAYS];
+    staging_t vertex_staging_arrays[NUM_MODELS][NUM_VERTEX_ARRAYS];
+    staging_t index_stagings[NUM_MODELS];
+    staging_t instance_stagings[NUM_MODELS];
 
-    VkBuffer index_staging_buffers[NUM_MODELS];
-    VmaAllocation index_staging_buffer_allocations[NUM_MODELS];
-
-    VkBuffer instance_staging_buffers[NUM_MODELS];
-    VmaAllocation instance_staging_buffer_allocations[NUM_MODELS];
+    VkDeviceSize num_index_bytes = sizeof(uint16_t);
+    VkDeviceSize num_instance_bytes = sizeof(mat4s);
 
     for (size_t i = 0; i < NUM_MODELS; i++) {
         mesh_t mesh;
@@ -90,15 +91,15 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         num_vertices_array[i] = mesh.num_vertices;
         num_indices_array[i] = mesh.num_indices;
 
-        if (begin_vertex_arrays(mesh.num_vertices, NUM_VERTEX_ARRAYS, &mesh.vertex_arrays[0].data, num_vertex_bytes_array, vertex_staging_buffer_arrays[i], vertex_staging_buffer_allocation_arrays[i], vertex_buffer_arrays[i], vertex_buffer_allocation_arrays[i]) != result_success) {
-            return "Failed to begin creating vertex buffers\n";
+        if (begin_buffers(mesh.num_vertices, &default_vertex_buffer_create_info, NUM_VERTEX_ARRAYS, &mesh.vertex_arrays[0].data, num_vertex_bytes_array, vertex_staging_arrays[i], vertex_buffer_arrays[i], vertex_buffer_allocation_arrays[i]) != result_success) {
+            return "Failed to begin creating vertex buffers\n"; 
         }
 
-        if (begin_indices(sizeof(uint16_t), mesh.num_indices, mesh.indices, &index_staging_buffers[i], &index_staging_buffer_allocations[i], &index_buffers[i], &index_buffer_allocations[i]) != result_success) {
+        if (begin_buffers(mesh.num_indices, &default_index_buffer_create_info, 1, &mesh.indices_raw, &num_index_bytes, &index_stagings[i], &index_buffers[i], &index_buffer_allocations[i]) != result_success) {
             return "Failed to begin creating index buffer\n";
         }
 
-        if (begin_instances(sizeof(mat4s), num_instances_array[i], model_matrix_arrays[i], &instance_staging_buffers[i], &instance_staging_buffer_allocations[i], &instance_buffers[i], &instance_buffer_allocations[i]) != result_success) {
+        if (begin_buffers(num_instances_array[i], &default_vertex_buffer_create_info, 1, &model_matrix_arrays[i].matrices_raw, &num_instance_bytes, &instance_stagings[i], &instance_buffers[i], &instance_buffer_allocations[i]) != result_success) {
             return "Failed to begin creating instance buffer\n";
         }
     }
@@ -128,9 +129,9 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     transfer_images(command_buffer, NUM_TEXTURE_IMAGES, NUM_TEXTURE_LAYERS, image_extents, num_mip_levels_array, image_staging_buffers, texture_images);
 
     for (size_t i = 0; i < NUM_MODELS; i++) {
-        transfer_vertex_arrays(command_buffer, num_vertices_array[i], NUM_VERTEX_ARRAYS, num_vertex_bytes_array, vertex_staging_buffer_arrays[i], vertex_buffer_arrays[i]);
-        transfer_indices(command_buffer, sizeof(uint16_t), num_indices_array[i], index_staging_buffers[i], index_buffers[i]);
-        transfer_instances(command_buffer, sizeof(mat4s), num_instances_array[i], instance_staging_buffers[i], instance_buffers[i]);
+        transfer_buffers(command_buffer, num_vertices_array[i], NUM_VERTEX_ARRAYS, num_vertex_bytes_array, vertex_staging_arrays[i], vertex_buffer_arrays[i]);
+        transfer_buffers(command_buffer, num_indices_array[i], 1, &num_index_bytes, &index_stagings[i], &index_buffers[i]);
+        transfer_buffers(command_buffer, num_instances_array[i], 1, &num_instance_bytes, &instance_stagings[i], &instance_buffers[i]);
     }
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
@@ -153,9 +154,9 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     end_images(NUM_TEXTURE_IMAGES, image_staging_buffers, image_staging_allocations);
 
     for (size_t i = 0; i < NUM_MODELS; i++) {
-        end_vertex_arrays(NUM_VERTEX_ARRAYS, vertex_staging_buffer_arrays[i], vertex_staging_buffer_allocation_arrays[i]);
-        end_indices(index_staging_buffers[i], index_staging_buffer_allocations[i]);
-        end_instances(instance_staging_buffers[i], instance_staging_buffer_allocations[i]);
+        end_buffers(NUM_VERTEX_ARRAYS, vertex_staging_arrays[i]);
+        end_buffers(1, &index_stagings[i]);
+        end_buffers(1, &instance_stagings[i]);
     }
 
     //
