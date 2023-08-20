@@ -43,7 +43,7 @@ result_t init_color_pipeline_swapchain_dependents(void) {
             .usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
         };
 
-        if (vmaCreateImage(allocator, &image_create_info, &default_device_allocation_create_info, &color_image, &color_image_allocation, NULL) != VK_SUCCESS) {
+        if (vmaCreateImage(allocator, &image_create_info, &device_allocation_create_info, &color_image, &color_image_allocation, NULL) != VK_SUCCESS) {
             return result_failure;
         }
 
@@ -69,7 +69,7 @@ result_t init_color_pipeline_swapchain_dependents(void) {
             .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
         };
         
-        if (vmaCreateImage(allocator, &image_create_info, &default_device_allocation_create_info, &depth_image, &depth_image_allocation, NULL) != VK_SUCCESS) {
+        if (vmaCreateImage(allocator, &image_create_info, &device_allocation_create_info, &depth_image, &depth_image_allocation, NULL) != VK_SUCCESS) {
             return result_failure;
         }
 

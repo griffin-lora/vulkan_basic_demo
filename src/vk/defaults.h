@@ -8,11 +8,11 @@ extern const VkPipelineDepthStencilStateCreateInfo default_depth_stencil_create_
 extern const VkPipelineColorBlendStateCreateInfo default_color_blend_create_info;
 extern const VkPipelineDynamicStateCreateInfo default_dynamic_create_info;
 
-extern const VkBufferCreateInfo default_vertex_buffer_create_info;
-extern const VkBufferCreateInfo default_index_buffer_create_info;
-extern const VkBufferCreateInfo default_uniform_buffer_create_info;
-extern const VmaAllocationCreateInfo default_staging_allocation_create_info;
-extern const VmaAllocationCreateInfo default_device_allocation_create_info;
+extern const VkBufferCreateInfo vertex_buffer_create_info;
+extern const VkBufferCreateInfo index_buffer_create_info;
+extern const VkBufferCreateInfo uniform_buffer_create_info;
+extern const VmaAllocationCreateInfo staging_allocation_create_info;
+extern const VmaAllocationCreateInfo device_allocation_create_info;
 
 #define DEFAULT_VK_COMMAND_BUFFER\
     .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,\

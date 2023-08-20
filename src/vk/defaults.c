@@ -42,28 +42,28 @@ const VkPipelineDynamicStateCreateInfo default_dynamic_create_info = {
     .pDynamicStates = dynamic_states
 };
 
-const VkBufferCreateInfo default_vertex_buffer_create_info = {
+const VkBufferCreateInfo vertex_buffer_create_info = {
     DEFAULT_VK_BUFFER,
     .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
 };
 
-const VkBufferCreateInfo default_index_buffer_create_info = {
+const VkBufferCreateInfo index_buffer_create_info = {
     DEFAULT_VK_BUFFER,
     .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT
 };
 
-const VkBufferCreateInfo default_uniform_buffer_create_info = {
+const VkBufferCreateInfo uniform_buffer_create_info = {
     DEFAULT_VK_BUFFER,
     .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
 };
 
-const VmaAllocationCreateInfo default_staging_allocation_create_info = {
+const VmaAllocationCreateInfo staging_allocation_create_info = {
     DEFAULT_VMA_ALLOCATION,
     .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
     .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 };
 
-const VmaAllocationCreateInfo default_device_allocation_create_info = {
+const VmaAllocationCreateInfo device_allocation_create_info = {
     DEFAULT_VMA_ALLOCATION,
     .requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 };

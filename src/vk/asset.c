@@ -91,15 +91,15 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         num_vertices_array[i] = mesh.num_vertices;
         num_indices_array[i] = mesh.num_indices;
 
-        if (begin_buffers(mesh.num_vertices, &default_vertex_buffer_create_info, NUM_VERTEX_ARRAYS, &mesh.vertex_arrays[0].data, num_vertex_bytes_array, vertex_staging_arrays[i], vertex_buffer_arrays[i], vertex_buffer_allocation_arrays[i]) != result_success) {
+        if (begin_buffers(mesh.num_vertices, &vertex_buffer_create_info, NUM_VERTEX_ARRAYS, &mesh.vertex_arrays[0].data, num_vertex_bytes_array, vertex_staging_arrays[i], vertex_buffer_arrays[i], vertex_buffer_allocation_arrays[i]) != result_success) {
             return "Failed to begin creating vertex buffers\n"; 
         }
 
-        if (begin_buffers(mesh.num_indices, &default_index_buffer_create_info, 1, &mesh.indices_data, &num_index_bytes, &index_stagings[i], &index_buffers[i], &index_buffer_allocations[i]) != result_success) {
+        if (begin_buffers(mesh.num_indices, &index_buffer_create_info, 1, &mesh.indices_data, &num_index_bytes, &index_stagings[i], &index_buffers[i], &index_buffer_allocations[i]) != result_success) {
             return "Failed to begin creating index buffer\n";
         }
 
-        if (begin_buffers(num_instances_array[i], &default_vertex_buffer_create_info, 1, &model_matrix_arrays[i].matrices_data, &num_instance_bytes, &instance_stagings[i], &instance_buffers[i], &instance_buffer_allocations[i]) != result_success) {
+        if (begin_buffers(num_instances_array[i], &vertex_buffer_create_info, 1, &model_matrix_arrays[i].matrices_data, &num_instance_bytes, &instance_stagings[i], &instance_buffers[i], &instance_buffer_allocations[i]) != result_success) {
             return "Failed to begin creating instance buffer\n";
         }
 
@@ -124,7 +124,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     VkDeviceSize num_shadow_view_projection_bytes = sizeof(shadow_view_projection);
 
     staging_t shadow_view_projection_staging;
-    if (begin_buffers(1, &default_uniform_buffer_create_info, 1, &shadow_view_projection_ptr, &num_shadow_view_projection_bytes, &shadow_view_projection_staging, &shadow_view_projection_buffer, &shadow_view_projection_buffer_allocation) != result_success) {
+    if (begin_buffers(1, &uniform_buffer_create_info, 1, &shadow_view_projection_ptr, &num_shadow_view_projection_bytes, &shadow_view_projection_staging, &shadow_view_projection_buffer, &shadow_view_projection_buffer_allocation) != result_success) {
         return "Failed to create shadow view projection buffer\n";
     }
 

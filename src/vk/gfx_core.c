@@ -212,7 +212,7 @@ result_t begin_images(size_t num_images, uint32_t num_layers, const char* image_
                 .size = num_image_bytes
             };
 
-            if (vmaCreateBuffer(allocator, &info, &default_staging_allocation_create_info, &image_staging_buffers[i], &image_staging_allocations[i], NULL) != VK_SUCCESS) {
+            if (vmaCreateBuffer(allocator, &info, &staging_allocation_create_info, &image_staging_buffers[i], &image_staging_allocations[i], NULL) != VK_SUCCESS) {
                 return result_failure;
             }
         }
@@ -237,7 +237,7 @@ result_t begin_images(size_t num_images, uint32_t num_layers, const char* image_
                 .usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
             };
 
-            if (vmaCreateImage(allocator, &info, &default_device_allocation_create_info, &images[i], &image_allocations[i], NULL) != VK_SUCCESS) {
+            if (vmaCreateImage(allocator, &info, &device_allocation_create_info, &images[i], &image_allocations[i], NULL) != VK_SUCCESS) {
                 return result_failure;
             }
         }
@@ -390,7 +390,7 @@ result_t begin_buffers(
                 .size = num_array_bytes
             };
 
-            if (vmaCreateBuffer(allocator, &info, &default_staging_allocation_create_info, &stagings[i].buffer, &stagings[i].allocation, NULL) != VK_SUCCESS) {
+            if (vmaCreateBuffer(allocator, &info, &staging_allocation_create_info, &stagings[i].buffer, &stagings[i].allocation, NULL) != VK_SUCCESS) {
                 return result_failure;
             }
         }
@@ -399,7 +399,7 @@ result_t begin_buffers(
             VkBufferCreateInfo info = *base_device_buffer_create_info;
             info.size = num_array_bytes;
 
-            if (vmaCreateBuffer(allocator, &info, &default_device_allocation_create_info, &buffers[i], &allocations[i], NULL) != VK_SUCCESS) {
+            if (vmaCreateBuffer(allocator, &info, &device_allocation_create_info, &buffers[i], &allocations[i], NULL) != VK_SUCCESS) {
                 return result_failure;
             }
         }

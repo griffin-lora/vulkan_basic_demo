@@ -35,7 +35,7 @@ const char* init_shadow_pipeline(void) {
             .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
         };
 
-        if (vmaCreateImage(allocator, &image_create_info, &default_device_allocation_create_info, &shadow_image, &shadow_image_allocation, NULL) != VK_SUCCESS) {
+        if (vmaCreateImage(allocator, &image_create_info, &device_allocation_create_info, &shadow_image, &shadow_image_allocation, NULL) != VK_SUCCESS) {
             return "Failed to create shadow image\n";
         }
 
