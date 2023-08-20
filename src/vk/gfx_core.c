@@ -46,31 +46,6 @@ result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
     return result_success;
 }
 
-result_t create_mapped_buffer(VkDeviceSize num_buffer_bytes, VkBufferUsageFlags usage_flags, VmaAllocationCreateFlags allocation_flags, VkMemoryPropertyFlags property_flags, VkBuffer* buffer, VmaAllocation* buffer_allocation, void** mapped_data) {
-    VkBufferCreateInfo buffer_info = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size = num_buffer_bytes,
-        .usage = usage_flags,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE
-    };
-
-    VmaAllocationCreateInfo allocation_create_info = {
-        .usage = VMA_MEMORY_USAGE_AUTO,
-        .flags = allocation_flags | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-        .requiredFlags = property_flags
-    };
-    
-    VmaAllocationInfo allocation_info = {};
-
-    if (vmaCreateBuffer(allocator, &buffer_info, &allocation_create_info, buffer, buffer_allocation, &allocation_info) != VK_SUCCESS) {
-        return result_failure;
-    }
-
-    *mapped_data = allocation_info.pMappedData;
-
-    return result_success;
-}
-
 result_t write_to_buffer(VmaAllocation buffer_allocation, size_t num_bytes, const void* data) {
     void* mapped_data;
     if (vmaMapMemory(allocator, buffer_allocation, &mapped_data) != VK_SUCCESS) {
