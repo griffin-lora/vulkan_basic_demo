@@ -9,23 +9,26 @@ result_t create_shader_module(const char* path, VkShaderModule* shader_module);
 result_t write_to_buffer(VmaAllocation buffer_allocation, size_t num_bytes, const void* data);
 result_t writes_to_buffer(VmaAllocation buffer_allocation, size_t num_write_bytes, size_t num_writes, const void* const data_array[]);
 
-void transfer_from_staging_buffer_to_image(VkCommandBuffer command_buffer, uint32_t image_width, uint32_t image_height, uint32_t num_layers, VkBuffer staging_buffer, VkImage image);
-void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint32_t num_mip_levels, uint32_t mip_level_index, uint32_t num_layers, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access_flags, VkAccessFlags dest_access_flags, VkPipelineStageFlags src_stage_flags, VkPipelineStageFlags dest_stage_flags);
+typedef struct {
+    VkBuffer buffer;
+    VmaAllocation allocation;
+} staging_t;
 
 typedef struct {
     int width;
     int height;
 } image_extent_t;
 
+typedef struct {
+    void** pixel_arrays;
+    VkDeviceSize num_pixel_bytes;
+    VkImageCreateInfo info;
+} image_create_info_t;
+
 result_t begin_images(size_t num_images, uint32_t num_layers, const char* image_paths[][num_layers], const VkFormat formats[], image_extent_t image_extents[], uint32_t num_mip_levels_array[], VkBuffer image_staging_buffers[], VmaAllocation image_staging_allocations[], VkImage images[], VmaAllocation image_allocations[]);
 void transfer_images(VkCommandBuffer command_buffer, size_t num_images, uint32_t num_layers, const image_extent_t image_extents[], const uint32_t num_mip_levels_array[], const VkBuffer image_staging_buffers[], const VkImage images[]);
 void end_images(size_t num_images, const VkBuffer image_staging_buffers[], const VmaAllocation image_staging_buffer_allocations[]);
 result_t create_image_views(size_t num_images, uint32_t num_layers, const VkFormat formats[], const uint32_t num_mip_levels_array[], const VkImage images[], VkImageView image_views[]);
-
-typedef struct {
-    VkBuffer buffer;
-    VmaAllocation allocation;
-} staging_t;
 
 result_t begin_buffers(
     VkDeviceSize num_elements, const VkBufferCreateInfo* base_device_buffer_create_info,

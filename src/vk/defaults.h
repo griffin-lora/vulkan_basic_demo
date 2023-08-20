@@ -101,15 +101,14 @@ extern const VmaAllocationCreateInfo device_allocation_create_info;
 
 #define DEFAULT_VK_IMAGE_MEMORY_BARRIER\
     .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,\
+    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,\
     .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,\
     .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,\
     .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,\
     .subresourceRange.baseMipLevel = 0,\
     .subresourceRange.levelCount = 1,\
     .subresourceRange.baseArrayLayer = 0,\
-    .subresourceRange.layerCount = 1,\
-    .srcAccessMask = src_access_flags,\
-    .dstAccessMask = dest_access_flags
+    .subresourceRange.layerCount = 1
 
 #define DEFAULT_VK_IMAGE_BLIT\
     .srcOffsets[0] = { 0, 0, 0 },\
