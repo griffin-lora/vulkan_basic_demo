@@ -16,18 +16,21 @@
 #include <cglm/struct/affine.h>
 
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties) {
-    const char* image_paths[][NUM_TEXTURE_LAYERS] = {
+    struct {
+        const char* path;
+        int channels;
+    } image_load_infos[][NUM_TEXTURE_LAYERS] = {
         {
-            "image/cube_color.tga",
-            "image/plane_color.jpg"
+            { "image/cube_color.tga", STBI_rgb_alpha },
+            { "image/plane_color.jpg", STBI_rgb_alpha }
         },
         {
-            "image/cube_normal.tga",
-            "image/plane_normal.png"
+            { "image/cube_normal.tga", STBI_rgb },
+            { "image/plane_normal.png", STBI_rgb }
         },
         {
-            "image/cube_specular.tga",
-            "image/plane_specular.png"
+            { "image/cube_specular.tga", STBI_rgb },
+            { "image/plane_specular.png", STBI_rgb }
         }
     };
 
@@ -43,18 +46,18 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
             }
         },
         {
-            .num_pixel_bytes = 4,
+            .num_pixel_bytes = 3,
             .info = {
                 DEFAULT_VK_SAMPLED_IMAGE,
-                .format = VK_FORMAT_R8G8B8A8_UNORM, // USE UNORM FOR ANY NON COLOR TEXTURE, SRGB WILL FUCK UP YOUR NORMAL TEXTURE SO BAD
+                .format = VK_FORMAT_R8G8B8_UNORM, // USE UNORM FOR ANY NON COLOR TEXTURE, SRGB WILL FUCK UP YOUR NORMAL TEXTURE SO BAD
                 .arrayLayers = NUM_TEXTURE_LAYERS
             }
         },
         {
-            .num_pixel_bytes = 4,
+            .num_pixel_bytes = 3,
             .info = {
                 DEFAULT_VK_SAMPLED_IMAGE,
-                .format = VK_FORMAT_R8G8B8A8_UNORM,
+                .format = VK_FORMAT_R8G8B8_UNORM,
                 .arrayLayers = NUM_TEXTURE_LAYERS
             }
         },
@@ -72,7 +75,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         for (size_t j = 0; j < info->info.arrayLayers; j++) {
             int new_width;
             int new_height;
-            info->pixel_arrays[j] = stbi_load(image_paths[i][j], &new_width, &new_height, &image_channels, STBI_rgb_alpha);
+            info->pixel_arrays[j] = stbi_load(image_load_infos[i][j].path, &new_width, &new_height, &image_channels, image_load_infos[i][j].channels);
 
             if (info->pixel_arrays[j] == NULL) {
                 return "Failed to load image pixels\n";
