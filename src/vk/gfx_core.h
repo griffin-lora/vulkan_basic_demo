@@ -9,7 +9,6 @@ result_t create_shader_module(const char* path, VkShaderModule* shader_module);
 result_t write_to_buffer(VmaAllocation buffer_allocation, size_t num_bytes, const void* data);
 result_t writes_to_buffer(VmaAllocation buffer_allocation, size_t num_write_bytes, size_t num_writes, const void* const data_array[]);
 
-void transfer_from_staging_buffer_to_buffer(VkCommandBuffer command_buffer, VkDeviceSize num_bytes, VkBuffer staging_buffer, VkBuffer buffer);
 void transfer_from_staging_buffer_to_image(VkCommandBuffer command_buffer, uint32_t image_width, uint32_t image_height, uint32_t num_layers, VkBuffer staging_buffer, VkImage image);
 void transition_image_layout(VkCommandBuffer command_buffer, VkImage image, uint32_t num_mip_levels, uint32_t mip_level_index, uint32_t num_layers, VkImageLayout old_layout, VkImageLayout new_layout, VkAccessFlags src_access_flags, VkAccessFlags dest_access_flags, VkPipelineStageFlags src_stage_flags, VkPipelineStageFlags dest_stage_flags);
 
