@@ -100,15 +100,6 @@ result_t create_image(uint32_t image_width, uint32_t image_height, uint32_t num_
     return result_success;
 }
 
-void transfer_from_staging_buffer_to_buffer(VkCommandBuffer command_buffer, VkDeviceSize num_bytes, VkBuffer staging_buffer, VkBuffer buffer) {
-    VkBufferCopy region = {
-        .srcOffset = 0,
-        .dstOffset = 0,
-        .size = num_bytes
-    };
-    vkCmdCopyBuffer(command_buffer, staging_buffer, buffer, 1, &region);
-}
-
 void transfer_from_staging_buffer_to_image(VkCommandBuffer command_buffer, uint32_t image_width, uint32_t image_height, uint32_t num_layers, VkBuffer staging_buffer, VkImage image) {
     VkBufferImageCopy region = {
         .bufferOffset = 0,
@@ -459,7 +450,10 @@ result_t begin_vertex_arrays(
 
 void transfer_vertex_arrays(VkCommandBuffer command_buffer, VkDeviceSize num_vertices, size_t num_vertex_arrays, const VkDeviceSize num_vertex_bytes_array[], const VkBuffer vertex_staging_buffers[], const VkBuffer vertex_buffers[]) {
     for (size_t i = 0; i < num_vertex_arrays; i++) {
-        transfer_from_staging_buffer_to_buffer(command_buffer, num_vertices*num_vertex_bytes_array[i], vertex_staging_buffers[i], vertex_buffers[i]);
+        VkBufferCopy region = {
+            .size = num_vertices*num_vertex_bytes_array[i]
+        };
+        vkCmdCopyBuffer(command_buffer, vertex_staging_buffers[i], vertex_buffers[i], 1, &region);
     }
 }
 
@@ -504,7 +498,10 @@ result_t begin_indices(VkDeviceSize num_index_bytes, VkDeviceSize num_indices, v
 }
 
 void transfer_indices(VkCommandBuffer command_buffer, VkDeviceSize num_index_bytes, VkDeviceSize num_indices, VkBuffer index_staging_buffer, VkBuffer index_buffer) {
-    transfer_from_staging_buffer_to_buffer(command_buffer, num_indices*num_index_bytes, index_staging_buffer, index_buffer);
+    VkBufferCopy region = {
+        .size = num_indices*num_index_bytes
+    };
+    vkCmdCopyBuffer(command_buffer, index_staging_buffer, index_buffer, 1, &region);
 }
 
 void end_indices(VkBuffer index_staging_buffer, VmaAllocation index_staging_buffer_allocation) {
@@ -544,7 +541,10 @@ result_t begin_instances(VkDeviceSize num_instance_bytes, VkDeviceSize num_insta
 }
 
 void transfer_instances(VkCommandBuffer command_buffer, VkDeviceSize num_instance_bytes, VkDeviceSize num_instances, VkBuffer instance_staging_buffer, VkBuffer instance_buffer) {
-    transfer_from_staging_buffer_to_buffer(command_buffer, num_instances*num_instance_bytes, instance_staging_buffer, instance_buffer);
+    VkBufferCopy region = {
+        .size = num_instances*num_instance_bytes
+    };
+    vkCmdCopyBuffer(command_buffer, instance_staging_buffer, instance_buffer, 1, &region);
 }
 
 void end_instances(VkBuffer instance_staging_buffer, VmaAllocation instance_staging_buffer_allocation) {
