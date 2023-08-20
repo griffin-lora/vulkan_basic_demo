@@ -52,6 +52,11 @@ const VkBufferCreateInfo default_index_buffer_create_info = {
     .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT
 };
 
+const VkBufferCreateInfo default_uniform_buffer_create_info = {
+    DEFAULT_VK_BUFFER,
+    .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+};
+
 const VmaAllocationCreateInfo default_staging_allocation_create_info = {
     DEFAULT_VMA_ALLOCATION,
     .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,

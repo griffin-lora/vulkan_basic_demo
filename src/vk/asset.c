@@ -109,6 +109,27 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         free(mesh.indices_data);
     }
 
+    //
+
+    vec3s light_direction = glms_vec3_normalize((vec3s) {{ -0.8f, -0.6f, 0.4f }});
+    vec3s light_position = glms_vec3_scale(glms_vec3_negate(light_direction), 40.0f);
+
+    mat4s projection = glms_ortho(-60.0f, 60.0f, -60.0f, 60.0f, 0.01f, 300.0f);
+
+    mat4s view = glms_look(light_position, light_direction, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
+
+    mat4s shadow_view_projection = glms_mat4_mul(projection, view);
+    void* shadow_view_projection_ptr = &shadow_view_projection;
+
+    VkDeviceSize num_shadow_view_projection_bytes = sizeof(shadow_view_projection);
+
+    staging_t shadow_view_projection_staging;
+    if (begin_buffers(1, &default_uniform_buffer_create_info, 1, &shadow_view_projection_ptr, &num_shadow_view_projection_bytes, &shadow_view_projection_staging, &shadow_view_projection_buffer, &shadow_view_projection_buffer_allocation) != result_success) {
+        return "Failed to create shadow view projection buffer\n";
+    }
+
+    //
+
     VkCommandBuffer command_buffer;
     {
         VkCommandBufferAllocateInfo info = {
@@ -138,6 +159,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         transfer_buffers(command_buffer, num_indices_array[i], 1, &num_index_bytes, &index_stagings[i], &index_buffers[i]);
         transfer_buffers(command_buffer, num_instances_array[i], 1, &num_instance_bytes, &instance_stagings[i], &instance_buffers[i]);
     }
+    transfer_buffers(command_buffer, 1, 1, &num_shadow_view_projection_bytes, &shadow_view_projection_staging, &shadow_view_projection_buffer);
 
     if (vkEndCommandBuffer(command_buffer) != VK_SUCCESS) {
         return "Failed to write to transfer command buffer\n";
@@ -163,6 +185,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         end_buffers(1, &index_stagings[i]);
         end_buffers(1, &instance_stagings[i]);
     }
+    end_buffers(1, &shadow_view_projection_staging);
 
     //
 
@@ -191,38 +214,6 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         if (vkCreateSampler(device, &info, NULL, &shadow_texture_image_sampler) != VK_SUCCESS) {
             return "Failed to create tetxure image sampler\n";
         }
-    }
-
-    //
-    vec3s light_direction = glms_vec3_normalize((vec3s) {{ -0.8f, -0.6f, 0.4f }});
-    vec3s light_position = glms_vec3_scale(glms_vec3_negate(light_direction), 40.0f);
-
-    mat4s projection = glms_ortho(-60.0f, 60.0f, -60.0f, 60.0f, 0.01f, 300.0f);
-
-    mat4s view = glms_look(light_position, light_direction, (vec3s) {{ 0.0f, -1.0f, 0.0f }});
-
-    mat4s shadow_view_projection = glms_mat4_mul(projection, view);
-
-    {
-        VkBufferCreateInfo buffer_info = {
-            DEFAULT_VK_BUFFER,
-            .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            .size = sizeof(shadow_view_projection)
-        };
-
-        VmaAllocationCreateInfo allocation_info = {
-            DEFAULT_VMA_ALLOCATION,
-            .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
-            .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-        };
-
-        if (vmaCreateBuffer(allocator, &buffer_info, &allocation_info, &shadow_view_projection_buffer, &shadow_view_projection_buffer_allocation, NULL) != VK_SUCCESS) {
-            return "Failed to create shadow view projection buffer\n";
-        }
-    }
-
-    if (write_to_buffer(shadow_view_projection_buffer_allocation, sizeof(shadow_view_projection), &shadow_view_projection)) {
-        return "Failed to write to shadow view projection buffer\n";
     }
 
     return NULL;

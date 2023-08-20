@@ -10,6 +10,7 @@ extern const VkPipelineDynamicStateCreateInfo default_dynamic_create_info;
 
 extern const VkBufferCreateInfo default_vertex_buffer_create_info;
 extern const VkBufferCreateInfo default_index_buffer_create_info;
+extern const VkBufferCreateInfo default_uniform_buffer_create_info;
 extern const VmaAllocationCreateInfo default_staging_allocation_create_info;
 extern const VmaAllocationCreateInfo default_device_allocation_create_info;
 
@@ -72,10 +73,6 @@ extern const VmaAllocationCreateInfo default_device_allocation_create_info;
 #define DEFAULT_VK_STAGING_BUFFER\
     DEFAULT_VK_BUFFER,\
     .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
-
-#define DEFAULT_VK_UNIFORM_BUFFER\
-    DEFAULT_VK_BUFFER,\
-    .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
 
 #define DEFAULT_VMA_ALLOCATION\
     .usage = VMA_MEMORY_USAGE_AUTO
