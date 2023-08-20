@@ -67,7 +67,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     num_instances_array[1] = 1;
     union {
         mat4s* matrices;
-        void* matrices_raw;
+        void* matrices_data;
     } model_matrix_arrays[] = {
         { cube_model_matrices },
         { &plane_model_matrix }
@@ -95,18 +95,18 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
             return "Failed to begin creating vertex buffers\n"; 
         }
 
-        if (begin_buffers(mesh.num_indices, &default_index_buffer_create_info, 1, &mesh.indices_raw, &num_index_bytes, &index_stagings[i], &index_buffers[i], &index_buffer_allocations[i]) != result_success) {
+        if (begin_buffers(mesh.num_indices, &default_index_buffer_create_info, 1, &mesh.indices_data, &num_index_bytes, &index_stagings[i], &index_buffers[i], &index_buffer_allocations[i]) != result_success) {
             return "Failed to begin creating index buffer\n";
         }
 
-        if (begin_buffers(num_instances_array[i], &default_vertex_buffer_create_info, 1, &model_matrix_arrays[i].matrices_raw, &num_instance_bytes, &instance_stagings[i], &instance_buffers[i], &instance_buffer_allocations[i]) != result_success) {
+        if (begin_buffers(num_instances_array[i], &default_vertex_buffer_create_info, 1, &model_matrix_arrays[i].matrices_data, &num_instance_bytes, &instance_stagings[i], &instance_buffers[i], &instance_buffer_allocations[i]) != result_success) {
             return "Failed to begin creating instance buffer\n";
         }
 
         for (size_t i = 0; i < NUM_VERTEX_ARRAYS; i++) {
             free(mesh.vertex_arrays[i].data);
         }
-        free(mesh.indices_raw);
+        free(mesh.indices_data);
     }
 
     VkCommandBuffer command_buffer;

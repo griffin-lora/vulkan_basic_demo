@@ -34,7 +34,7 @@ typedef struct {
     vertex_array_t vertex_arrays[NUM_VERTEX_ARRAYS];
     union {
         uint16_t* indices;
-        void* indices_raw;
+        void* indices_data;
     };
 } mesh_t;
 
