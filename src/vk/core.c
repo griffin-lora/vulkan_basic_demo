@@ -1,5 +1,4 @@
 #include "core.h"
-#include "ds.h"
 #include "util.h"
 #include "result.h"
 #include "gfx_pipeline.h"
@@ -10,6 +9,7 @@
 #include "defaults.h"
 #include <stdbool.h>
 #include <string.h>
+#include <malloc.h>
 #include <stdio.h>
 
 #define WIDTH 640
@@ -27,7 +27,7 @@ static result_t check_layers(void) {
     uint32_t num_available_layers;
     vkEnumerateInstanceLayerProperties(&num_available_layers, NULL);
     
-    VkLayerProperties* available_layers = ds_promise(num_available_layers*sizeof(VkLayerProperties));
+    VkLayerProperties available_layers[num_available_layers];
     vkEnumerateInstanceLayerProperties(&num_available_layers, available_layers);
 
     for (size_t i = 0; i < NUM_ELEMS(layers); i++) {
@@ -51,7 +51,7 @@ static result_t check_extensions(VkPhysicalDevice physical_device) {
     uint32_t num_available_extensions;
     vkEnumerateDeviceExtensionProperties(physical_device, NULL, &num_available_extensions, NULL);
     
-    VkExtensionProperties* available_extensions = ds_promise(num_available_extensions*sizeof(VkExtensionProperties));
+    VkExtensionProperties available_extensions[num_available_extensions];
     vkEnumerateDeviceExtensionProperties(physical_device, NULL, &num_available_extensions, available_extensions);
 
     for (size_t i = 0; i < NUM_ELEMS(extensions); i++) {
@@ -140,7 +140,7 @@ static result_t get_physical_device(uint32_t num_physical_devices, const VkPhysi
         uint32_t num_queue_families;
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, NULL);
 
-        VkQueueFamilyProperties* queue_families = ds_promise(num_queue_families*sizeof(VkQueueFamilyProperties));
+        VkQueueFamilyProperties queue_families[num_queue_families];
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, queue_families);
 
         uint64_t graphics_queue_family_index = get_graphics_queue_family_index(num_queue_families, queue_families);
@@ -394,16 +394,17 @@ const char* init_vulkan_core(void) {
         return "Failed to find physical devices with Vulkan support\n";
     }
 
-    VkPhysicalDevice* physical_devices = ds_push(num_physical_devices*sizeof(VkPhysicalDevice));
-    vkEnumeratePhysicalDevices(instance, &num_physical_devices, physical_devices);
-
     uint32_t num_surface_formats;
     uint32_t num_present_modes;
-    if (get_physical_device(num_physical_devices, physical_devices, &physical_device, &num_surface_formats, &num_present_modes, &queue_family_indices) != result_success) {
-        return "Failed to get a suitable physical device\n";
-    }
 
-    ds_restore(physical_devices);
+    {
+        VkPhysicalDevice physical_devices[num_physical_devices];
+        vkEnumeratePhysicalDevices(instance, &num_physical_devices, physical_devices);
+
+        if (get_physical_device(num_physical_devices, physical_devices, &physical_device, &num_surface_formats, &num_present_modes, &queue_family_indices) != result_success) {
+            return "Failed to get a suitable physical device\n";
+        }
+    }
 
     VkPhysicalDeviceProperties physical_device_properties;
     vkGetPhysicalDeviceProperties(physical_device, &physical_device_properties);
@@ -481,14 +482,14 @@ const char* init_vulkan_core(void) {
     vkGetDeviceQueue(device, queue_family_indices.presentation, 0, &presentation_queue);
 
     {
-        VkSurfaceFormatKHR* surface_formats = ds_promise(num_surface_formats*sizeof(VkSurfaceFormatKHR));
+        VkSurfaceFormatKHR surface_formats[num_surface_formats];
         vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &num_surface_formats, surface_formats);
 
         surface_format = get_surface_format(num_surface_formats, surface_formats);
     }
 
     {
-        VkPresentModeKHR* present_modes = ds_promise(num_present_modes*sizeof(VkPresentModeKHR));
+        VkPresentModeKHR present_modes[num_present_modes];
         vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &num_present_modes, present_modes);
 
         present_mode = get_present_mode(num_present_modes, present_modes);
@@ -526,9 +527,9 @@ const char* init_vulkan_core(void) {
     if (msg != NULL) { return msg; }
 
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, NULL);
-    swapchain_images = ds_push(num_swapchain_images*sizeof(VkImage));
-    swapchain_image_views = ds_push(num_swapchain_images*sizeof(VkImageView));
-    swapchain_framebuffers = ds_push(num_swapchain_images*sizeof(VkFramebuffer));
+    swapchain_images = memalign(64, num_swapchain_images*sizeof(VkImage));
+    swapchain_image_views = memalign(64, num_swapchain_images*sizeof(VkImageView));
+    swapchain_framebuffers = memalign(64, num_swapchain_images*sizeof(VkFramebuffer));
 
     if (init_swapchain_framebuffers() != result_success) {
         return "Failed to create framebuffer\n";
@@ -560,6 +561,10 @@ void term_vulkan_all(void) {
     vkDestroyDevice(device, NULL);
     vkDestroySurfaceKHR(instance, surface, NULL);
     vkDestroyInstance(instance, NULL);
+
+    free(swapchain_images);
+    free(swapchain_image_views);
+    free(swapchain_framebuffers);
 
     glfwDestroyWindow(window);
     glfwTerminate();

@@ -1,13 +1,13 @@
 #include "gfx_core.h"
 #include "core.h"
 #include "util.h"
-#include "ds.h"
 #include "defaults.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <malloc.h>
 #include <math.h>
 
 result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
@@ -25,7 +25,7 @@ result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
 
     size_t aligned_num_bytes = st.st_size % 32ul == 0 ? st.st_size : st.st_size + (32ul - (st.st_size % 32ul));
 
-    uint32_t* bytes = ds_promise(aligned_num_bytes);
+    uint32_t* bytes = memalign(64, aligned_num_bytes);
     memset(bytes, 0, aligned_num_bytes);
     if (fread(bytes, st.st_size, 1, file) != 1) {
         return result_failure;
@@ -42,6 +42,8 @@ result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
     if (vkCreateShaderModule(device, &info, NULL, shader_module) != VK_SUCCESS) {
         return result_failure;
     }
+
+    free(bytes);
     return result_success;
 }
 
@@ -78,7 +80,7 @@ result_t create_descriptor_set(VkDescriptorSetLayoutCreateInfo descriptor_set_la
     const VkDescriptorSetLayoutBinding* bindings = descriptor_set_layout_create_info.pBindings;
 
     {
-        VkDescriptorPoolSize* sizes = ds_promise(num_bindings*sizeof(VkDescriptorPoolSize));
+        VkDescriptorPoolSize sizes[num_bindings];
         for (size_t i = 0; i < num_bindings; i++) {
             sizes[i] = (VkDescriptorPoolSize) {
                 .type = bindings[i].descriptorType,
@@ -112,7 +114,7 @@ result_t create_descriptor_set(VkDescriptorSetLayoutCreateInfo descriptor_set_la
     }
 
     {
-        VkWriteDescriptorSet* writes = ds_promise(num_bindings*sizeof(VkWriteDescriptorSet));
+        VkWriteDescriptorSet writes[num_bindings];
         for (size_t i = 0; i < num_bindings; i++) {
             VkWriteDescriptorSet write = {
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -330,7 +332,7 @@ void begin_pipeline(
 }
 
 void bind_vertex_buffers(VkCommandBuffer command_buffer, uint32_t num_vertex_buffers, const VkBuffer vertex_buffers[]) {
-    VkDeviceSize* offsets = ds_promise(num_vertex_buffers*sizeof(VkDeviceSize));
+    VkDeviceSize offsets[num_vertex_buffers];
     memset(offsets, 0, num_vertex_buffers*sizeof(VkDeviceSize));
     vkCmdBindVertexBuffers(command_buffer, 0, num_vertex_buffers, vertex_buffers, offsets);
 }
