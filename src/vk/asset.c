@@ -100,6 +100,14 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         return "Failed to begin creating images\n";
     }
 
+    for (size_t i = 0; i < NUM_TEXTURE_IMAGES; i++) {
+        const image_create_info_t* info = &image_create_infos[i];
+        
+        for (size_t j = 0; j < info->info.arrayLayers; j++) {
+            stbi_image_free(info->pixel_arrays[j]);
+        }
+    }
+
     const char* mesh_paths[] = {
         "mesh/cube.gltf",
         "mesh/plane.gltf"
