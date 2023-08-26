@@ -244,8 +244,22 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     //
 
-    if (create_image_views(NUM_TEXTURE_IMAGES, image_create_infos, texture_images, texture_image_views) != result_success) {
-        return "Failed to create texture image view\n";
+    for (size_t i = 0; i < NUM_TEXTURE_IMAGES; i++) {
+        const VkImageCreateInfo* image_create_info = &image_create_infos[i].info;
+
+        VkImageViewCreateInfo info = {
+            DEFAULT_VK_IMAGE_VIEW,
+            .image = texture_images[i],
+            .viewType = image_create_info->arrayLayers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+            .format = image_create_info->format,
+            .subresourceRange.levelCount = image_create_info->mipLevels,
+            .subresourceRange.layerCount = image_create_info->arrayLayers,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
+        };
+        
+        if (vkCreateImageView(device, &info, NULL, &texture_image_views[i]) != VK_SUCCESS) {
+            return "Failed to create texture image view\n";
+        }
     }
 
     {

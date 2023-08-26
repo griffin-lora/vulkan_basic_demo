@@ -23,7 +23,6 @@ typedef struct {
 result_t begin_images(size_t num_images, const image_create_info_t infos[], staging_t stagings[], VkImage images[], VmaAllocation allocations[]);
 void transfer_images(VkCommandBuffer command_buffer, size_t num_images, const image_create_info_t infos[], const staging_t stagings[], const VkImage images[]);
 void end_images(size_t num_images, const staging_t stagings[]);
-result_t create_image_views(size_t num_images, const image_create_info_t infos[], const VkImage images[], VkImageView image_views[]);
 
 result_t begin_buffers(
     VkDeviceSize num_elements, const VkBufferCreateInfo* base_device_buffer_create_info,

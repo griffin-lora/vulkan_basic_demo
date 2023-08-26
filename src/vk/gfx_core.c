@@ -278,28 +278,6 @@ void end_images(size_t num_images, const staging_t stagings[]) {
     end_buffers(num_images, stagings);
 }
 
-result_t create_image_views(size_t num_images, const image_create_info_t infos[], const VkImage images[], VkImageView image_views[]) {
-    for (size_t i = 0; i < num_images; i++) {
-        const VkImageCreateInfo* image_create_info = &infos[i].info;
-
-        VkImageViewCreateInfo info = {
-            DEFAULT_VK_IMAGE_VIEW,
-            .image = images[i],
-            .viewType = image_create_info->arrayLayers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-            .format = image_create_info->format,
-            .subresourceRange.levelCount = image_create_info->mipLevels,
-            .subresourceRange.layerCount = image_create_info->arrayLayers,
-            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
-        };
-        
-        if (vkCreateImageView(device, &info, NULL, &image_views[i]) != VK_SUCCESS) {
-            return result_failure;
-        }
-    }
-
-    return result_success;
-}
-
 void destroy_images(size_t num_images, const VkImage images[], const VmaAllocation image_allocations[], const VkImageView image_views[]) {
     for (size_t i = 0; i < num_images; i++) {
         vkDestroyImageView(device, image_views[i], NULL);
