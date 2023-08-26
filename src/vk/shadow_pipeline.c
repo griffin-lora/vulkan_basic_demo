@@ -225,6 +225,16 @@ const char* init_shadow_pipeline(void) {
 }
 
 const char* draw_shadow_pipeline(void) {
+    VkFence render_fence;
+    {
+        VkFenceCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
+        };
+        if (vkCreateFence(device, &info, NULL, &render_fence) != VK_SUCCESS) {
+            return "Failed to create render fence\n";
+        }
+    }
+
     VkCommandBuffer command_buffer;
     {
         VkCommandBufferAllocateInfo info = {
@@ -301,9 +311,11 @@ const char* draw_shadow_pipeline(void) {
             .pCommandBuffers = &command_buffer
         };
 
-        vkQueueSubmit(graphics_queue, 1, &info, VK_NULL_HANDLE);
-        vkQueueWaitIdle(graphics_queue);
+        vkQueueSubmit(graphics_queue, 1, &info, render_fence);
+        vkWaitForFences(device, 1, &render_fence, VK_TRUE, UINT64_MAX);
     }
+
+    vkDestroyFence(device, render_fence, NULL);
 
     vkDestroyFramebuffer(device, framebuffer, NULL);
 

@@ -69,6 +69,7 @@ const char* draw_vulkan_frame(void) {
         
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebuffer_resized) {
             framebuffer_resized = false;
+            vkWaitForFences(device, 1, &in_flight_fence, VK_TRUE, UINT64_MAX);
             reinit_swapchain();
         } else if (result != VK_SUCCESS) {
             return "Failed to present swap chain image";

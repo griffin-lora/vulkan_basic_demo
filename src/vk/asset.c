@@ -182,8 +182,17 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     if (begin_buffers(1, &uniform_buffer_create_info, 1, &shadow_view_projection_ptr, &num_shadow_view_projection_bytes, &shadow_view_projection_staging, &shadow_view_projection_buffer, &shadow_view_projection_buffer_allocation) != result_success) {
         return "Failed to create shadow view projection buffer\n";
     }
-
     //
+    
+    VkFence transfer_fence;
+    {
+        VkFenceCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
+        };
+        if (vkCreateFence(device, &info, NULL, &transfer_fence) != VK_SUCCESS) {
+            return "Failed to create transfer fence\n";
+        }
+    }
 
     VkCommandBuffer command_buffer;
     {
@@ -227,9 +236,11 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
             .pCommandBuffers = &command_buffer
         };
 
-        vkQueueSubmit(graphics_queue, 1, &info, VK_NULL_HANDLE);
-        vkQueueWaitIdle(graphics_queue);
+        vkQueueSubmit(graphics_queue, 1, &info, transfer_fence);
+        vkWaitForFences(device, 1, &transfer_fence, VK_TRUE, UINT64_MAX);
     }
+
+    vkDestroyFence(device, transfer_fence, NULL);
 
     vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 

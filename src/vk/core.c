@@ -299,8 +299,6 @@ void reinit_swapchain(void) {
         glfwWaitEvents();
     }
     //
-
-    vkDeviceWaitIdle(device);
     
     term_color_pipeline_swapchain_dependents();
     term_swapchain();
