@@ -34,7 +34,7 @@ int main(void) {
             printf("%f\n", delta);
         }
 
-        microseconds_t remaining_microseconds = (1000000ul/60ul) - delta_microseconds;
+        microseconds_t remaining_microseconds = (1000000l/60l) - delta_microseconds;
         if (remaining_microseconds > 0) {
             sleep_microseconds(remaining_microseconds);
         }

@@ -23,11 +23,12 @@ result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
     struct stat st;
     stat(path, &st);
 
-    size_t aligned_num_bytes = st.st_size % 32ul == 0 ? st.st_size : st.st_size + (32ul - (st.st_size % 32ul));
+    size_t num_bytes = (size_t)st.st_size;
+    size_t aligned_num_bytes = num_bytes % 32ul == 0 ? num_bytes : num_bytes + (32ul - (num_bytes % 32ul));
 
     uint32_t* bytes = memalign(64, aligned_num_bytes);
     memset(bytes, 0, aligned_num_bytes);
-    if (fread(bytes, st.st_size, 1, file) != 1) {
+    if (fread(bytes, num_bytes, 1, file) != 1) {
         return result_failure;
     }
 
@@ -35,7 +36,7 @@ result_t create_shader_module(const char* path, VkShaderModule* shader_module) {
 
     VkShaderModuleCreateInfo info = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .codeSize = st.st_size,
+        .codeSize = num_bytes,
         .pCode = bytes
     };
 
@@ -76,7 +77,7 @@ result_t create_descriptor_set(VkDescriptorSetLayoutCreateInfo descriptor_set_la
         return result_failure;
     }
 
-    size_t num_bindings = descriptor_set_layout_create_info.bindingCount;
+    uint32_t num_bindings = descriptor_set_layout_create_info.bindingCount;
     const VkDescriptorSetLayoutBinding* bindings = descriptor_set_layout_create_info.pBindings;
 
     {
@@ -210,10 +211,10 @@ void transfer_images(VkCommandBuffer command_buffer, size_t num_images, const im
             vkCmdCopyBufferToImage(command_buffer, stagings[i].buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
         }
 
-        uint32_t mip_width = width;
-        uint32_t mip_height = height;
+        int32_t mip_width = (int32_t)width;
+        int32_t mip_height = (int32_t)height;
 
-        for (size_t i = 1; i < num_mip_levels; i++) {
+        for (uint32_t i = 1; i < num_mip_levels; i++) {
             {
                 VkImageMemoryBarrier barrier = {
                     DEFAULT_VK_IMAGE_MEMORY_BARRIER,
@@ -317,8 +318,8 @@ void begin_pipeline(
     VkViewport viewport = {
         .x = 0.0f,
         .y = 0.0f,
-        .width = image_extent.width,
-        .height = image_extent.height,
+        .width = (float)image_extent.width,
+        .height = (float)image_extent.height,
         .minDepth = 0.0f,
         .maxDepth = 1.0f
     };
@@ -343,7 +344,7 @@ void end_pipeline(VkCommandBuffer command_buffer) {
 
 result_t begin_buffers(
     VkDeviceSize num_elements, const VkBufferCreateInfo* base_device_buffer_create_info,
-    size_t num_buffers, void* const arrays[], const VkDeviceSize num_element_bytes_array[], staging_t stagings[], VkBuffer buffers[], VmaAllocation allocations[]
+    size_t num_buffers, void* const arrays[], const uint32_t num_element_bytes_array[], staging_t stagings[], VkBuffer buffers[], VmaAllocation allocations[]
 ) {
     for (size_t i = 0; i < num_buffers; i++) {
         void* array = arrays[i];
@@ -379,7 +380,7 @@ result_t begin_buffers(
 
 void transfer_buffers(
     VkCommandBuffer command_buffer, VkDeviceSize num_elements,
-    size_t num_buffers, const VkDeviceSize num_element_bytes_array[], const staging_t stagings[], const VkBuffer buffers[]
+    size_t num_buffers, const uint32_t num_element_bytes_array[], const staging_t stagings[], const VkBuffer buffers[]
 ) {
     for (size_t i = 0; i < num_buffers; i++) {
         VkBufferCopy region = {

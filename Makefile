@@ -9,7 +9,8 @@ OBJECTS := $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
 DEPENDS := $(patsubst %.c,%.d,$(patsubst %.cpp,%.d,$(SOURCES)))
 SHADER_OBJECTS := $(patsubst %.vert,%.spv,$(patsubst %.frag,%.spv,$(SHADER_SOURCES)))
 
-CFLAGS = -O2 -Wall -Isrc -Ilib
+CFLAGS = -O2 -std=c2x -Wall -Wextra -Wpedantic -Wconversion -Wno-override-init -Wno-pointer-arith -Werror -Wfatal-errors -Isrc -Ilib
+CXXFLAGS = -O2 -Isrc -Ilib
 
 .PHONY: build run clean
 
@@ -28,7 +29,7 @@ clean:
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 %.o: %.cpp Makefile
-	$(CXX) $(CFLAGS) -MMD -MP -c $< -o $@
+	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 %.spv: %.vert Makefile
 	$(GLSLC) $< -o $@

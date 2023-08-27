@@ -101,7 +101,7 @@ static result_t check_extensions(VkPhysicalDevice physical_device) {
 }
 
 static uint32_t get_graphics_queue_family_index(uint32_t num_queue_families, const VkQueueFamilyProperties queue_families[]) {
-    for (size_t i = 0; i < num_queue_families; i++) {
+    for (uint32_t i = 0; i < num_queue_families; i++) {
         if (queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             return i;
         }
@@ -110,7 +110,7 @@ static uint32_t get_graphics_queue_family_index(uint32_t num_queue_families, con
 }
 
 static uint32_t get_presentation_queue_family_index(VkPhysicalDevice physical_device, uint32_t num_queue_families, const VkQueueFamilyProperties queue_families[]) {
-    for (size_t i = 0; i < num_queue_families; i++) {
+    for (uint32_t i = 0; i < num_queue_families; i++) {
         if (!(queue_families[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
             continue;
         }
@@ -172,12 +172,12 @@ static result_t get_physical_device(uint32_t num_physical_devices, const VkPhysi
         VkQueueFamilyProperties queue_families[num_queue_families];
         vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &num_queue_families, queue_families);
 
-        uint64_t graphics_queue_family_index = get_graphics_queue_family_index(num_queue_families, queue_families);
+        uint32_t graphics_queue_family_index = get_graphics_queue_family_index(num_queue_families, queue_families);
         if (graphics_queue_family_index == NULL_UINT32) {
             continue;
         }
 
-        uint64_t presentation_queue_family_index = get_presentation_queue_family_index(physical_device, num_queue_families, queue_families);
+        uint32_t presentation_queue_family_index = get_presentation_queue_family_index(physical_device, num_queue_families, queue_families);
         if (presentation_queue_family_index == NULL_UINT32) {
             break;
         }
@@ -218,10 +218,10 @@ static VkExtent2D get_swap_image_extent(const VkSurfaceCapabilitiesKHR* capabili
         return capabilities->currentExtent;
     }
 
-    int32_t width;
-    int32_t height;
+    int width;
+    int height;
     glfwGetFramebufferSize(window, &width, &height);
-    VkExtent2D extent = { width, height };
+    VkExtent2D extent = { (uint32_t)width, (uint32_t)height };
 
     extent.width = clamp_uint32(extent.width, capabilities->minImageExtent.width, capabilities->maxImageExtent.width);
     extent.height = clamp_uint32(extent.height, capabilities->minImageExtent.height, capabilities->maxImageExtent.height);

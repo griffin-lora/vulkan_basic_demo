@@ -91,8 +91,8 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     int image_channels;
 
     for (size_t i = 0; i < NUM_TEXTURE_IMAGES; i++) {
-        int width;
-        int height;
+        uint32_t width;
+        uint32_t height;
 
         image_create_info_t* info = &image_create_infos[i];
         info->pixel_arrays = (void**)&pixel_arrays[i];
@@ -106,16 +106,16 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
                 return "Failed to load image pixels\n";
             }
 
-            if (j > 0 && (new_width != width || new_width != height)) {
+            if (j > 0 && ((uint32_t)new_width != width || (uint32_t)new_width != height)) {
                 return "Pixels \n";
             }
 
-            width = new_width;
-            height = new_height;
+            width = (uint32_t)new_width;
+            height = (uint32_t)new_height;
 
             info->info.extent.width = width;
             info->info.extent.height = height;
-            info->info.mipLevels = ((uint32_t)floorf(log2f(max_uint32(width, height)))) + 1;
+            info->info.mipLevels = ((uint32_t)floorf(log2f((float)max_uint32(width, height)))) + 1;
         }
     }
 
@@ -166,8 +166,8 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     staging_t index_stagings[NUM_MODELS];
     staging_t instance_stagings[NUM_MODELS];
 
-    VkDeviceSize num_index_bytes = sizeof(uint16_t);
-    VkDeviceSize num_instance_bytes = sizeof(mat4s);
+    uint32_t num_index_bytes = sizeof(uint16_t);
+    uint32_t num_instance_bytes = sizeof(mat4s);
 
     for (size_t i = 0; i < NUM_MODELS; i++) {
         mesh_t mesh;
@@ -208,7 +208,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     mat4s shadow_view_projection = glms_mat4_mul(projection, view);
     void* shadow_view_projection_ptr = &shadow_view_projection;
 
-    VkDeviceSize num_shadow_view_projection_bytes = sizeof(shadow_view_projection);
+    uint32_t num_shadow_view_projection_bytes = sizeof(shadow_view_projection);
 
     staging_t shadow_view_projection_staging;
     if (begin_buffers(1, &uniform_buffer_create_info, 1, &shadow_view_projection_ptr, &num_shadow_view_projection_bytes, &shadow_view_projection_staging, &shadow_view_projection_buffer, &shadow_view_projection_buffer_allocation) != result_success) {
@@ -308,7 +308,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     {
         VkSamplerCreateInfo info = {
             DEFAULT_VK_SAMPLER,
-            .maxLod = image_create_infos[0].info.mipLevels
+            .maxLod = (float)image_create_infos[0].info.mipLevels
         };
 
         if (vkCreateSampler(device, &info, NULL, &texture_image_sampler) != VK_SUCCESS) {

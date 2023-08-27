@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <math.h>
 
-#define M_TAU (GLM_PI * 2)
+#define M_TAU ((float)GLM_PI * 2.0f)
 
 #define MOVE_SPEED 0.3f
 #define ROT_SPEED 2.0f
@@ -48,7 +48,7 @@ static vec2s get_desired_rotational_velocity(float aspect) {
         double cursor_y;
         glfwGetCursorPos(window, &cursor_x, &cursor_y);
 
-        const vec2s cursor_position = {{ cursor_x, cursor_y }};
+        const vec2s cursor_position = {{ (float)cursor_x, (float)cursor_y }};
         if (is_cursor_position_out_of_bounds(cursor_position)) {
             return (vec2s) {{ 0.0f, 0.0f }};
         }
@@ -68,7 +68,7 @@ static vec2s get_desired_rotational_velocity(float aspect) {
     double cursor_y;
     glfwGetCursorPos(window, &cursor_x, &cursor_y);
 
-    const vec2s cursor_position = {{ cursor_x, cursor_y }};
+    const vec2s cursor_position = {{ (float)cursor_x, (float)cursor_y }};
     if (is_cursor_position_out_of_bounds(cursor_position)) {
         return (vec2s) {{ 0.0f, 0.0f }};
     }
@@ -78,7 +78,7 @@ static vec2s get_desired_rotational_velocity(float aspect) {
     return glms_vec2_scale(glms_vec2_sub(rotation_mode_norm_cursor_position, get_norm_cursor_position(aspect, cursor_position)), ROT_SPEED);
 }
 
-void handle_input(float delta) {
+void handle_input(float) {
     float aspect = (float)swap_image_extent.width/(float)swap_image_extent.height;
 
     mat4s projection = glms_perspective(M_TAU / 5.0f, aspect, 0.01f, 300.0f);

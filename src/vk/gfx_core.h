@@ -26,11 +26,11 @@ void end_images(size_t num_images, const staging_t stagings[]);
 
 result_t begin_buffers(
     VkDeviceSize num_elements, const VkBufferCreateInfo* base_device_buffer_create_info,
-    size_t num_buffers, void* const arrays[], const VkDeviceSize num_element_bytes_array[], staging_t stagings[], VkBuffer buffers[], VmaAllocation allocations[]
+    size_t num_buffers, void* const arrays[], const uint32_t num_element_bytes_array[], staging_t stagings[], VkBuffer buffers[], VmaAllocation allocations[]
 );
 void transfer_buffers(
     VkCommandBuffer command_buffer, VkDeviceSize num_elements,
-    size_t num_buffers, const VkDeviceSize num_element_bytes_array[], const staging_t stagings[], const VkBuffer buffers[]
+    size_t num_buffers, const uint32_t num_element_bytes_array[], const staging_t stagings[], const VkBuffer buffers[]
 );
 void end_buffers(size_t num_buffers, const staging_t stagings[]);
 

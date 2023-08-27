@@ -5,13 +5,13 @@
 #include <string.h>
 #include <stdalign.h>
 
-alignas(64) VkDeviceSize num_vertex_bytes_array[NUM_VERTEX_ARRAYS] = {
+alignas(64) uint32_t num_vertex_bytes_array[NUM_VERTEX_ARRAYS] = {
     [GENERAL_PIPELINE_VERTEX_ARRAY_INDEX] = sizeof(general_pipeline_vertex_t),
-    [COLOR_PIPELINE_VERTEX_ARRAY_INDEX] sizeof(color_pipeline_vertex_t)
+    [COLOR_PIPELINE_VERTEX_ARRAY_INDEX] = sizeof(color_pipeline_vertex_t)
 };
 
 result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
-    cgltf_options options = {};
+    cgltf_options options = { 0 };
     cgltf_data* data = NULL;
 
     if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
@@ -89,8 +89,8 @@ result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
     cgltf_free(data);
 
     *mesh = (mesh_t) {
-        .num_vertices = num_vertices,
-        .num_indices = num_indices,
+        .num_vertices = (uint32_t)num_vertices,
+        .num_indices = (uint32_t)num_indices,
         .indices = indices
     };
     memcpy(mesh->vertex_arrays, vertex_arrays, sizeof(vertex_arrays));

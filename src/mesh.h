@@ -26,7 +26,7 @@ typedef union {
 #define GENERAL_PIPELINE_VERTEX_ARRAY_INDEX 0
 #define COLOR_PIPELINE_VERTEX_ARRAY_INDEX 1
 
-extern VkDeviceSize num_vertex_bytes_array[NUM_VERTEX_ARRAYS];
+extern uint32_t num_vertex_bytes_array[NUM_VERTEX_ARRAYS];
 
 typedef struct {
     uint32_t num_vertices;

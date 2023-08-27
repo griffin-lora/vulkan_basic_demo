@@ -457,7 +457,7 @@ const char* draw_color_pipeline(size_t frame_index, size_t image_index, VkComman
             vertex_buffer_arrays[i][COLOR_PIPELINE_VERTEX_ARRAY_INDEX]
         };
 
-        color_pipeline_push_constants.layer_index = i;
+        color_pipeline_push_constants.layer_index = (float)i;
 
         vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(color_pipeline_push_constants), &color_pipeline_push_constants);
 
