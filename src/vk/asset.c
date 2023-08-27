@@ -88,8 +88,6 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         },
     };
 
-    int image_channels;
-
     for (size_t i = 0; i < NUM_TEXTURE_IMAGES; i++) {
         uint32_t width;
         uint32_t height;
@@ -100,7 +98,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         for (size_t j = 0; j < info->info.arrayLayers; j++) {
             int new_width;
             int new_height;
-            info->pixel_arrays[j] = stbi_load(image_load_infos[i][j].path, &new_width, &new_height, &image_channels, image_load_infos[i][j].channels);
+            info->pixel_arrays[j] = stbi_load(image_load_infos[i][j].path, &new_width, &new_height, (int[1]) { 0 }, image_load_infos[i][j].channels);
 
             if (info->pixel_arrays[j] == NULL) {
                 return "Failed to load image pixels\n";
@@ -152,12 +150,9 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
 
     num_instances_array[0] = NUM_ELEMS(cube_model_matrices);
     num_instances_array[1] = 1;
-    union {
-        mat4s* matrices;
-        void* matrices_data;
-    } model_matrix_arrays[] = {
-        { cube_model_matrices },
-        { &plane_model_matrix }
+    void* model_matrix_arrays[] = {
+        cube_model_matrices,
+        &plane_model_matrix
     };
 
     uint32_t num_vertices_array[NUM_MODELS];
@@ -186,7 +181,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
             return "Failed to begin creating index buffer\n";
         }
 
-        if (begin_buffers(num_instances_array[i], &vertex_buffer_create_info, 1, &model_matrix_arrays[i].matrices_data, &num_instance_bytes, &instance_stagings[i], &instance_buffers[i], &instance_buffer_allocations[i]) != result_success) {
+        if (begin_buffers(num_instances_array[i], &vertex_buffer_create_info, 1, &model_matrix_arrays[i], &num_instance_bytes, &instance_stagings[i], &instance_buffers[i], &instance_buffer_allocations[i]) != result_success) {
             return "Failed to begin creating instance buffer\n";
         }
 
