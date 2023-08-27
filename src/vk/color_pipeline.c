@@ -270,7 +270,7 @@ const char* init_color_pipeline(void) {
         return "Failed to create fragment shader module\n";
     }
 
-    VkGraphicsPipelineCreateInfo info = {
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &(VkGraphicsPipelineCreateInfo) {
         DEFAULT_VK_GRAPHICS_PIPELINE,
 
         .stageCount = 2,
@@ -369,9 +369,7 @@ const char* init_color_pipeline(void) {
         },
         .layout = pipeline_layout,
         .renderPass = color_pipeline_render_pass
-    };
-
-    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, NULL, &pipeline) != VK_SUCCESS) {
+    }, NULL, &pipeline) != VK_SUCCESS) {
         return "Failed to create graphics pipeline\n";
     }
 
