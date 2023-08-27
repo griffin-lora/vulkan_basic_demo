@@ -1,5 +1,8 @@
 #include "defaults.h"
 #include "util.h"
+#include <stdalign.h>
+
+alignas(64)
 
 const VkPipelineInputAssemblyStateCreateInfo default_input_assembly_create_info = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,

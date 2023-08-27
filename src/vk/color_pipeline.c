@@ -7,12 +7,14 @@
 #include "mesh.h"
 #include "defaults.h"
 #include <vk_mem_alloc.h>
+#include <stdalign.h>
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/mat4.h>
 #include <cglm/struct/cam.h>
 #include <cglm/struct/mat3.h>
 #include <cglm/struct/affine.h>
 
+alignas(64)
 VkRenderPass color_pipeline_render_pass;
 static VkDescriptorSetLayout descriptor_set_layout;
 static VkDescriptorPool descriptor_pool;

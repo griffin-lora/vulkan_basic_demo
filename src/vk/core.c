@@ -10,10 +10,39 @@
 #include <stdbool.h>
 #include <string.h>
 #include <malloc.h>
+#include <stdalign.h>
 #include <stdio.h>
 
 #define WIDTH 640
 #define HEIGHT 480
+
+alignas(64)
+GLFWwindow* window;
+VkDevice device;
+VkPhysicalDevice physical_device;
+VmaAllocator allocator;
+queue_family_indices_t queue_family_indices;
+VkSurfaceFormatKHR surface_format;
+VkPresentModeKHR present_mode;
+VkSemaphore image_available_semaphores[NUM_FRAMES_IN_FLIGHT];
+VkSemaphore render_finished_semaphores[NUM_FRAMES_IN_FLIGHT];
+VkFence in_flight_fences[NUM_FRAMES_IN_FLIGHT];
+VkCommandPool command_pool;
+uint32_t num_swapchain_images;
+VkImage* swapchain_images;
+VkImageView* swapchain_image_views;
+VkFramebuffer* swapchain_framebuffers;
+VkSwapchainKHR swapchain;
+VkInstance instance;
+VkSurfaceKHR surface;
+VkExtent2D swap_image_extent;
+VkQueue graphics_queue;
+VkQueue presentation_queue;
+bool framebuffer_resized;
+
+VkSampleCountFlagBits render_multisample_flags;
+
+VkFormat depth_image_format;
 
 static const char* layers[] = {
     "VK_LAYER_KHRONOS_validation"

@@ -7,6 +7,7 @@
 #include "defaults.h"
 #include <malloc.h>
 #include <string.h>
+#include <stdalign.h>
 #include <stb_image.h>
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/cam.h>
@@ -14,6 +15,30 @@
 #include <cglm/struct/vec3.h>
 #include <cglm/struct/mat3.h>
 #include <cglm/struct/affine.h>
+
+alignas(64)
+
+VkBuffer vertex_buffer_arrays[NUM_MODELS][NUM_VERTEX_ARRAYS];
+VmaAllocation vertex_buffer_allocation_arrays[NUM_MODELS][NUM_VERTEX_ARRAYS];
+
+VkBuffer index_buffers[NUM_MODELS];
+VmaAllocation index_buffer_allocations[NUM_MODELS];
+
+VkBuffer instance_buffers[NUM_MODELS];
+VmaAllocation instance_buffer_allocations[NUM_MODELS];
+
+uint32_t num_indices_array[NUM_MODELS];
+uint32_t num_instances_array[NUM_MODELS];
+
+VkSampler texture_image_sampler;
+VkImage texture_images[NUM_TEXTURE_IMAGES];
+VmaAllocation texture_image_allocations[NUM_TEXTURE_IMAGES];
+VkImageView texture_image_views[NUM_TEXTURE_IMAGES];
+
+VkSampler shadow_texture_image_sampler;
+mat4s shadow_view_projection;
+VkBuffer shadow_view_projection_buffer;
+VmaAllocation shadow_view_projection_buffer_allocation;
 
 const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device_properties) {
     struct {
