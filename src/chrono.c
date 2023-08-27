@@ -12,9 +12,8 @@ microseconds_t get_current_microseconds() {
 }
 
 void sleep_microseconds(microseconds_t time) {
-	struct timespec sleep = {
+	nanosleep(&(struct timespec) {
 		.tv_sec = time / 1000000l,
 		.tv_nsec = (time % 1000000l) * 1000l
-	};
-	nanosleep(&sleep, NULL);
+	}, NULL);
 }

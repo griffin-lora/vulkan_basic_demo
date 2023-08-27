@@ -239,7 +239,7 @@ static result_t init_swapchain(void) {
         min_num_swapchain_images = clamp_uint32(min_num_swapchain_images, 0, capabilities.maxImageCount);
     }
 
-    VkSwapchainCreateInfoKHR swapchain_create_info = {
+    VkSwapchainCreateInfoKHR info = {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .surface = surface,
         .minImageCount = min_num_swapchain_images,
@@ -256,16 +256,16 @@ static result_t init_swapchain(void) {
     };
 
     if (queue_family_indices.graphics != queue_family_indices.presentation) {
-        swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-        swapchain_create_info.queueFamilyIndexCount = 2;
-        swapchain_create_info.pQueueFamilyIndices = queue_family_indices.data;
+        info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        info.queueFamilyIndexCount = 2;
+        info.pQueueFamilyIndices = queue_family_indices.data;
     } else {
-        swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        swapchain_create_info.queueFamilyIndexCount = 0;
-        swapchain_create_info.pQueueFamilyIndices = NULL;
+        info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        info.queueFamilyIndexCount = 0;
+        info.pQueueFamilyIndices = NULL;
     }
 
-    if (vkCreateSwapchainKHR(device, &swapchain_create_info, NULL, &swapchain) != VK_SUCCESS) {
+    if (vkCreateSwapchainKHR(device, &info, NULL, &swapchain) != VK_SUCCESS) {
         return result_failure;
     }
 
@@ -276,32 +276,26 @@ static result_t init_swapchain_framebuffers(void) {
     vkGetSwapchainImagesKHR(device, swapchain, &num_swapchain_images, swapchain_images);
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
-        VkImageViewCreateInfo info = {
+        if (vkCreateImageView(device, &(VkImageViewCreateInfo) {
             DEFAULT_VK_IMAGE_VIEW,
             .image = swapchain_images[i],
             .format = surface_format.format,
             .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
-        };
-
-        if (vkCreateImageView(device, &info, NULL, &swapchain_image_views[i]) != VK_SUCCESS) {
+        }, NULL, &swapchain_image_views[i]) != VK_SUCCESS) {
             return result_failure;
         }
     }
 
     for (size_t i = 0; i < num_swapchain_images; i++) {
-        VkImageView attachments[] = { color_image_view, depth_image_view, swapchain_image_views[i] };
-
-        VkFramebufferCreateInfo framebuffer_create_info = {
+        if (vkCreateFramebuffer(device, &(VkFramebufferCreateInfo) {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .renderPass = color_pipeline_render_pass,
-            .attachmentCount = NUM_ELEMS(attachments),
-            .pAttachments = attachments,
+            .attachmentCount = 3,
+            .pAttachments = (VkImageView[3]) { color_image_view, depth_image_view, swapchain_image_views[i] },
             .width = swap_image_extent.width,
             .height = swap_image_extent.height,
             .layers = 1
-        };
-
-        if (vkCreateFramebuffer(device, &framebuffer_create_info, NULL, &swapchain_framebuffers[i]) != VK_SUCCESS) {
+        }, NULL, &swapchain_framebuffers[i]) != VK_SUCCESS) {
             return result_failure;
         }
     }
@@ -387,29 +381,24 @@ const char* init_vulkan_core(void) {
         return "Validation layers requested, but not available\n";
     }
 
-    VkApplicationInfo app_info = {
-        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pApplicationName = "Hello Triangle",
-        .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-        .pEngineName = "No Engine",
-        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-        .apiVersion = VK_API_VERSION_1_0
-    };
-
     uint32_t num_instance_extensions;
     const char** instance_extensions = glfwGetRequiredInstanceExtensions(&num_instance_extensions);
 
-    VkInstanceCreateInfo instance_create_info = {
+    if (vkCreateInstance(&(VkInstanceCreateInfo) {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pApplicationInfo = &app_info,
+        .pApplicationInfo = &(VkApplicationInfo) {
+            .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+            .pApplicationName = "Hello Triangle",
+            .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+            .pEngineName = "No Engine",
+            .engineVersion = VK_MAKE_VERSION(1, 0, 0),
+            .apiVersion = VK_API_VERSION_1_0
+        },
         .enabledExtensionCount = num_instance_extensions,
         .ppEnabledExtensionNames = instance_extensions,
         .enabledLayerCount = NUM_ELEMS(layers),
         .ppEnabledLayerNames = layers
-        // RELEASE:
-        // .enabledLayerCount = 0
-    };
-    if (vkCreateInstance(&instance_create_info, NULL, &instance) != VK_SUCCESS) {
+    }, NULL, &instance) != VK_SUCCESS) {
         return "Failed to create instance\n";
     }
 
@@ -452,56 +441,42 @@ const char* init_vulkan_core(void) {
         };
     }
 
-    VkPhysicalDeviceFeatures features = {
-        .samplerAnisotropy = VK_TRUE
-    };
-
-    VkDeviceCreateInfo device_create_info = {
+    if (vkCreateDevice(physical_device, &(VkDeviceCreateInfo) {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .queueCreateInfoCount = 1,
         .pQueueCreateInfos = queue_create_infos,
-        .pEnabledFeatures = &features,
+        .pEnabledFeatures = &(VkPhysicalDeviceFeatures) {
+            .samplerAnisotropy = VK_TRUE
+        },
 
         .enabledExtensionCount = NUM_ELEMS(extensions),
         .ppEnabledExtensionNames = extensions,
         .enabledLayerCount = NUM_ELEMS(layers),
         .ppEnabledLayerNames = layers
-    };
-
-    if (vkCreateDevice(physical_device, &device_create_info, NULL, &device) != VK_SUCCESS) {
+    }, NULL, &device) != VK_SUCCESS) {
         return "Failed to create logical device\n";
     }
 
-    {
-        VmaAllocatorCreateInfo info = {
-            .instance = instance,
-            .physicalDevice = physical_device,
-            .device = device,
-            .pAllocationCallbacks = NULL,
-            .pDeviceMemoryCallbacks = NULL,
-            .vulkanApiVersion = VK_API_VERSION_1_0,
-            .flags = 0 // Don't think any are needed
-        };
-
-        if (vmaCreateAllocator(&info, &allocator) != VK_SUCCESS) {
-            return "Failed to create memory allocator\n";
-        }
+    if (vmaCreateAllocator(&(VmaAllocatorCreateInfo) {
+        .instance = instance,
+        .physicalDevice = physical_device,
+        .device = device,
+        .pAllocationCallbacks = NULL,
+        .pDeviceMemoryCallbacks = NULL,
+        .vulkanApiVersion = VK_API_VERSION_1_0,
+        .flags = 0 // Don't think any are needed
+    }, &allocator) != VK_SUCCESS) {
+        return "Failed to create memory allocator\n";
     }
-
-    VkSemaphoreCreateInfo semaphore_create_info = {
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO  
-    };
-
-    VkFenceCreateInfo fence_create_info = {
-        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-        .flags = VK_FENCE_CREATE_SIGNALED_BIT
-    };
 
     for (size_t i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
         if (
-            vkCreateSemaphore(device, &semaphore_create_info, NULL, &image_available_semaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(device, &semaphore_create_info, NULL, &render_finished_semaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(device, &fence_create_info, NULL, &in_flight_fences[i]) != VK_SUCCESS
+            vkCreateSemaphore(device, &(VkSemaphoreCreateInfo) { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO }, NULL, &image_available_semaphores[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(device, &(VkSemaphoreCreateInfo) { .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO }, NULL, &render_finished_semaphores[i]) != VK_SUCCESS ||
+            vkCreateFence(device, &(VkFenceCreateInfo) {
+                .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                .flags = VK_FENCE_CREATE_SIGNALED_BIT
+            }, NULL, &in_flight_fences[i]) != VK_SUCCESS
         ) {
             return "Failed to create synchronization primitives\n";
         }
@@ -528,20 +503,15 @@ const char* init_vulkan_core(void) {
         return "Failed to create swap chain\n";
     }
 
-    VkCommandPoolCreateInfo command_pool_create_info = {
+    if (vkCreateCommandPool(device, &(VkCommandPoolCreateInfo) {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
         .queueFamilyIndex = queue_family_indices.graphics
-    };
-
-    if (vkCreateCommandPool(device, &command_pool_create_info, NULL, &command_pool) != VK_SUCCESS) {
+    }, NULL, &command_pool) != VK_SUCCESS) {
         return "Failed to create command pool\n";
     }
     
-    {
-        VkFormat formats[] = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
-        depth_image_format = get_supported_format(NUM_ELEMS(formats), formats, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-    }
+    depth_image_format = get_supported_format(3, (VkFormat[3]) { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT }, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     if (depth_image_format == VK_FORMAT_MAX_ENUM) {
         return "Failed to get a supported depth image format\n";
     }

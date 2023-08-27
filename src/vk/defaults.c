@@ -25,24 +25,20 @@ const VkPipelineDepthStencilStateCreateInfo default_depth_stencil_create_info = 
     .stencilTestEnable = VK_FALSE
 };
 
-static VkPipelineColorBlendAttachmentState color_blend_attachments[] = {
-    {
+const VkPipelineColorBlendStateCreateInfo default_color_blend_create_info = {
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+    .logicOpEnable = VK_FALSE,
+    .attachmentCount = 1,
+    .pAttachments = &(VkPipelineColorBlendAttachmentState) {
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
         .blendEnable = VK_FALSE
     }
 };
-const VkPipelineColorBlendStateCreateInfo default_color_blend_create_info = {
-    .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-    .logicOpEnable = VK_FALSE,
-    .attachmentCount = NUM_ELEMS(color_blend_attachments),
-    .pAttachments = color_blend_attachments
-};
 
-static VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 const VkPipelineDynamicStateCreateInfo default_dynamic_create_info = {
     .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-    .dynamicStateCount = NUM_ELEMS(dynamic_states),
-    .pDynamicStates = dynamic_states
+    .dynamicStateCount = 2,
+    .pDynamicStates = (VkDynamicState[2]) { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR }
 };
 
 const VkBufferCreateInfo vertex_buffer_create_info = {

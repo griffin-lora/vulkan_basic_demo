@@ -35,56 +35,44 @@ VkImageView depth_image_view;
 color_pipeline_push_constants_t color_pipeline_push_constants;
 
 result_t init_color_pipeline_swapchain_dependents(void) {
-    {
-        VkImageCreateInfo image_create_info = {
-            DEFAULT_VK_IMAGE,
-            .extent.width = swap_image_extent.width,
-            .extent.height = swap_image_extent.height,
-            .format = surface_format.format,
-            .samples = render_multisample_flags,
-            .usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-        };
-
-        if (vmaCreateImage(allocator, &image_create_info, &device_allocation_create_info, &color_image, &color_image_allocation, NULL) != VK_SUCCESS) {
-            return result_failure;
-        }
-
-        VkImageViewCreateInfo image_view_create_info = {
-            DEFAULT_VK_IMAGE_VIEW,
-            .image = color_image,
-            .format = surface_format.format,
-            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
-        };
-
-        if (vkCreateImageView(device, &image_view_create_info, NULL, &color_image_view) != VK_SUCCESS) {
-            return result_failure;
-        }
+    if (vmaCreateImage(allocator, &(VkImageCreateInfo) {
+        DEFAULT_VK_IMAGE,
+        .extent.width = swap_image_extent.width,
+        .extent.height = swap_image_extent.height,
+        .format = surface_format.format,
+        .samples = render_multisample_flags,
+        .usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+    }, &device_allocation_create_info, &color_image, &color_image_allocation, NULL) != VK_SUCCESS) {
+        return result_failure;
     }
 
-    {
-        VkImageCreateInfo image_create_info = {
-            DEFAULT_VK_IMAGE,
-            .extent.width = swap_image_extent.width,
-            .extent.height = swap_image_extent.height,
-            .format = depth_image_format,
-            .samples = render_multisample_flags,
-            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-        };
-        
-        if (vmaCreateImage(allocator, &image_create_info, &device_allocation_create_info, &depth_image, &depth_image_allocation, NULL) != VK_SUCCESS) {
-            return result_failure;
-        }
+    if (vkCreateImageView(device, &(VkImageViewCreateInfo) {
+        DEFAULT_VK_IMAGE_VIEW,
+        .image = color_image,
+        .format = surface_format.format,
+        .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
+    }, NULL, &color_image_view) != VK_SUCCESS) {
+        return result_failure;
+    }
 
-        VkImageViewCreateInfo image_view_create_info = {
-            DEFAULT_VK_IMAGE_VIEW,
-            .image = depth_image,
-            .format = depth_image_format,
-            .subresourceRange.aspectMask = (depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT) ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT
-        };
-        
-        if (vkCreateImageView(device, &image_view_create_info, NULL, &depth_image_view) != VK_SUCCESS) {
-            return result_failure;
-        }
+    if (vmaCreateImage(allocator, &(VkImageCreateInfo) {
+        DEFAULT_VK_IMAGE,
+        .extent.width = swap_image_extent.width,
+        .extent.height = swap_image_extent.height,
+        .format = depth_image_format,
+        .samples = render_multisample_flags,
+        .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+    }, &device_allocation_create_info, &depth_image, &depth_image_allocation, NULL) != VK_SUCCESS) {
+        return result_failure;
+    }
+    
+    if (vkCreateImageView(device, &(VkImageViewCreateInfo) {
+        DEFAULT_VK_IMAGE_VIEW,
+        .image = depth_image,
+        .format = depth_image_format,
+        .subresourceRange.aspectMask = (depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT) ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT
+    }, NULL, &depth_image_view) != VK_SUCCESS) {
+        return result_failure;
     }
 
     return result_success;
@@ -102,16 +90,12 @@ const char* init_color_pipeline(void) {
         return "Failed to create color pipeline images\n";
     }
 
-    {
-        VkCommandBufferAllocateInfo info = {
-            DEFAULT_VK_COMMAND_BUFFER,
-            .commandPool = command_pool,
-            .commandBufferCount = NUM_FRAMES_IN_FLIGHT
-        };
-
-        if (vkAllocateCommandBuffers(device, &info, color_command_buffers) != VK_SUCCESS) {
-            return "Failed to allocate command buffers\n";
-        }
+    if (vkAllocateCommandBuffers(device, &(VkCommandBufferAllocateInfo) {
+        DEFAULT_VK_COMMAND_BUFFER,
+        .commandPool = command_pool,
+        .commandBufferCount = NUM_FRAMES_IN_FLIGHT
+    }, color_command_buffers) != VK_SUCCESS) {
+        return "Failed to allocate command buffers\n";
     }
 
     VkAttachmentReference color_attachment_reference = {
@@ -172,19 +156,15 @@ const char* init_color_pipeline(void) {
         }
     };
 
-    {
-        VkRenderPassCreateInfo info = {
-            DEFAULT_VK_RENDER_PASS,
-            .attachmentCount = NUM_ELEMS(attachments),
-            .pAttachments = attachments,
-            .pSubpasses = &subpass,
-            .dependencyCount = 1,
-            .pDependencies = &subpass_dependency
-        };
-
-        if (vkCreateRenderPass(device, &info, NULL, &color_pipeline_render_pass) != VK_SUCCESS) {
-            return "Failed to create render pass\n";
-        }
+    if (vkCreateRenderPass(device, &(VkRenderPassCreateInfo) {
+        DEFAULT_VK_RENDER_PASS,
+        .attachmentCount = NUM_ELEMS(attachments),
+        .pAttachments = attachments,
+        .pSubpasses = &subpass,
+        .dependencyCount = 1,
+        .pDependencies = &subpass_dependency
+    }, NULL, &color_pipeline_render_pass) != VK_SUCCESS) {
+        return "Failed to create render pass\n";
     }
 
     VkDescriptorSetLayoutBinding descriptor_bindings[] = {
@@ -264,7 +244,7 @@ const char* init_color_pipeline(void) {
     };
 
     if (create_descriptor_set(
-        (VkDescriptorSetLayoutCreateInfo) {
+        &(VkDescriptorSetLayoutCreateInfo) {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             .bindingCount = NUM_ELEMS(descriptor_bindings),
             .pBindings = descriptor_bindings
@@ -274,22 +254,16 @@ const char* init_color_pipeline(void) {
         return "Failed to create descriptor set\n";
     }
 
-    {
-        VkPushConstantRange range = {
+    if (vkCreatePipelineLayout(device, &(VkPipelineLayoutCreateInfo) {
+        DEFAULT_VK_PIPELINE_LAYOUT,
+        .pSetLayouts = &descriptor_set_layout,
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges = &(VkPushConstantRange) {
             .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
             .size = sizeof(color_pipeline_push_constants)
-        };
-
-        VkPipelineLayoutCreateInfo info = {
-            DEFAULT_VK_PIPELINE_LAYOUT,
-            .pSetLayouts = &descriptor_set_layout,
-            .pushConstantRangeCount = 1,
-            .pPushConstantRanges = &range
-        };
-
-        if (vkCreatePipelineLayout(device, &info, NULL, &pipeline_layout) != VK_SUCCESS) {
-            return "Failed to create pipeline layout\n";
         }
+    }, NULL, &pipeline_layout) != VK_SUCCESS) {
+        return "Failed to create pipeline layout\n";
     }
 
     //

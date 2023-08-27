@@ -28,29 +28,23 @@ static VmaAllocation shadow_image_allocation;
 VkImageView shadow_image_view;
 
 const char* init_shadow_pipeline(void) {
-    {
-        VkImageCreateInfo image_create_info = {
-            DEFAULT_VK_IMAGE,
-            .extent.width = SHADOW_IMAGE_SIZE,
-            .extent.height = SHADOW_IMAGE_SIZE,
-            .format = depth_image_format,
-            .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
-        };
+    if (vmaCreateImage(allocator, &(VkImageCreateInfo) {
+        DEFAULT_VK_IMAGE,
+        .extent.width = SHADOW_IMAGE_SIZE,
+        .extent.height = SHADOW_IMAGE_SIZE,
+        .format = depth_image_format,
+        .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+    }, &device_allocation_create_info, &shadow_image, &shadow_image_allocation, NULL) != VK_SUCCESS) {
+        return "Failed to create shadow image\n";
+    }
 
-        if (vmaCreateImage(allocator, &image_create_info, &device_allocation_create_info, &shadow_image, &shadow_image_allocation, NULL) != VK_SUCCESS) {
-            return "Failed to create shadow image\n";
-        }
-
-        VkImageViewCreateInfo image_view_create_info = {
-            DEFAULT_VK_IMAGE_VIEW,
-            .image = shadow_image,
-            .format = depth_image_format,
-            .subresourceRange.aspectMask = (depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT) ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT
-        };
-
-        if (vkCreateImageView(device, &image_view_create_info, NULL, &shadow_image_view) != VK_SUCCESS) {
-            return "Failed to create shadow image view\n";
-        }
+    if (vkCreateImageView(device, &(VkImageViewCreateInfo) {
+        DEFAULT_VK_IMAGE_VIEW,
+        .image = shadow_image,
+        .format = depth_image_format,
+        .subresourceRange.aspectMask = (depth_image_format == VK_FORMAT_D32_SFLOAT_S8_UINT || depth_image_format == VK_FORMAT_D24_UNORM_S8_UINT) ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT
+    }, NULL, &shadow_image_view) != VK_SUCCESS) {
+        return "Failed to create shadow image view\n";
     }
 
     VkAttachmentReference depth_attachment_reference = {
@@ -73,17 +67,13 @@ const char* init_shadow_pipeline(void) {
         }
     };
 
-    {
-        VkRenderPassCreateInfo info = {
-            DEFAULT_VK_RENDER_PASS,
-            .attachmentCount = NUM_ELEMS(attachments),
-            .pAttachments = attachments,
-            .pSubpasses = &subpass
-        };
-
-        if (vkCreateRenderPass(device, &info, NULL, &render_pass) != VK_SUCCESS) {
-            return "Failed to create render pass\n";
-        }
+    if (vkCreateRenderPass(device, &(VkRenderPassCreateInfo) {
+        DEFAULT_VK_RENDER_PASS,
+        .attachmentCount = NUM_ELEMS(attachments),
+        .pAttachments = attachments,
+        .pSubpasses = &subpass
+    }, NULL, &render_pass) != VK_SUCCESS) {
+        return "Failed to create render pass\n";
     }
 
     VkDescriptorSetLayoutBinding descriptor_bindings[] = {
@@ -107,7 +97,7 @@ const char* init_shadow_pipeline(void) {
     };
 
     if (create_descriptor_set(
-        (VkDescriptorSetLayoutCreateInfo) {
+        &(VkDescriptorSetLayoutCreateInfo) {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             .bindingCount = NUM_ELEMS(descriptor_bindings),
             .pBindings = descriptor_bindings
@@ -117,15 +107,11 @@ const char* init_shadow_pipeline(void) {
         return "Failed to create descriptor set\n";
     }
 
-    {
-        VkPipelineLayoutCreateInfo info = {
-            DEFAULT_VK_PIPELINE_LAYOUT,
-            .pSetLayouts = &descriptor_set_layout,
-        };
-
-        if (vkCreatePipelineLayout(device, &info, NULL, &pipeline_layout) != VK_SUCCESS) {
-            return "Failed to create pipeline layout\n";
-        }
+    if (vkCreatePipelineLayout(device, &(VkPipelineLayoutCreateInfo) {
+        DEFAULT_VK_PIPELINE_LAYOUT,
+        .pSetLayouts = &descriptor_set_layout
+    }, NULL, &pipeline_layout) != VK_SUCCESS) {
+        return "Failed to create pipeline layout\n";
     }
 
     VkShaderModule vertex_shader_module;
@@ -228,52 +214,38 @@ const char* init_shadow_pipeline(void) {
 
 const char* draw_shadow_pipeline(void) {
     VkFence render_fence;
-    {
-        VkFenceCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
-        };
-        if (vkCreateFence(device, &info, NULL, &render_fence) != VK_SUCCESS) {
-            return "Failed to create render fence\n";
-        }
+    if (vkCreateFence(device, &(VkFenceCreateInfo) {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
+    }, NULL, &render_fence) != VK_SUCCESS) {
+        return "Failed to create render fence\n";
     }
 
     VkCommandBuffer command_buffer;
-    {
-        VkCommandBufferAllocateInfo info = {
-            DEFAULT_VK_COMMAND_BUFFER,
-            .commandPool = command_pool // TODO: Use separate command pool
-        };
-
-        if (vkAllocateCommandBuffers(device, &info, &command_buffer) != VK_SUCCESS) {
-            return "Failed to create command buffer\n";
-        }
+    if (vkAllocateCommandBuffers(device, &(VkCommandBufferAllocateInfo) {
+        DEFAULT_VK_COMMAND_BUFFER,
+        .commandPool = command_pool
+    }, &command_buffer) != VK_SUCCESS) {
+        return "Failed to create command buffer\n";
     }
 
-    {
-        VkCommandBufferBeginInfo info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-        };
-        if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
-            return "Failed to write to command buffer\n";
-        }
+    if (vkBeginCommandBuffer(command_buffer, &(VkCommandBufferBeginInfo) {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+    }) != VK_SUCCESS) {
+        return "Failed to write to command buffer\n";
     }
 
     VkFramebuffer framebuffer;
     {
-        VkImageView attachments[] = { shadow_image_view };
-
-        VkFramebufferCreateInfo info = {
+        if (vkCreateFramebuffer(device, &(VkFramebufferCreateInfo) {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .renderPass = render_pass,
-            .attachmentCount = NUM_ELEMS(attachments),
-            .pAttachments = attachments,
+            .attachmentCount = 1,
+            .pAttachments = &shadow_image_view,
             .width = SHADOW_IMAGE_SIZE,
             .height = SHADOW_IMAGE_SIZE,
             .layers = 1
-        };
-
-        if (vkCreateFramebuffer(device, &info, NULL, &framebuffer) != VK_SUCCESS) {
+        }, NULL, &framebuffer) != VK_SUCCESS) {
             return "Failed to create shadow image framebuffer\n";
         }
     }
@@ -306,16 +278,12 @@ const char* draw_shadow_pipeline(void) {
         return "Failed to write to transfer command buffer\n";
     }
 
-    {
-        VkSubmitInfo info = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &command_buffer
-        };
-
-        vkQueueSubmit(graphics_queue, 1, &info, render_fence);
-        vkWaitForFences(device, 1, &render_fence, VK_TRUE, UINT64_MAX);
-    }
+    vkQueueSubmit(graphics_queue, 1, &(VkSubmitInfo) {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &command_buffer
+    }, render_fence);
+    vkWaitForFences(device, 1, &render_fence, VK_TRUE, UINT64_MAX);
 
     vkDestroyFence(device, render_fence, NULL);
 

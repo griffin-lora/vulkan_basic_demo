@@ -217,35 +217,25 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     //
     
     VkFence transfer_fence;
-    {
-        VkFenceCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
-        };
-        if (vkCreateFence(device, &info, NULL, &transfer_fence) != VK_SUCCESS) {
-            return "Failed to create transfer fence\n";
-        }
+    if (vkCreateFence(device, &(VkFenceCreateInfo) {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
+    }, NULL, &transfer_fence) != VK_SUCCESS) {
+        return "Failed to create transfer fence\n";
     }
 
     VkCommandBuffer command_buffer;
-    {
-        VkCommandBufferAllocateInfo info = {
-            DEFAULT_VK_COMMAND_BUFFER,
-            .commandPool = command_pool // TODO: Use separate command pool
-        };
-
-        if (vkAllocateCommandBuffers(device, &info, &command_buffer) != VK_SUCCESS) {
-            return "Failed to create transfer command buffer\n";
-        }
+    if (vkAllocateCommandBuffers(device, &(VkCommandBufferAllocateInfo) {
+        DEFAULT_VK_COMMAND_BUFFER,
+        .commandPool = command_pool // TODO: Use separate command pool
+    }, &command_buffer) != VK_SUCCESS) {
+        return "Failed to create transfer command buffer\n";
     }
 
-    {
-        VkCommandBufferBeginInfo info = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-        };
-        if (vkBeginCommandBuffer(command_buffer, &info) != VK_SUCCESS) {
-            return "Failed to write to transfer command buffer\n";
-        }
+    if (vkBeginCommandBuffer(command_buffer, &(VkCommandBufferBeginInfo) {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+    }) != VK_SUCCESS) {
+        return "Failed to write to transfer command buffer\n";
     }
 
     transfer_images(command_buffer, NUM_TEXTURE_IMAGES, image_create_infos, image_stagings, texture_images);
@@ -261,16 +251,12 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
         return "Failed to write to transfer command buffer\n";
     }
 
-    {
-        VkSubmitInfo info = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &command_buffer
-        };
-
-        vkQueueSubmit(graphics_queue, 1, &info, transfer_fence);
-        vkWaitForFences(device, 1, &transfer_fence, VK_TRUE, UINT64_MAX);
-    }
+    vkQueueSubmit(graphics_queue, 1, &(VkSubmitInfo) {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &command_buffer
+    }, transfer_fence);
+    vkWaitForFences(device, 1, &transfer_fence, VK_TRUE, UINT64_MAX);
 
     vkDestroyFence(device, transfer_fence, NULL);
 
@@ -290,7 +276,7 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     for (size_t i = 0; i < NUM_TEXTURE_IMAGES; i++) {
         const VkImageCreateInfo* image_create_info = &image_create_infos[i].info;
 
-        VkImageViewCreateInfo info = {
+        if (vkCreateImageView(device, &(VkImageViewCreateInfo) {
             DEFAULT_VK_IMAGE_VIEW,
             .image = texture_images[i],
             .viewType = image_create_info->arrayLayers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
@@ -298,34 +284,24 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
             .subresourceRange.levelCount = image_create_info->mipLevels,
             .subresourceRange.layerCount = image_create_info->arrayLayers,
             .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
-        };
-        
-        if (vkCreateImageView(device, &info, NULL, &texture_image_views[i]) != VK_SUCCESS) {
+        }, NULL, &texture_image_views[i]) != VK_SUCCESS) {
             return "Failed to create texture image view\n";
         }
     }
 
-    {
-        VkSamplerCreateInfo info = {
-            DEFAULT_VK_SAMPLER,
-            .maxLod = (float)image_create_infos[0].info.mipLevels
-        };
-
-        if (vkCreateSampler(device, &info, NULL, &texture_image_sampler) != VK_SUCCESS) {
-            return "Failed to create tetxure image sampler\n";
-        }
+    if (vkCreateSampler(device, &(VkSamplerCreateInfo) {
+        DEFAULT_VK_SAMPLER,
+        .maxLod = (float)image_create_infos[0].info.mipLevels
+    }, NULL, &texture_image_sampler) != VK_SUCCESS) {
+        return "Failed to create tetxure image sampler\n";
     }
 
-    {
-        VkSamplerCreateInfo info = {
-            DEFAULT_VK_SAMPLER,
-            .compareEnable = VK_TRUE,
-            .compareOp = VK_COMPARE_OP_LESS
-        };
-
-        if (vkCreateSampler(device, &info, NULL, &shadow_texture_image_sampler) != VK_SUCCESS) {
-            return "Failed to create tetxure image sampler\n";
-        }
+    if (vkCreateSampler(device, &(VkSamplerCreateInfo) {
+        DEFAULT_VK_SAMPLER,
+        .compareEnable = VK_TRUE,
+        .compareOp = VK_COMPARE_OP_LESS
+    }, NULL, &shadow_texture_image_sampler) != VK_SUCCESS) {
+        return "Failed to create tetxure image sampler\n";
     }
 
     return NULL;

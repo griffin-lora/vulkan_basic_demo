@@ -36,36 +36,30 @@ const char* draw_vulkan_frame(void) {
         return msg;
     }
 
-    {
-        VkPipelineStageFlags wait_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkPipelineStageFlags wait_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-        VkSubmitInfo info = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &image_available_semaphore,
-            .pWaitDstStageMask = &wait_stage_flags,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &command_buffer,
-            .signalSemaphoreCount = 1,
-            .pSignalSemaphores = &render_finished_semaphore
-        };
-
-        if (vkQueueSubmit(graphics_queue, 1, &info, in_flight_fence) != VK_SUCCESS) {
-            return "Failed to submit to graphics queue\n";
-        }
+    if (vkQueueSubmit(graphics_queue, 1, &(VkSubmitInfo) {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &image_available_semaphore,
+        .pWaitDstStageMask = &wait_stage_flags,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &command_buffer,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = &render_finished_semaphore
+    }, in_flight_fence) != VK_SUCCESS) {
+        return "Failed to submit to graphics queue\n";
     }
 
     {
-        VkPresentInfoKHR info = {
+        VkResult result = vkQueuePresentKHR(presentation_queue, &(VkPresentInfoKHR) {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .waitSemaphoreCount = 1,
             .pWaitSemaphores = &render_finished_semaphore,
             .swapchainCount = 1,
             .pSwapchains = &swapchain,
             .pImageIndices = &image_index
-        };
-
-        VkResult result = vkQueuePresentKHR(presentation_queue, &info);
+        });
         
         if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebuffer_resized) {
             framebuffer_resized = false;
