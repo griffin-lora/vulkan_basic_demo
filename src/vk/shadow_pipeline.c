@@ -177,7 +177,6 @@ const char* init_shadow_pipeline(void) {
             .depthBiasConstantFactor = 4.0f,
             .depthBiasSlopeFactor = 1.5f
         },
-
         .pMultisampleState = &(VkPipelineMultisampleStateCreateInfo) { DEFAULT_VK_MULTISAMPLE },
         .pColorBlendState = NULL,
         .layout = pipeline_layout,
@@ -217,38 +216,30 @@ const char* draw_shadow_pipeline(void) {
     }
 
     VkFramebuffer framebuffer;
-    {
-        if (vkCreateFramebuffer(device, &(VkFramebufferCreateInfo) {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .renderPass = render_pass,
-            .attachmentCount = 1,
-            .pAttachments = &shadow_image_view,
-            .width = SHADOW_IMAGE_SIZE,
-            .height = SHADOW_IMAGE_SIZE,
-            .layers = 1
-        }, NULL, &framebuffer) != VK_SUCCESS) {
-            return "Failed to create shadow image framebuffer\n";
-        }
+    if (vkCreateFramebuffer(device, &(VkFramebufferCreateInfo) {
+        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        .renderPass = render_pass,
+        .attachmentCount = 1,
+        .pAttachments = &shadow_image_view,
+        .width = SHADOW_IMAGE_SIZE,
+        .height = SHADOW_IMAGE_SIZE,
+        .layers = 1
+    }, NULL, &framebuffer) != VK_SUCCESS) {
+        return "Failed to create shadow image framebuffer\n";
     }
-
-    VkClearValue clear_values[] = {
-        { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
-    };
 
     begin_pipeline(
         command_buffer,
         framebuffer, (VkExtent2D) { .width = SHADOW_IMAGE_SIZE, .height = SHADOW_IMAGE_SIZE },
-        NUM_ELEMS(clear_values), clear_values,
+        1, &(VkClearValue) { .depthStencil = { .depth = 1.0f, .stencil = 0 } },
         render_pass, descriptor_set, pipeline_layout, pipeline
     );
 
     for (size_t i = 0; i < NUM_MODELS; i++) {
-        VkBuffer pass_vertex_buffers[] = {
+        bind_vertex_buffers(command_buffer, 2, (VkBuffer[2]) {
             instance_buffers[i],
             vertex_buffer_arrays[i][GENERAL_PIPELINE_VERTEX_ARRAY_INDEX]
-        };
-
-        bind_vertex_buffers(command_buffer, NUM_ELEMS(pass_vertex_buffers), pass_vertex_buffers);
+        });
         vkCmdBindIndexBuffer(command_buffer, index_buffers[i], 0, VK_INDEX_TYPE_UINT16);
         vkCmdDrawIndexed(command_buffer, num_indices_array[i], num_instances_array[i], 0, 0, 0);
     }
