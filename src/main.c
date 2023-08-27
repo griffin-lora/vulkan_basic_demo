@@ -1,9 +1,9 @@
 #include "vk/core.h"
 #include "vk/render.h"
 #include "input.h"
+#include "chrono.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include <unistd.h>
 
 int main(void) {
     const char* msg = init_vulkan_core();
@@ -12,31 +12,32 @@ int main(void) {
         return 1;
     }
 
-    float last_delta = 1.0f/60.0f;
+    microseconds_t program_start = get_current_microseconds();
+
+    float delta = 1.0f/60.0f;
     while (!glfwWindowShouldClose(window)) {
-        double start = glfwGetTime();
+        microseconds_t start = get_current_microseconds() - program_start;
         glfwPollEvents();
 
-        handle_input(last_delta);
+        handle_input(delta);
 
         msg = draw_vulkan_frame();
         if (msg != NULL) {
             printf("%s", msg);
             return 1;
         }
-        double end = glfwGetTime();
-        double delta = end - start;
+        microseconds_t end = get_current_microseconds() - program_start;
+        microseconds_t delta_microseconds = end - start;
+        delta = (float)delta_microseconds/1000000.0f;
 
         if (delta > (1.0f/60.0f)) {
             printf("%f\n", delta);
         }
 
-        double remaining = (1.0f/60.0f) - delta;
-        if (remaining > 0.0f) {
-            usleep(remaining * 1000000);
+        microseconds_t remaining_microseconds = (1000000ul/60ul) - delta_microseconds;
+        if (remaining_microseconds > 0) {
+            sleep_microseconds(remaining_microseconds);
         }
-
-        last_delta = delta;
     }
 
     term_vulkan_all();
