@@ -551,7 +551,6 @@ void term_vulkan_all(void) {
         vkDestroySemaphore(device, image_available_semaphores[i], NULL);
         vkDestroySemaphore(device, render_finished_semaphores[i], NULL);
         vkDestroyFence(device, in_flight_fences[i], NULL);
-        // vmaDestroyBuffer(allocator, clip_space_uniform_buffers[i], clip_space_uniform_buffers_allocation[i]);
     }
 
     term_vulkan_assets();

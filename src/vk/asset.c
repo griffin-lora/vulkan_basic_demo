@@ -124,7 +124,6 @@ const char* init_vulkan_assets(const VkPhysicalDeviceProperties* physical_device
     }
 
     mat4s plane_model_matrix = glms_scale(glms_mat4_identity(), (vec3s) {{ 40.0f, 40.0f, 40.0f }});
-    // mat4s plane_model_matrix = glms_mat4_identity();
 
     num_instances_array[0] = NUM_ELEMS(cube_model_matrices);
     num_instances_array[1] = 1;
