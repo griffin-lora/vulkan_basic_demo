@@ -5,7 +5,6 @@
 #include "shadow_pipeline.h"
 #include "color_pipeline.h"
 #include "asset.h"
-#include "gfx_core.h"
 #include "defaults.h"
 #include <stdbool.h>
 #include <string.h>
@@ -58,6 +57,10 @@ static result_t check_layers(void) {
     
     VkLayerProperties available_layers[num_available_layers];
     vkEnumerateInstanceLayerProperties(&num_available_layers, available_layers);
+
+    for (size_t i = 0; i < num_available_layers; i++) {
+        printf("%s\n", available_layers[i].layerName);
+    }
 
     for (size_t i = 0; i < NUM_ELEMS(layers); i++) {
         bool not_found = true;
@@ -372,6 +375,7 @@ const char* init_vulkan_core(void) {
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
 
     window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", NULL, NULL);
     glfwSetFramebufferSizeCallback(window, framebuffer_resize);

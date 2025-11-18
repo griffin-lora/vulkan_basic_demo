@@ -17,7 +17,8 @@ result_t load_gltf_mesh(const char* path, mesh_t* mesh) {
     if (cgltf_parse_file(&options, path, &data) != cgltf_result_success) {
         return result_failure;
     }
-
+    
+    printf("%s, %ld\n", path, data->meshes_count);
     if (data->meshes_count != 1) {
         return result_failure;
     }

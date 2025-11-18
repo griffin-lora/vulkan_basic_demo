@@ -1,9 +1,9 @@
 #pragma once
-#include "vk.h"
+#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 #include "core.h"
 #include "result.h"
 #include <vk_mem_alloc.h>
-#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <cglm/struct/mat4.h>
 #include <cglm/struct/vec2.h>
 #include <cglm/struct/vec3.h>

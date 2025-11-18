@@ -1,5 +1,5 @@
 #pragma once
-#include "vk.h"
+#include <vulkan/vulkan.h>
 
 extern VkImageView shadow_image_view;
 

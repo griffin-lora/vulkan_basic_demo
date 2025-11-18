@@ -1,5 +1,6 @@
 #pragma once
-#include "vk.h"
+#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 #include <stdbool.h>
 #include <vk_mem_alloc.h>
 

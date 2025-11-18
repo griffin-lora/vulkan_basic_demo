@@ -4,3 +4,5 @@
 *.spv
 .vscode
 lib/*
+build
+CMakeUserPresets.json

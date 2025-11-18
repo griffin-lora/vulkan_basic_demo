@@ -1,7 +1,6 @@
 #pragma once
 #include "result.h"
-#include "vk.h"
-#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <vulkan/vulkan.h>
 #include <cglm/struct/vec2.h>
 #include <cglm/struct/vec3.h>
 
